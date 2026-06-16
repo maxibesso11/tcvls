@@ -1,0 +1,28 @@
+# ============================================================
+# Servicio systemd — alternativa a PM2 para correr el ERP.
+# Copiar a /etc/systemd/system/erp.service y ajustar las rutas
+# y el usuario. Luego:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now erp
+# ============================================================
+[Unit]
+Description=TCV LogiSuite ERP (Node.js)
+After=network.target mysql.service
+
+[Service]
+Type=simple
+# Usuario sin privilegios que ejecuta la app (crear con: adduser erp)
+User=erp
+Group=erp
+# Ruta donde está el proyecto
+WorkingDirectory=/home/erp/tcv-logisuite-erp
+# Ruta al binario de node (verificar con: which node)
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+# Las variables se leen del archivo .env vía dotenv en el código,
+# pero se puede forzar el entorno aquí también:
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

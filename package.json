@@ -1,0 +1,24 @@
+{
+  "name": "tcv-logisuite-erp",
+  "version": "1.0.0",
+  "description": "TCV LogiSuite ERP - Sistema de gestión logística y de transporte multiempresa",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "init-db": "mysql -u $DB_USER -p $DB_NAME < database/init_db.sql"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.10.0",
+    "pdfkit": "^0.15.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TCV LogiSuite ERP</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+  <!-- Pantalla de login -->
+  <div class="login-pantalla" id="login-pantalla" hidden>
+    <div class="login-caja">
+      <div class="login-marca">
+        <div class="brand-mark">TCV</div>
+        <div class="login-titulo">TCV LogiSuite ERP</div>
+        <div class="login-sub">Gestión de transporte y logística</div>
+      </div>
+      <div class="login-campo">
+        <label for="login-usuario">Usuario</label>
+        <input type="text" id="login-usuario" autocomplete="username" placeholder="nombre de usuario">
+      </div>
+      <div class="login-campo">
+        <label for="login-clave">Contraseña</label>
+        <div class="campo-clave">
+          <input type="password" id="login-clave" autocomplete="current-password" placeholder="contraseña">
+          <button type="button" class="btn-ver-clave" id="btn-ver-clave" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+            <svg id="icono-ojo" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="login-error" id="login-error" hidden></div>
+      <button class="btn btn-primario login-btn" id="login-btn">Ingresar</button>
+    </div>
+  </div>
+
+  <!-- Aplicación (oculta hasta autenticarse) -->
+  <div class="app-contenedor" id="app-contenedor" hidden>
+
+    <header class="topbar">
+      <button id="btn-menu" class="btn-icon" aria-label="Abrir menú">☰</button>
+      <span class="topbar-title" id="topbar-title">Gestión de transporte</span>
+    </header>
+
+    <div class="layout">
+      <div class="sidebar-overlay" id="sidebar-overlay" hidden></div>
+
+      <nav class="sidebar" id="sidebar">
+        <button id="btn-cerrar-sidebar" class="btn-icon btn-cerrar-sidebar" aria-label="Cerrar menú">✕</button>
+        <div class="sidebar-brand">
+          <div class="brand-mark" id="brand-iniciales">3A</div>
+          <div>
+            <div class="brand-name" id="brand-empresa">Empresa</div>
+            <div class="brand-sub">Gestión logística</div>
+          </div>
+        </div>
+
+        <!-- Navegación de datos (usuarios operativos) -->
+        <div id="nav-datos">
+          <div class="nav-group-label">Panel</div>
+          <a href="#dashboard" class="nav-link" data-vista="dashboard">Dashboard</a>
+
+          <div class="nav-group-label">Operaciones</div>
+          <a href="#viajes" class="nav-link" data-vista="viajes">Viajes</a>
+          <a href="#equipos" class="nav-link" data-vista="equipos">Equipos</a>
+
+          <div class="nav-group-label">Flota</div>
+          <a href="#unidades" class="nav-link" data-vista="unidades">Unidades</a>
+          <a href="#choferes" class="nav-link" data-vista="choferes">Choferes</a>
+          <a href="#cubiertas" class="nav-link" data-vista="cubiertas">Cubiertas</a>
+          <a href="#mantenimientos" class="nav-link" data-vista="mantenimientos">Mantenimientos</a>
+          <a href="#vencimientos" class="nav-link" data-vista="vencimientos">Vencimientos</a>
+
+          <div class="nav-group-label">Gastos</div>
+          <a href="#consumos-combustible" class="nav-link" data-vista="consumos-combustible">Combustible</a>
+          <a href="#consumos-generales" class="nav-link" data-vista="consumos-generales">Consumos generales</a>
+          <a href="#gastos-administrativos" class="nav-link" data-vista="gastos-administrativos">Gastos administrativos</a>
+
+          <div class="nav-group-label">Administración</div>
+          <a href="#cuentas-corrientes" class="nav-link" data-vista="cuentas-corrientes">Cuentas corrientes</a>
+          <a href="#cuentas" class="nav-link" data-vista="cuentas">Cuentas</a>
+          <a href="#movimientos" class="nav-link" data-vista="movimientos">Movimientos</a>
+          <a href="#stock" class="nav-link" data-vista="stock">Stock</a>
+        </div>
+
+        <!-- Navegación de administración global (solo ADMIN) -->
+        <div id="nav-admin" hidden>
+          <div class="nav-group-label">Administración global</div>
+          <a href="#admin-empresas" class="nav-link" data-vista="admin-empresas">Empresas</a>
+          <a href="#admin-usuarios" class="nav-link" data-vista="admin-usuarios">Usuarios</a>
+        </div>
+
+        <!-- Preferencias (visible para todos los usuarios) -->
+        <div class="nav-group-label">Preferencias</div>
+        <a href="#apariencia" class="nav-link" data-vista="apariencia">Apariencia</a>
+
+        <!-- Pie del sidebar: usuario y cerrar sesión -->
+        <div class="sidebar-usuario">
+          <div class="usuario-info">
+            <div class="usuario-nombre" id="usuario-nombre">usuario</div>
+            <div class="usuario-rol" id="usuario-rol">—</div>
+          </div>
+          <button class="btn btn-secundario btn-mini" id="btn-salir">Cerrar sesión</button>
+        </div>
+      </nav>
+
+      <main class="contenido" id="contenido"></main>
+    </div>
+  </div>
+
+  <!-- Modal genérico -->
+  <div class="modal-fondo" id="modal-fondo" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-cabecera">
+        <h2 id="modal-titulo">Nuevo registro</h2>
+        <button class="btn-icon" id="btn-cerrar-modal" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-cuerpo" id="modal-cuerpo"></div>
+      <div class="modal-pie">
+        <button class="btn btn-secundario" id="btn-cancelar">Cancelar</button>
+        <button class="btn btn-primario" id="btn-guardar">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

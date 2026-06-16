@@ -1,0 +1,21 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (¡nunca subir secretos!)
+.env
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Salidas de PM2
+.pm2/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Temporales
+*.tmp
+*.bak
