@@ -23,8 +23,8 @@ function configurarVariables() {
   process.env.DB_USER = process.env.TEST_DB_USER || 'root';
   process.env.DB_PASSWORD = process.env.TEST_DB_PASSWORD || '';
   process.env.DB_NAME = 'erp_3_abril';
-  process.env.AUTH_SECRET = 'secreto-solo-para-tests';
-  process.env.CERT_SECRET = 'cert-secreto-solo-para-tests';
+  process.env.AUTH_SECRET = 'secreto-de-firma-solo-para-tests-0123456789';
+  process.env.CERT_SECRET = 'secreto-de-certificados-solo-para-tests-9876';
   process.env.ARCA_HABILITADO = '0';
 }
 
@@ -39,6 +39,9 @@ async function recrearBase() {
   });
   try {
     await conexion.query(fs.readFileSync(RUTA_ESQUEMA, 'utf8'));
+    // init_db obliga a cambiar las contraseñas iniciales en el primer ingreso;
+    // los tests operan directo (ese flujo se prueba en seguridad.test.js).
+    await conexion.query('UPDATE erp_3_abril.USUARIOS SET debe_cambiar_contrasena = 0');
   } finally {
     await conexion.end();
   }
@@ -57,23 +60,28 @@ async function levantar() {
   const base = `http://127.0.0.1:${servidor.address().port}`;
   let token = null;
 
-  async function api(metodo, url, cuerpo) {
+  // opciones.token: usar ese token en lugar del de la sesión iniciada
+  // (null = sin token). opciones.crudo: cuerpo tal cual, sin JSON.stringify.
+  async function api(metodo, url, cuerpo, opciones = {}) {
     const headers = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
+    const tokenPedido = 'token' in opciones ? opciones.token : token;
+    if (tokenPedido) headers.Authorization = `Bearer ${tokenPedido}`;
     const resp = await fetch(base + url, {
       method: metodo,
       headers,
-      body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined
+      body: opciones.crudo !== undefined ? opciones.crudo : (cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined)
     });
     const tipo = resp.headers.get('content-type') || '';
     const datos = tipo.includes('application/json') ? await resp.json() : null;
-    return { estado: resp.status, datos };
+    return { estado: resp.status, datos, cabeceras: resp.headers };
   }
 
+  // Inicia sesión y la deja como sesión por defecto. Devuelve el token.
   async function iniciarSesion(usuario, contrasena) {
-    const r = await api('POST', '/api/auth/login', { nombre_usuario: usuario, contrasena });
+    const r = await api('POST', '/api/auth/login', { nombre_usuario: usuario, contrasena }, { token: null });
     if (!r.datos || !r.datos.token) throw new Error(`No se pudo iniciar sesión como ${usuario}`);
     token = r.datos.token;
+    return token;
   }
 
   async function cerrar() {
@@ -81,7 +89,7 @@ async function levantar() {
     await pool.end();
   }
 
-  return { api, iniciarSesion, pool, cerrar };
+  return { api, iniciarSesion, pool, cerrar, base };
 }
 
 module.exports = { HABILITADO, MOTIVO_OMISION, levantar };

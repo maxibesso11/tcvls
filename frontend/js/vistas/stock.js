@@ -23,7 +23,7 @@ async function abrirModalMoverDeposito(clave) {
   }
 
   const opciones = depositos.map(d =>
-    `<option value="${String(d.deposito).replace(/"/g, '&quot;')}">${d.deposito} (${d.elementos} elem. · ${fmtDinero(d.valuacion_total)})</option>`
+    `<option value="${esc(d.deposito)}">${esc(d.deposito)} (${d.elementos} elem. · ${fmtDinero(d.valuacion_total)})</option>`
   ).join('');
 
   $('#modal-cuerpo').innerHTML = `
@@ -35,7 +35,7 @@ async function abrirModalMoverDeposito(clave) {
       <label for="md-destino">Depósito de destino *</label>
       <input id="md-destino" type="text" maxlength="100" list="md-lista-destinos" placeholder="Existente o nuevo (ej: Equipo #2 · AD789GH)">
       <datalist id="md-lista-destinos">
-        ${depositos.map(d => `<option value="${String(d.deposito).replace(/"/g, '&quot;')}"></option>`).join('')}
+        ${depositos.map(d => `<option value="${esc(d.deposito)}"></option>`).join('')}
       </datalist>
     </div>
     <div class="campo ancho-completo" style="font-size:13px;color:var(--texto-suave)">

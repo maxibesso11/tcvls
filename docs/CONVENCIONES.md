@@ -40,6 +40,11 @@ sistema siga funcionando en producción.
    Nunca correr `init_db.sql` en producción.
 5. **`server.js` de la raíz no se mueve**: lo usan PM2, systemd y las guías.
 6. **`CERT_SECRET` no se cambia** una vez guardados certificados.
+7. **Errores:** en las rutas, `catch (err) { responderError(res, err, req); }`.
+   Para un mensaje pensado para el usuario, lanzar `ErrorNegocio`; nunca
+   devolver `err.message` crudo al navegador.
+8. **Frontend:** todo dato cargado por usuarios que se inserte con `innerHTML`
+   pasa por `esc()`. Las descargas protegidas usan `API.descargarArchivo`.
 
 ## Antes de subir un cambio
 

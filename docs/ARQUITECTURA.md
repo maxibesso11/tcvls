@@ -94,6 +94,22 @@ después reconcilia los movimientos de la cuenta del chofer y del cliente
 - **Módulos por empresa** en `config/modulos.js`: dependencias y obligatorios
   (Cuentas y Facturación siempre activos).
 
+### Seguridad
+
+| Qué | Dónde |
+|-----|-------|
+| Arranque bloqueado si faltan `AUTH_SECRET`/`CERT_SECRET` o son débiles | `lib/seguridad/configuracion.js` (lo llama `server.js`) |
+| Sesión: token firmado en `Authorization: Bearer` (nunca en la URL); en cada pedido se verifica que el usuario siga activo y que su `version_sesion` coincida | `middleware/autenticacion.js` |
+| Contraseña temporal (instalación inicial o asignada por el admin): hay que cambiarla antes de operar | `debe_cambiar_contrasena` + `PUT /api/auth/contrasena` |
+| Límite de intentos de login: 5 por usuario e IP y 20 por IP, cada 15 min | `lib/seguridad/limiteIntentos.js` |
+| Cabeceras HTTP (CSP, nosniff, anti-iframe, HSTS con HTTPS) | `middleware/seguridad.js` |
+| Errores: los de negocio (`ErrorNegocio`) y los de validación de MySQL se muestran con un mensaje claro; el resto va al log con un código y el navegador recibe solo ese código | `lib/errores.js` (`responderError`) |
+| Descargas protegidas (PDF, CSR) con `fetch` y cabecera | `frontend/js/api.js → descargarArchivo` |
+| Texto de usuarios insertado en HTML siempre con `esc()` | `frontend/js/nucleo/utilidades.js` |
+
+La puesta a punto del servidor (usuario administrador, SSH solo con clave,
+respaldos) está en `docs/operacion/SERVIDOR.md`.
+
 ## Frontend (`frontend/`)
 
 Se sirve como carpeta estática: `frontend/css/styles.css` es `/css/styles.css`.
@@ -116,7 +132,7 @@ y **todas las funciones son globales**, porque el HTML generado usa
 | Carpeta | Uso | Cuándo |
 |---------|-----|--------|
 | `esquema/init_db.sql` | Crea la base desde cero con datos iniciales. **Ejecuta `DROP DATABASE`** | Solo instalación nueva o pruebas |
-| `migraciones/` | Cambios incrementales 001…023 | Actualizar producción sin perder datos |
+| `migraciones/` | Cambios incrementales 001…024 | Actualizar producción sin perder datos |
 | `datos_prueba/` | ~5.600 filas coherentes y su generador | Pruebas y demos |
 
 ## Verificación

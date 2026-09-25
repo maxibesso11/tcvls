@@ -375,7 +375,10 @@ async function renderDashboard() {
 
     $('#dash-paneles').innerHTML = paneles.join('');
   } catch (err) {
-    $('#dash-kpis').innerHTML = `<div class="estado-vacio">No se pudo conectar con la base de datos.<br>${err.message}</div>`;
+    // Si el usuario ya cambió de vista mientras cargaba, no hay dónde mostrarlo.
+    const destino = $('#dash-kpis');
+    if (!destino) return;
+    destino.innerHTML = `<div class="estado-vacio">No se pudo conectar con la base de datos.<br>${esc(err.message)}</div>`;
   }
 }
 

@@ -34,6 +34,7 @@ npm start
 
 Abrir **http://localhost:3000** (landing comercial) o **http://localhost:3000/app** (sistema).
 Usuarios iniciales: `admin` / `admin123` (administrador global) y `demo` / `demo123`.
+El sistema obliga a cambiar esas contraseñas en el primer ingreso.
 
 Para desarrollo con recarga automática: `npm run dev`
 
@@ -190,6 +191,7 @@ Recursos: `choferes`, `unidades`, `equipos`, `viajes`, `consumos-combustible`,
 - Guía general: **[docs/despliegue/DEPLOY.md](docs/despliegue/DEPLOY.md)**
 - Hostinger con dominio y HTTPS: **[docs/despliegue/DEPLOY_HOSTINGER.md](docs/despliegue/DEPLOY_HOSTINGER.md)**
 - Actualizar una instalación existente sin perder datos: **[docs/operacion/ACTUALIZAR_SIN_PERDER_DATOS.md](docs/operacion/ACTUALIZAR_SIN_PERDER_DATOS.md)**
+- Seguridad del servidor y respaldos automáticos: **[docs/operacion/SERVIDOR.md](docs/operacion/SERVIDOR.md)**
 - Factura electrónica ARCA: **[docs/facturacion/HABILITAR_FACTURACION_ARCA.md](docs/facturacion/HABILITAR_FACTURACION_ARCA.md)**
 
 Archivos de apoyo para el deploy:

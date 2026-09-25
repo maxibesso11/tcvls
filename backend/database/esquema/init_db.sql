@@ -63,6 +63,10 @@ CREATE TABLE USUARIOS (
     rol ENUM('ADMIN', 'USUARIO') NOT NULL DEFAULT 'USUARIO',
     tema VARCHAR(30) NOT NULL DEFAULT 'verde',
     activo TINYINT(1) NOT NULL DEFAULT 1,
+    -- Contraseña asignada por otro: debe cambiarse al ingresar (migración 024).
+    debe_cambiar_contrasena TINYINT(1) NOT NULL DEFAULT 0,
+    -- Se incrementa al cambiar la contraseña e invalida las sesiones previas.
+    version_sesion INT NOT NULL DEFAULT 0,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE SET NULL,
     INDEX idx_nombre_usuario (nombre_usuario),
@@ -410,6 +414,10 @@ INSERT INTO EMPRESAS (id_empresa, nombre, iniciales, cuit, domicilio, telefono, 
 INSERT INTO USUARIOS (nombre_usuario, contrasena_hash, correo, id_empresa, rol) VALUES
 ('admin', 'e12acd1b80ef12b19b56c9f4877aed83:7404618ad96aa4d5ad409a42444d9fd9a4ef878c5f170bbb99220790adf9c0c8f4d45e0d01d6e35b864b8e491d9f18a0a8b65a4c60394640fd66d5848c2f3cfa', 'admin@sistema.com', NULL, 'ADMIN'),
 ('demo',  '3c56c08776b3cff2b08c290940182ad2:739e3d24b6ae96f530d6080ff6c0168055bade988dc58873cb7f9576e90a09fb152539a310412e30ce3a723ade743c9bbc22b7dd3acd524b4d8d8a5d395d86f7',  'demo@3deabril.com.ar', 1, 'USUARIO');
+
+-- Las contraseñas iniciales (admin123, demo123) son públicas: deben
+-- cambiarse en el primer ingreso.
+UPDATE USUARIOS SET debe_cambiar_contrasena = 1;
 
 -- ---------- MODULOS_EMPRESA ----------
 -- La empresa de ejemplo arranca con todos los módulos activos.

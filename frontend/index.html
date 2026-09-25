@@ -38,6 +38,33 @@
     </div>
   </div>
 
+  <!-- Cambio de contraseña: obligatorio con la contraseña inicial o una
+       asignada por el administrador; también a pedido desde Apariencia. -->
+  <div class="login-pantalla" id="clave-pantalla" hidden>
+    <div class="login-caja">
+      <div class="login-marca">
+        <img src="/img/logo/isotipo.svg" alt="TCV LogiSuite" class="login-logo">
+        <div class="login-titulo">Cambiar contraseña</div>
+        <div class="login-sub" id="clave-aviso">Elegí una contraseña nueva de al menos 8 caracteres.</div>
+      </div>
+      <div class="login-campo">
+        <label for="clave-actual">Contraseña actual</label>
+        <input type="password" id="clave-actual" autocomplete="current-password">
+      </div>
+      <div class="login-campo">
+        <label for="clave-nueva">Contraseña nueva</label>
+        <input type="password" id="clave-nueva" autocomplete="new-password">
+      </div>
+      <div class="login-campo">
+        <label for="clave-repetir">Repetir la contraseña nueva</label>
+        <input type="password" id="clave-repetir" autocomplete="new-password">
+      </div>
+      <div class="login-error" id="clave-error" hidden></div>
+      <button class="btn btn-primario login-btn" id="clave-btn">Guardar contraseña</button>
+      <button class="btn btn-secundario login-btn" id="clave-cancelar">Cancelar</button>
+    </div>
+  </div>
+
   <!-- Aplicación (oculta hasta autenticarse) -->
   <div class="app-contenedor" id="app-contenedor" hidden>
 
@@ -133,20 +160,20 @@
   <!-- Orden de carga: cliente de la API, núcleo, vistas, sesión y arranque.
        Todas las funciones son globales (las usan los onclick del HTML generado).
        Al modificar un JS, actualizar ?v= para evitar la caché del navegador. -->
-  <script src="/js/api.js?v=20260924"></script>
-  <script src="/js/nucleo/modulos.js?v=20260924"></script>
-  <script src="/js/nucleo/utilidades.js?v=20260924"></script>
-  <script src="/js/nucleo/navegacion.js?v=20260924"></script>
-  <script src="/js/vistas/dashboard.js?v=20260924"></script>
-  <script src="/js/vistas/metricas.js?v=20260924"></script>
-  <script src="/js/vistas/facturacion.js?v=20260924"></script>
-  <script src="/js/vistas/cuentasCorrientes.js?v=20260924"></script>
-  <script src="/js/vistas/viajes.js?v=20260924"></script>
-  <script src="/js/vistas/stock.js?v=20260924"></script>
-  <script src="/js/vistas/crud.js?v=20260924"></script>
-  <script src="/js/vistas/apariencia.js?v=20260924"></script>
-  <script src="/js/vistas/admin.js?v=20260924"></script>
-  <script src="/js/nucleo/sesion.js?v=20260924"></script>
-  <script src="/js/app.js?v=20260924"></script>
+  <script src="/js/api.js?v=20260925"></script>
+  <script src="/js/nucleo/modulos.js?v=20260925"></script>
+  <script src="/js/nucleo/utilidades.js?v=20260925"></script>
+  <script src="/js/nucleo/navegacion.js?v=20260925"></script>
+  <script src="/js/vistas/dashboard.js?v=20260925"></script>
+  <script src="/js/vistas/metricas.js?v=20260925"></script>
+  <script src="/js/vistas/facturacion.js?v=20260925"></script>
+  <script src="/js/vistas/cuentasCorrientes.js?v=20260925"></script>
+  <script src="/js/vistas/viajes.js?v=20260925"></script>
+  <script src="/js/vistas/stock.js?v=20260925"></script>
+  <script src="/js/vistas/crud.js?v=20260925"></script>
+  <script src="/js/vistas/apariencia.js?v=20260925"></script>
+  <script src="/js/vistas/admin.js?v=20260925"></script>
+  <script src="/js/nucleo/sesion.js?v=20260925"></script>
+  <script src="/js/app.js?v=20260925"></script>
 </body>
 </html>

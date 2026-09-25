@@ -11,6 +11,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const { calcularPaginacion } = require('./paginacion');
+const { responderError: responderErrorGeneral } = require('./errores');
 
 const MENSAJE_FALLA_AUTOMATISMO =
   'No se pudo completar la operación: falló la actualización automática de las cuentas corrientes. No se guardó ningún cambio.';
@@ -47,10 +48,7 @@ async function correrHookPosterior(nombre, fn) {
 
 function responderError(res, err) {
   if (err.fallaAutomatismo) return res.status(500).json({ error: MENSAJE_FALLA_AUTOMATISMO });
-  if (err.code === 'ER_ROW_IS_REFERENCED_2') {
-    return res.status(409).json({ error: 'No se puede eliminar: el registro está siendo utilizado por otra tabla' });
-  }
-  return res.status(500).json({ error: err.message });
+  return responderErrorGeneral(res, err);
 }
 
 function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, filtrosLike, filtroFecha, ordenable, hooks = {} }) {
@@ -130,7 +128,7 @@ function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, fil
         paginacion: { pagina, por_pagina: porPagina, total, total_paginas: totalPaginas }
       });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      responderError(res, err);
     }
   });
 
@@ -144,7 +142,7 @@ function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, fil
       if (rows.length === 0) return res.status(404).json({ error: 'Registro no encontrado' });
       res.json(rows[0]);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      responderError(res, err);
     }
   });
 

@@ -4,8 +4,13 @@
 // tokens de sesión firmados con HMAC (formato tipo JWT simplificado).
 const crypto = require('crypto');
 
-// Secreto para firmar los tokens. En producción debe venir del entorno.
-const SECRETO = process.env.AUTH_SECRET || 'cambiar-este-secreto-en-produccion-3deabril';
+// Secreto para firmar los tokens. Viene SOLO del entorno: sin valor por
+// defecto, porque uno conocido permitiría fabricar sesiones. El arranque ya
+// lo exige (configuracion.js); esto es una segunda barrera.
+function secreto() {
+  if (!process.env.AUTH_SECRET) throw new Error('AUTH_SECRET no está configurado.');
+  return process.env.AUTH_SECRET;
+}
 const { DURACION_TOKEN_HORAS } = require('../../config/constantes');
 
 // ---------- Hashing de contraseñas ----------
@@ -28,6 +33,24 @@ function verificarContrasena(contrasena, guardado) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+// Política mínima para una contraseña nueva. Devuelve el problema o null.
+const CONTRASENAS_TRIVIALES = new Set(['admin123', 'demo123', '12345678', '123456789', 'password', 'contraseña', 'qwerty123']);
+const LARGO_MINIMO_CONTRASENA = 8;
+
+function problemaContrasenaNueva(contrasena, nombreUsuario) {
+  const valor = String(contrasena || '');
+  if (valor.length < LARGO_MINIMO_CONTRASENA) {
+    return `La contraseña debe tener al menos ${LARGO_MINIMO_CONTRASENA} caracteres.`;
+  }
+  if (CONTRASENAS_TRIVIALES.has(valor.toLowerCase())) {
+    return 'Esa contraseña es demasiado conocida; elegí otra.';
+  }
+  if (nombreUsuario && valor.toLowerCase() === String(nombreUsuario).toLowerCase()) {
+    return 'La contraseña no puede ser igual al nombre de usuario.';
+  }
+  return null;
+}
+
 // ---------- Tokens de sesión ----------
 
 function base64url(obj) {
@@ -35,7 +58,7 @@ function base64url(obj) {
 }
 
 function firmar(parteCodificada) {
-  return crypto.createHmac('sha256', SECRETO).update(parteCodificada).digest('base64url');
+  return crypto.createHmac('sha256', secreto()).update(parteCodificada).digest('base64url');
 }
 
 // Crea un token con los datos del usuario (id, rol, id_empresa) y vencimiento.
@@ -53,7 +76,10 @@ function generarToken(payload) {
 function verificarToken(token) {
   if (!token || !token.includes('.')) return null;
   const [codificado, firma] = token.split('.');
-  if (firmar(codificado) !== firma) return null;
+  // Comparación en tiempo constante (no revela cuántos caracteres coinciden).
+  const esperada = Buffer.from(firmar(codificado));
+  const recibida = Buffer.from(String(firma || ''));
+  if (esperada.length !== recibida.length || !crypto.timingSafeEqual(esperada, recibida)) return null;
   try {
     const cuerpo = JSON.parse(Buffer.from(codificado, 'base64url').toString());
     if (!cuerpo.exp || cuerpo.exp < Date.now()) return null;
@@ -66,6 +92,7 @@ function verificarToken(token) {
 module.exports = {
   hashearContrasena,
   verificarContrasena,
+  problemaContrasenaNueva,
   generarToken,
   verificarToken
 };

@@ -34,6 +34,7 @@ ni perder datos.
 | 021 | certificados de facturación ARCA por empresa (CERTIFICADOS_ARCA) |
 | 022 | facturación pasa a ser requisito de viajes (activa donde falta) |
 | 023 | referencia formal de cada movimiento automático a su origen (origen_tipo, origen_id) + relleno |
+| 024 | seguridad de usuarios: cambio obligatorio de contraseña y versión de sesión |
 | reparar_facturacion | repara instalaciones de facturación a medias (ver abajo) |
 
 ## Cómo actualizar una base en producción

@@ -58,7 +58,7 @@ async function cargarFacturas(pagina = 1) {
               <td class="celda-num" style="font-weight:600">${fmtDinero(f.total)}</td>
               <td>${estado}</td>
               <td style="white-space:nowrap">
-                <a class="btn btn-primario btn-mini" style="text-decoration:none" href="${API.urlPdfFactura(f.id_factura)}" target="_blank">PDF</a>
+                <button class="btn btn-primario btn-mini" onclick="descargarPdfFactura(${f.id_factura})">PDF</button>
                 ${btnNC}
               </td>
             </tr>`;
@@ -77,7 +77,7 @@ async function emitirNotaCredito(idFactura, nro) {
   try {
     const { id_factura } = await API.notaCredito(idFactura);
     mostrarToast('Nota de crédito emitida.');
-    window.open(API.urlPdfFactura(id_factura), '_blank');
+    descargarPdfFactura(id_factura);
     renderFacturacion();
   } catch (err) {
     mostrarToast(err.message, true);
@@ -117,7 +117,7 @@ async function abrirFacturarViaje() {
       try {
         const { id_factura } = await API.facturarViaje(sel.value);
         mostrarToast('Factura generada.');
-        window.open(API.urlPdfFactura(id_factura), '_blank');
+        descargarPdfFactura(id_factura);
         renderFacturacion();
         return true;
       } catch (err) { _facError(err.message); return false; }
@@ -164,7 +164,7 @@ async function abrirFacturaManual() {
       try {
         const { id_factura } = await API.facturarManual({ id_cuenta, items, observaciones: $('#fm-obs').value });
         mostrarToast('Factura generada.');
-        window.open(API.urlPdfFactura(id_factura), '_blank');
+        descargarPdfFactura(id_factura);
         renderFacturacion();
         return true;
       } catch (err) { _facError(err.message); return false; }
@@ -223,4 +223,10 @@ function _facMarcar(input) {
 function _facError(msg) {
   const box = $('#fac-error');
   if (box) { box.textContent = msg; box.hidden = false; }
+}
+
+// Descarga el PDF de un comprobante (token por cabecera, no en la URL).
+async function descargarPdfFactura(idFactura) {
+  try { await API.descargarPdfFactura(idFactura); }
+  catch (err) { mostrarToast(err.message, true); }
 }

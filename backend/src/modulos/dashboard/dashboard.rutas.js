@@ -4,6 +4,7 @@
 const express = require('express');
 const pool = require('../../config/db');
 const { SQL_BASE_VIAJE, SQL_IVA_VIAJE, filtros } = require('./dashboard.consultas');
+const { responderError } = require('../../lib/errores');
 const router = express.Router();
 
 // Atajo: solo filtro de empresa
@@ -97,7 +98,7 @@ router.get('/kpis', async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -212,7 +213,7 @@ router.get('/alertas', async (req, res) => {
       limite: LIMITE
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -238,7 +239,7 @@ router.get('/rendimiento-equipos', async (req, res) => {
     `, [emp(req)]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -259,7 +260,7 @@ router.get('/rendimiento-choferes', async (req, res) => {
     `, [emp(req)]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -277,7 +278,7 @@ router.get('/ingresos-mensuales', async (req, res) => {
     `, [emp(req)]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -295,7 +296,7 @@ router.get('/clientes-top', async (req, res) => {
     `, [emp(req)]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -341,7 +342,7 @@ router.get('/consumos-por-equipo', async (req, res) => {
     `, [...pFecha, e, ...equipoParam]);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -415,7 +416,7 @@ router.get('/ingresos-por-viaje', async (req, res) => {
       por_tipo: porTipo
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -547,7 +548,7 @@ router.get('/rentabilidad-equipos', async (req, res) => {
       rentabilidad_neta_con_iva: sumaRent + sumaIva - totalGA
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -579,7 +580,7 @@ router.get('/gastos-administrativos', async (req, res) => {
 
     res.json({ total: Number(total.total), cantidad: Number(total.cantidad), por_proveedor: porProveedor });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 

@@ -2,9 +2,10 @@
 // Gestión de empresas y usuarios. Todas las rutas requieren rol ADMIN.
 const express = require('express');
 const pool = require('../../config/db');
-const { hashearContrasena } = require('../../lib/seguridad/credenciales');
+const { hashearContrasena, problemaContrasenaNueva } = require('../../lib/seguridad/credenciales');
 const { requiereAutenticacion, requiereAdmin } = require('../../middleware/autenticacion');
 const { MODULOS, CLAVES, validarDependencias, conObligatorios } = require('../../config/modulos');
+const { responderError } = require('../../lib/errores');
 
 const router = express.Router();
 router.use(requiereAutenticacion, requiereAdmin);
@@ -21,7 +22,7 @@ router.get('/empresas', async (req, res) => {
     `);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -48,7 +49,7 @@ router.post('/empresas', async (req, res) => {
     res.status(201).json({ id_empresa: nuevaId, nombre });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Ya existe una empresa con ese CUIT.' });
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -72,7 +73,7 @@ router.put('/empresas/:id', async (req, res) => {
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Empresa no encontrada.' });
     res.json({ id_empresa: Number(req.params.id), ...data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -89,7 +90,7 @@ router.get('/usuarios', async (req, res) => {
     `);
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -99,6 +100,8 @@ router.post('/usuarios', async (req, res) => {
     if (!nombre_usuario || !contrasena) {
       return res.status(400).json({ error: 'Usuario y contraseña son obligatorios.' });
     }
+    const problema = problemaContrasenaNueva(contrasena, nombre_usuario);
+    if (problema) return res.status(400).json({ error: problema });
     const rolFinal = rol === 'ADMIN' ? 'ADMIN' : 'USUARIO';
     // Un usuario operativo (no ADMIN) debe tener empresa
     if (rolFinal === 'USUARIO' && !id_empresa) {
@@ -110,12 +113,14 @@ router.post('/usuarios', async (req, res) => {
       correo: correo || null,
       id_empresa: rolFinal === 'ADMIN' ? null : id_empresa,
       rol: rolFinal,
-      activo: 1
+      activo: 1,
+      // La contraseña la eligió el administrador: el usuario la cambia al ingresar.
+      debe_cambiar_contrasena: 1
     }]);
     res.status(201).json({ id_usuario: result.insertId, nombre_usuario, rol: rolFinal });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Ya existe un usuario con ese nombre.' });
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -127,7 +132,7 @@ router.put('/usuarios/:id', async (req, res) => {
     // permite cambiarle la contraseña, para no dejar nunca al sistema sin
     // su administrador principal.
     const [[objetivo]] = await pool.query(
-      'SELECT id_usuario, nombre_usuario, rol FROM USUARIOS WHERE id_usuario = ?',
+      'SELECT id_usuario, nombre_usuario, rol, version_sesion FROM USUARIOS WHERE id_usuario = ?',
       [req.params.id]
     );
     if (!objetivo) return res.status(404).json({ error: 'Usuario no encontrado.' });
@@ -136,9 +141,23 @@ router.put('/usuarios/:id', async (req, res) => {
     const { nombre_usuario, contrasena, correo, id_empresa, rol, activo } = req.body;
     const data = {};
 
+    if (contrasena) {
+      const problema = problemaContrasenaNueva(contrasena, nombre_usuario || objetivo.nombre_usuario);
+      if (problema) return res.status(400).json({ error: problema });
+    }
+    // Contraseña asignada por el administrador a OTRO usuario: queda como
+    // temporal (debe cambiarla al ingresar) y se cierran sus sesiones abiertas.
+    const asignarContrasena = () => {
+      data.contrasena_hash = hashearContrasena(contrasena);
+      if (objetivo.id_usuario !== req.usuario.id_usuario) {
+        data.debe_cambiar_contrasena = 1;
+        data.version_sesion = (Number(objetivo.version_sesion) || 0) + 1;
+      }
+    };
+
     if (esAdminOriginal) {
       // Para el admin original, ignorar todo menos la contraseña.
-      if (contrasena) data.contrasena_hash = hashearContrasena(contrasena);
+      if (contrasena) asignarContrasena();
       // Permitir actualizar el correo (dato de contacto, inofensivo)
       if (correo !== undefined) data.correo = correo || null;
       if (Object.keys(data).length === 0) {
@@ -161,7 +180,7 @@ router.put('/usuarios/:id', async (req, res) => {
       if (id_empresa !== undefined) data.id_empresa = id_empresa || null;
       if (activo !== undefined) data.activo = activo ? 1 : 0;
       // Solo cambiar la contraseña si se envió una nueva no vacía
-      if (contrasena) data.contrasena_hash = hashearContrasena(contrasena);
+      if (contrasena) asignarContrasena();
 
       // Coherencia: un ADMIN no tiene empresa; un USUARIO debe tenerla
       if (data.rol === 'ADMIN') data.id_empresa = null;
@@ -173,10 +192,11 @@ router.put('/usuarios/:id', async (req, res) => {
     const [result] = await pool.query('UPDATE USUARIOS SET ? WHERE id_usuario = ?', [data, req.params.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Usuario no encontrado.' });
     delete data.contrasena_hash;
+    delete data.version_sesion;
     res.json({ id_usuario: Number(req.params.id), ...data });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Ya existe un usuario con ese nombre.' });
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -200,7 +220,7 @@ router.delete('/usuarios/:id', async (req, res) => {
     await pool.query('DELETE FROM USUARIOS WHERE id_usuario = ?', [req.params.id]);
     res.json({ mensaje: 'Usuario eliminado correctamente.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -221,7 +241,7 @@ router.get('/empresas/:id/modulos', async (req, res) => {
     );
     res.json(filas.map(f => f.modulo));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -259,7 +279,7 @@ router.put('/empresas/:id/modulos', async (req, res) => {
     res.json({ id_empresa: idEmpresa, modulos });
   } catch (err) {
     await conexion.rollback();
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   } finally {
     conexion.release();
   }

@@ -122,6 +122,11 @@ tenías: es esperable, ignoralo, el resto se aplica igual.
 
 ---
 
+> **Desde la migración 023 en adelante** revisá también la guía
+> `docs/operacion/SERVIDOR.md` → *Checklist del próximo deploy*: la versión
+> nueva exige `CERT_SECRET` y un `AUTH_SECRET` de al menos 32 caracteres en el
+> `.env`, y no arranca sin ellos.
+
 ## Paso 3 — Actualizar el código
 
 El código nuevo reemplaza al viejo, pero la **configuración** (que tiene la clave

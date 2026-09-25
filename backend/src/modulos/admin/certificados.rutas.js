@@ -13,6 +13,7 @@ const pool = require('../../config/db');
 const { requiereAutenticacion, requiereAdmin } = require('../../middleware/autenticacion');
 const cifrado = require('../../lib/seguridad/cifrado');
 const certs = require('../../integraciones/certificados');
+const { responderError } = require('../../lib/errores');
 
 router.use(requiereAutenticacion, requiereAdmin);
 
@@ -33,7 +34,7 @@ router.get('/:idEmpresa', async (req, res) => {
       secreto_inseguro: cifrado.secretoInseguro()
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -61,7 +62,7 @@ router.post('/:idEmpresa/generar', async (req, res) => {
     );
     res.json({ ok: true, alias, mensaje: 'Clave y solicitud (CSR) generadas. Descargá el CSR y subilo a ARCA.' });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -76,7 +77,7 @@ router.get('/:idEmpresa/csr', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${cert.alias || 'solicitud'}.csr"`);
     res.send(cert.csr_pem);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -109,7 +110,7 @@ router.post('/:idEmpresa/certificado', async (req, res) => {
       [pem, fechaVenc, cert.id_certificado]);
     res.json({ ok: true, fecha_vencimiento: fechaVenc, mensaje: 'Certificado cargado. La facturación electrónica quedó habilitada.' });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -119,7 +120,7 @@ router.delete('/:idEmpresa', async (req, res) => {
     await pool.query('DELETE FROM CERTIFICADOS_ARCA WHERE id_empresa = ?', [req.params.idEmpresa]);
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 

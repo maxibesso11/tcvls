@@ -34,13 +34,56 @@ function aplicarTema(tema) {
 }
 
 function mostrarLogin() {
+  $('#clave-pantalla').hidden = true;
   $('#login-pantalla').hidden = false;
   $('#app-contenedor').hidden = true;
 }
 
 function mostrarApp() {
+  $('#clave-pantalla').hidden = true;
   $('#login-pantalla').hidden = true;
   $('#app-contenedor').hidden = false;
+}
+
+// ---------- Cambio de contraseña ----------
+// Obligatorio: el usuario tiene una contraseña inicial o asignada por el
+// administrador y no puede usar el sistema hasta reemplazarla.
+let _cambioClaveObligatorio = false;
+
+function mostrarCambioContrasena(obligatorio) {
+  _cambioClaveObligatorio = Boolean(obligatorio);
+  ['#clave-actual', '#clave-nueva', '#clave-repetir'].forEach(sel => { $(sel).value = ''; });
+  $('#clave-error').hidden = true;
+  $('#clave-aviso').textContent = _cambioClaveObligatorio
+    ? 'Por seguridad, reemplazá la contraseña que te asignaron antes de continuar (mínimo 8 caracteres).'
+    : 'Elegí una contraseña nueva de al menos 8 caracteres.';
+  $('#clave-cancelar').hidden = _cambioClaveObligatorio;
+  $('#login-pantalla').hidden = true;
+  $('#app-contenedor').hidden = true;
+  $('#clave-pantalla').hidden = false;
+  $('#clave-actual').focus();
+}
+
+async function guardarNuevaContrasena() {
+  const actual = $('#clave-actual').value;
+  const nueva = $('#clave-nueva').value;
+  const errorBox = $('#clave-error');
+  errorBox.hidden = true;
+  const mostrarErrorClave = texto => { errorBox.textContent = texto; errorBox.hidden = false; };
+  if (!actual || !nueva) return mostrarErrorClave('Completá la contraseña actual y la nueva.');
+  if (nueva !== $('#clave-repetir').value) return mostrarErrorClave('Las contraseñas nuevas no coinciden.');
+  try {
+    const { token } = await API.cambiarContrasena(actual, nueva);
+    API.setToken(token);
+    mostrarToast('Contraseña actualizada.');
+    if (_cambioClaveObligatorio && SESION) {
+      aplicarSesion({ ...SESION, debe_cambiar_contrasena: false });
+    } else {
+      mostrarApp();
+    }
+  } catch (err) {
+    mostrarErrorClave(err.message);
+  }
 }
 
 // Devuelve true si el módulo está activo para la empresa del usuario actual.
@@ -80,6 +123,11 @@ function aplicarSesion(usuario) {
   SESION = usuario;
   // Apariencia elegida por el usuario
   aplicarTema(usuario.tema || 'verde');
+  // Con contraseña temporal, primero hay que cambiarla
+  if (usuario.debe_cambiar_contrasena) {
+    mostrarCambioContrasena(true);
+    return;
+  }
   const esAdmin = usuario.rol === 'ADMIN';
   // Iniciales del logo: las de la empresa, o derivadas del nombre, o "AD" para el admin
   let iniciales;
@@ -164,6 +212,13 @@ $('#btn-ver-clave').addEventListener('click', () => {
 });
 
 $('#btn-salir').addEventListener('click', cerrarSesion);
+
+$('#clave-btn').addEventListener('click', guardarNuevaContrasena);
+$('#clave-repetir').addEventListener('keydown', e => { if (e.key === 'Enter') guardarNuevaContrasena(); });
+$('#clave-cancelar').addEventListener('click', mostrarApp);
+
+// El servidor exige cambiar la contraseña antes de seguir operando
+window.addEventListener('cambio-contrasena-requerido', () => mostrarCambioContrasena(true));
 
 // Si una petición devuelve 401, la sesión expiró
 window.addEventListener('sesion-expirada', () => {

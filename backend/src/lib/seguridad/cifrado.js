@@ -9,13 +9,12 @@
 // descifrar las claves privadas.
 const crypto = require('crypto');
 
-const SECRETO = process.env.CERT_SECRET
-  || process.env.AUTH_SECRET
-  || 'cambiar-este-secreto-de-certificados-en-produccion';
-
+// Sin valor por defecto ni respaldo en AUTH_SECRET: el arranque exige
+// CERT_SECRET (configuracion.js) y esto es una segunda barrera.
 // Deriva una clave de 32 bytes (256 bits) a partir del secreto.
 function claveDerivada() {
-  return crypto.createHash('sha256').update(String(SECRETO)).digest();
+  if (!process.env.CERT_SECRET) throw new Error('CERT_SECRET no está configurado.');
+  return crypto.createHash('sha256').update(String(process.env.CERT_SECRET)).digest();
 }
 
 // Cifra un texto y devuelve una cadena base64 autocontenida: iv + tag + datos.
@@ -39,9 +38,9 @@ function descifrar(cadenaBase64) {
   return Buffer.concat([decipher.update(datos), decipher.final()]).toString('utf8');
 }
 
-// Indica si el secreto sigue siendo el valor por defecto (inseguro).
+// Indica si falta el secreto propio de los certificados.
 function secretoInseguro() {
-  return !process.env.CERT_SECRET && !process.env.AUTH_SECRET;
+  return !process.env.CERT_SECRET;
 }
 
 module.exports = { cifrar, descifrar, secretoInseguro };

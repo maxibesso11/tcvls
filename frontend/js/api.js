@@ -24,6 +24,10 @@ const API = {
       window.dispatchEvent(new CustomEvent('sesion-expirada'));
       throw new Error(datos.error || 'Sesión expirada. Inicia sesión nuevamente.');
     }
+    if (res.status === 403 && datos.codigo === 'CAMBIO_CONTRASENA_REQUERIDO') {
+      // Contraseña temporal: la app muestra la pantalla de cambio obligatorio
+      window.dispatchEvent(new CustomEvent('cambio-contrasena-requerido'));
+    }
     if (!res.ok) throw new Error(datos.error || 'Error en la solicitud');
     return datos;
   },
@@ -36,6 +40,9 @@ const API = {
     });
   },
   yo() { return this._solicitud('/api/auth/yo'); },
+  cambiarContrasena(actual, nueva) {
+    return this._solicitud('/api/auth/contrasena', { method: 'PUT', body: JSON.stringify({ actual, nueva }) });
+  },
   guardarTema(tema) {
     return this._solicitud('/api/auth/tema', { method: 'PUT', body: JSON.stringify({ tema }) });
   },
@@ -48,20 +55,29 @@ const API = {
   certificadoGenerar(idEmpresa) { return this._solicitud(`/api/certificados/${idEmpresa}/generar`, { method: 'POST' }); },
   certificadoSubir(idEmpresa, certificado_pem) { return this._solicitud(`/api/certificados/${idEmpresa}/certificado`, { method: 'POST', body: JSON.stringify({ certificado_pem }) }); },
   certificadoEliminar(idEmpresa) { return this._solicitud(`/api/certificados/${idEmpresa}`, { method: 'DELETE' }); },
-  async descargarCSR(idEmpresa, nombreArchivo) {
+  descargarCSR(idEmpresa, nombreArchivo) {
+    return this.descargarArchivo(`/api/certificados/${idEmpresa}/csr`, nombreArchivo || 'solicitud.csr');
+  },
+
+  // Descarga un archivo protegido (PDF, CSR) enviando el token por cabecera.
+  // Nunca por la URL: ahí quedaría registrado en los logs del servidor y en el
+  // historial del navegador. El nombre lo toma de Content-Disposition.
+  async descargarArchivo(ruta, nombrePorDefecto) {
     const headers = {};
     if (this._token) headers['Authorization'] = `Bearer ${this._token}`;
-    const res = await fetch(`/api/certificados/${idEmpresa}/csr`, { headers });
+    const res = await fetch(ruta, { headers });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
-      throw new Error(d.error || 'No se pudo descargar el CSR');
+      throw new Error(d.error || 'No se pudo descargar el archivo');
     }
+    const disposicion = res.headers.get('content-disposition') || '';
+    const nombre = (disposicion.match(/filename="?([^";]+)"?/) || [])[1] || nombrePorDefecto;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = nombreArchivo || 'solicitud.csr';
+    a.href = url; a.download = nombre;
     document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
   listarUsuarios() { return this._solicitud('/api/admin/usuarios'); },
   crearUsuario(datos) { return this._solicitud('/api/admin/usuarios', { method: 'POST', body: JSON.stringify(datos) }); },
@@ -149,9 +165,8 @@ const API = {
   detalleCuentaCorriente(id) {
     return this._solicitud(`/api/cuentas-corrientes/${id}`);
   },
-  urlPdfCuenta(id) {
-    const t = this._token ? `?token=${encodeURIComponent(this._token)}` : '';
-    return `/api/cuentas-corrientes/${id}/pdf${t}`;
+  descargarPdfCuenta(id) {
+    return this.descargarArchivo(`/api/cuentas-corrientes/${id}/pdf`, `resumen_cuenta_${id}.pdf`);
   },
 
   // Facturación
@@ -160,9 +175,8 @@ const API = {
   facturarViaje(idViaje) { return this._solicitud(`/api/facturacion/desde-viaje/${idViaje}`, { method: 'POST' }); },
   facturarManual(datos) { return this._solicitud('/api/facturacion/manual', { method: 'POST', body: JSON.stringify(datos) }); },
   notaCredito(idFactura) { return this._solicitud(`/api/facturacion/${idFactura}/nota-credito`, { method: 'POST', body: JSON.stringify({}) }); },
-  urlPdfFactura(id) {
-    const t = this._token ? `?token=${encodeURIComponent(this._token)}` : '';
-    return `/api/facturacion/${id}/pdf${t}`;
+  descargarPdfFactura(id) {
+    return this.descargarArchivo(`/api/facturacion/${id}/pdf`, `factura_${id}.pdf`);
   },
 
   // Operaciones de stock

@@ -132,7 +132,7 @@ async function renderModulo(clave) {
       const todoElStock = await API.listarTodo(mod.recurso);
       const depositos = [...new Set(todoElStock.map(s => s.deposito).filter(Boolean))].sort();
       $('#filtro-deposito').innerHTML = '<option value="">Todos los depósitos</option>' +
-        depositos.map(d => `<option value="${d.replace(/"/g, '&quot;')}">${d}</option>`).join('');
+        depositos.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
     } catch (err) { /* sin sugerencias */ }
     $('#filtro-deposito').addEventListener('change', recargar);
     $('#btn-mover-deposito').addEventListener('click', () => abrirModalMoverDeposito(clave));
@@ -147,7 +147,7 @@ async function renderModulo(clave) {
       const chofer  = id => (choferes.find(c => c.id_chofer === id) || {}).nombre || '?';
       $('#filtro-equipo').innerHTML = '<option value="">Todos los equipos</option>' +
         equipos.map(e =>
-          `<option value="${e.id_equipo}">${patente(e.id_unidad_principal)} / ${patente(e.id_unidad_secundaria)} · ${chofer(e.id_chofer)}</option>`
+          `<option value="${e.id_equipo}">${esc(patente(e.id_unidad_principal))} / ${esc(patente(e.id_unidad_secundaria))} · ${esc(chofer(e.id_chofer))}</option>`
         ).join('');
     } catch (err) { /* sin equipos */ }
     $('#filtro-equipo').addEventListener('change', recargar);
@@ -225,7 +225,7 @@ async function cargarTabla(clave, q = '', idEquipo = '', deposito = '', extras =
       </table>
       ${controlesPaginacion(pag, p => cargarTabla(clave, q, idEquipo, deposito, extras, p))}`;
   } catch (err) {
-    $('#tabla-modulo').innerHTML = `<div class="estado-vacio">Error: ${err.message}</div>`;
+    $('#tabla-modulo').innerHTML = `<div class="estado-vacio">Error: ${esc(err.message)}</div>`;
   }
 }
 
@@ -364,7 +364,7 @@ async function abrirModal(clave, id) {
           <select id="f-${c.nombre}" name="${c.nombre}" ${req}>
             <option value="">${c.requerido ? 'Seleccionar…' : 'Sin asignar'}</option>
             ${cuentasFiltradas.map(cu =>
-              `<option value="${cu.nombre.replace(/"/g, '&quot;')}" ${valor === cu.nombre ? 'selected' : ''}>${cu.nombre} (${cu.tipo})</option>`
+              `<option value="${esc(cu.nombre)}" ${valor === cu.nombre ? 'selected' : ''}>${esc(cu.nombre)} (${esc(cu.tipo)})</option>`
             ).join('')}
           </select>
         </div>`;
@@ -389,7 +389,7 @@ async function abrirModal(clave, id) {
           <select id="f-${c.nombre}" name="${c.nombre}" ${req}>
             <option value="">Seleccionar…</option>
             ${opcionesFk[c.nombre].map(r =>
-              `<option value="${r[idCampo]}" ${String(valor) === String(r[idCampo]) ? 'selected' : ''}>${c.mostrar(r)}</option>`
+              `<option value="${esc(r[idCampo])}" ${String(valor) === String(r[idCampo]) ? 'selected' : ''}>${esc(c.mostrar(r))}</option>`
             ).join('')}
           </select>
         </div>`;
@@ -403,7 +403,7 @@ async function abrirModal(clave, id) {
       <div class="campo${claseAncho}">
         <label for="f-${c.nombre}">${c.etiqueta}${c.requerido ? ' *' : ''}</label>
         <input id="f-${c.nombre}" name="${c.nombre}" type="${c.tipo}" value="${valorInput}" ${req} ${c.tipo === 'number' ? 'step="any"' : ''} ${c.maxlen ? `maxlength="${c.maxlen}"` : ''} ${c.listaDepositos ? 'list="lista-depositos"' : ''}>
-        ${c.listaDepositos ? `<datalist id="lista-depositos">${sugerenciasDeposito.map(d => `<option value="${d.replace(/"/g, '&quot;')}"></option>`).join('')}</datalist>` : ''}
+        ${c.listaDepositos ? `<datalist id="lista-depositos">${sugerenciasDeposito.map(d => `<option value="${esc(d)}"></option>`).join('')}</datalist>` : ''}
         ${c.ayuda ? `<small class="campo-ayuda">${c.ayuda}</small>` : ''}
       </div>`;
   }).join('');

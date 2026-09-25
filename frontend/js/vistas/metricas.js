@@ -73,7 +73,7 @@ async function renderMetricaDetalle(clave) {
       const [equipos, unidades] = await Promise.all([API.listarTodo('equipos'), API.listarTodo('unidades')]);
       const pat = id => (unidades.find(u => u.id_unidad === id) || {}).patente || '?';
       $('#m-equipo').innerHTML = '<option value="">Todos los equipos</option>' +
-        equipos.map(e => `<option value="${e.id_equipo}" ${filtroMetrica.id_equipo == e.id_equipo ? 'selected' : ''}>${pat(e.id_unidad_principal)} / ${pat(e.id_unidad_secundaria)}</option>`).join('');
+        equipos.map(e => `<option value="${e.id_equipo}" ${filtroMetrica.id_equipo == e.id_equipo ? 'selected' : ''}>${esc(pat(e.id_unidad_principal))} / ${esc(pat(e.id_unidad_secundaria))}</option>`).join('');
     } catch {}
     $('#m-equipo').addEventListener('change', () => { filtroMetrica.id_equipo = $('#m-equipo').value; cargarMetrica(clave); });
   }

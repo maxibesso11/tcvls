@@ -350,7 +350,7 @@ function abrirModalUsuario(usuario = null) {
   ).join('');
   $('#modal-cuerpo').innerHTML = `
     <div class="campo"><label>Nombre de usuario *</label><input id="u-nombre" value="${ed ? esc(usuario.nombre_usuario) : ''}"></div>
-    <div class="campo"><label>${ed ? 'Nueva contraseña (opcional)' : 'Contraseña *'}</label><input id="u-clave" type="password" placeholder="${ed ? 'dejar vacío para no cambiar' : ''}"></div>
+    <div class="campo"><label>${ed ? 'Nueva contraseña (opcional)' : 'Contraseña *'}</label><input id="u-clave" type="password" placeholder="${ed ? 'dejar vacío para no cambiar' : 'mínimo 8 caracteres'}"><div class="campo-ayuda">Es temporal: el usuario deberá cambiarla en su próximo ingreso.</div></div>
     <div class="campo ancho-completo"><label>Correo electrónico</label><input id="u-correo" value="${ed && usuario.correo ? esc(usuario.correo) : ''}"></div>
     <div class="campo"><label>Rol</label><select id="u-rol">
       <option value="USUARIO" ${ed && usuario.rol === 'USUARIO' ? 'selected' : ''}>Usuario</option>

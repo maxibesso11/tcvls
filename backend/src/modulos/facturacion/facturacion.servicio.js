@@ -17,6 +17,7 @@ const { solicitarCAE } = require('../../integraciones/arca');
 const { IVA_ALICUOTA } = require('../../config/constantes');
 const { ORIGEN, crearMovimientoAutomatico } = require('../cuentas/movimientos.servicio');
 const { reconciliarMovimientos } = require('../viajes/viajes.servicio');
+const { ErrorNegocio } = require('../../lib/errores');
 
 const r2 = n => Math.round(Number(n) * 100) / 100;
 
@@ -64,11 +65,11 @@ async function enTransaccion(fn) {
 async function insertarComprobante(conexion, idEmpresa, { id_cuenta, id_viaje, items, observaciones, clase = 'FACTURA', id_factura_asociada = null }) {
   // Datos del emisor (empresa) y del receptor (cuenta)
   const [[empresa]] = await conexion.query('SELECT * FROM EMPRESAS WHERE id_empresa = ?', [idEmpresa]);
-  if (!empresa) throw new Error('Empresa no encontrada.');
+  if (!empresa) throw new ErrorNegocio('Empresa no encontrada.', 404);
   const [[cuenta]] = await conexion.query(
     'SELECT * FROM CUENTA WHERE id_cuenta = ? AND id_empresa = ?', [id_cuenta, idEmpresa]);
-  if (!cuenta) throw new Error('La cuenta indicada no existe.');
-  if (!cuenta.cuil) throw new Error('La cuenta no tiene CUIT cargado; es obligatorio para Factura A.');
+  if (!cuenta) throw new ErrorNegocio('La cuenta indicada no existe.', 404);
+  if (!cuenta.cuil) throw new ErrorNegocio('La cuenta no tiene CUIT cargado; es obligatorio para Factura A.');
 
   // Calcular importes a partir de los ítems (precios sin IVA).
   // La unidad de medida (horas, km, toneladas, etc.) se guarda en su propio
@@ -82,7 +83,7 @@ async function insertarComprobante(conexion, idEmpresa, { id_cuenta, id_viaje, i
   const netoGravado = r2(itemsCalc.reduce((s, it) => s + it.subtotal, 0));
   const iva = r2(netoGravado * IVA_ALICUOTA);
   const total = r2(netoGravado + iva);
-  if (netoGravado <= 0) throw new Error('El importe de la factura debe ser mayor a cero.');
+  if (netoGravado <= 0) throw new ErrorNegocio('El importe de la factura debe ser mayor a cero.');
 
   const puntoVenta = empresa.punto_venta || 1;
 
@@ -106,7 +107,9 @@ async function insertarComprobante(conexion, idEmpresa, { id_cuenta, id_viaje, i
     }
   } catch (errArca) {
     // No se pudo emitir: quien llama deshace la transacción completa.
-    throw new Error('Error al solicitar el CAE a ARCA: ' + errArca.message);
+    // El mensaje de ARCA le sirve al usuario (dato rechazado, certificado
+    // vencido…): se muestra tal cual.
+    throw new ErrorNegocio('Error al solicitar el CAE a ARCA: ' + errArca.message, 502);
   }
 
   // Si ARCA no asignó número (modo borrador), usar el contador interno.

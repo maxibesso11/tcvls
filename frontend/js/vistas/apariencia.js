@@ -14,6 +14,7 @@ async function renderApariencia() {
         <div class="vista-titulo">Apariencia</div>
         <div class="vista-sub">Elige el tema de color del sistema. Tu elección se guarda en tu cuenta.</div>
       </div>
+      <button class="btn btn-secundario" onclick="mostrarCambioContrasena(false)">Cambiar contraseña</button>
     </div>
     <div class="temas-grilla" id="temas-grilla">
       ${TEMAS.map(t => `

@@ -90,14 +90,14 @@ async function cargarCuentasCorrientes(q = '', pagina = 1) {
               <td>${insigniaCondicion(c.condicion)}</td>
               <td>
                 <button class="btn btn-secundario btn-mini" onclick="location.hash='cuenta-corriente/${c.id_cuenta}'">Ver detalle</button>
-                <a class="btn btn-primario btn-mini" style="text-decoration:none" href="${API.urlPdfCuenta(c.id_cuenta)}" target="_blank">PDF</a>
+                <button class="btn btn-primario btn-mini" onclick="descargarPdfCuenta(${c.id_cuenta})">PDF</button>
               </td>
             </tr>`).join('')}
         </tbody>
       </table>
       ${controlesPaginacion(paginacion, p => cargarCuentasCorrientes(q, p))}`;
   } catch (err) {
-    $('#cc-tabla').innerHTML = `<div class="estado-vacio">Error: ${err.message}</div>`;
+    $('#cc-tabla').innerHTML = `<div class="estado-vacio">Error: ${esc(err.message)}</div>`;
   }
 }
 
@@ -134,7 +134,7 @@ async function renderDetalleCuenta(id) {
         <div class="toolbar">
           <button class="btn btn-secundario" onclick="location.hash='cuentas-corrientes'">← Volver</button>
           <button class="btn btn-primario" onclick="abrirModalRecibo(${cuenta.id_cuenta})">+ Nuevo recibo</button>
-          <a class="btn btn-primario" style="text-decoration:none" href="${API.urlPdfCuenta(cuenta.id_cuenta)}" target="_blank">Descargar resumen PDF</a>
+          <button class="btn btn-primario" onclick="descargarPdfCuenta(${cuenta.id_cuenta})">Descargar resumen PDF</button>
         </div>
       </div>
 
@@ -188,7 +188,7 @@ async function renderDetalleCuenta(id) {
       </div>
     `;
   } catch (err) {
-    contenido.innerHTML = `<div class="estado-vacio">Error: ${err.message}</div>`;
+    contenido.innerHTML = `<div class="estado-vacio">Error: ${esc(err.message)}</div>`;
   }
 }
 
@@ -227,7 +227,7 @@ function abrirModalRecibo(idCuenta, mov = null) {
     </div>
     <div class="campo ancho-completo">
       <label for="r-concepto">Concepto *</label>
-      <input id="r-concepto" type="text" maxlength="150" value="${String(mov.concepto).replace(/"/g, '&quot;')}" required>
+      <input id="r-concepto" type="text" maxlength="150" value="${esc(mov.concepto)}" required>
     </div>
   ` : `
     <div class="campo">
@@ -311,4 +311,10 @@ async function eliminarMovimientoCuenta(idCuenta, idMovimiento) {
   } catch (err) {
     mostrarToast(err.message, true);
   }
+}
+
+// Descarga el resumen de cuenta en PDF (token por cabecera, no en la URL).
+async function descargarPdfCuenta(idCuenta) {
+  try { await API.descargarPdfCuenta(idCuenta); }
+  catch (err) { mostrarToast(err.message, true); }
 }

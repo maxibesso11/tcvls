@@ -12,6 +12,7 @@
 // La clave privada nunca sale del servidor ni se expone por la API.
 let forge = null;
 try { forge = require('node-forge'); } catch (e) { /* se avisa al usarse */ }
+const { ErrorNegocio } = require('../lib/errores');
 
 function disponible() { return forge !== null; }
 
@@ -20,11 +21,11 @@ function disponible() { return forge !== null; }
 // Devuelve { clavePrivadaPem, csrPem }.
 function generarClaveYCSR(datos) {
   if (!forge) {
-    throw new Error('Falta la dependencia node-forge. Instalá con: npm install node-forge');
+    throw new ErrorNegocio('Falta la dependencia node-forge. Instalá con: npm install node-forge', 503);
   }
   const cuitLimpio = String(datos.cuit || '').replace(/\D/g, '');
   if (cuitLimpio.length !== 11) {
-    throw new Error('La empresa debe tener un CUIT válido (11 dígitos) antes de generar el certificado.');
+    throw new ErrorNegocio('La empresa debe tener un CUIT válido (11 dígitos) antes de generar el certificado.');
   }
 
   // Par de claves RSA 2048 (el mínimo que acepta ARCA).

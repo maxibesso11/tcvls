@@ -4,6 +4,7 @@
 // MODULOS_EMPRESA. El ADMIN no opera datos, así que no se ve afectado.
 const pool = require('../config/db');
 const { RUTA_A_MODULO } = require('../config/modulos');
+const { responderError } = require('../lib/errores');
 
 // Devuelve un Set con las claves de los módulos activos de una empresa.
 async function modulosActivosDe(idEmpresa) {
@@ -29,7 +30,7 @@ function requiereModulo(rutaApi) {
       }
       next();
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      responderError(res, err, req);
     }
   };
 }

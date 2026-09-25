@@ -4,6 +4,7 @@
 // en una sola operación (UPDATE masivo, sin tocar el esquema).
 const express = require('express');
 const pool = require('../../config/db');
+const { responderError } = require('../../lib/errores');
 const router = express.Router();
 
 // Lista de depósitos distintos con cantidad de elementos y valuación total
@@ -20,7 +21,7 @@ router.get('/depositos', async (req, res) => {
     `, [req.usuario.id_empresa]);
     res.json(filas);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -49,7 +50,7 @@ router.post('/mover-deposito', async (req, res) => {
       elementos_movidos: resultado.affectedRows
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 

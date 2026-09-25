@@ -9,6 +9,7 @@ const express = require('express');
 const pool = require('../../config/db');
 const { calcularPaginacion } = require('../../lib/paginacion');
 const { enviarResumenCuentaPDF } = require('./cuentasCorrientes.pdf');
+const { responderError } = require('../../lib/errores');
 const router = express.Router();
 
 const clasificarSaldo = saldo =>
@@ -72,7 +73,7 @@ router.get('/', async (req, res) => {
       paginacion: { pagina, por_pagina: porPagina, total, total_paginas: totalPaginas }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -137,7 +138,7 @@ router.get('/:id', async (req, res) => {
     if (!detalle) return res.status(404).json({ error: 'Cuenta no encontrada' });
     res.json(detalle);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -160,7 +161,7 @@ router.get('/:id/pdf', async (req, res) => {
 
     enviarResumenCuentaPDF(res, detalle, nombreEmpresa);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 

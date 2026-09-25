@@ -51,7 +51,9 @@ function montarRutasApi(app) {
       await pool.query('SELECT 1');
       res.json({ servidor: 'OK', base_de_datos: 'OK' });
     } catch (err) {
-      res.status(500).json({ servidor: 'OK', base_de_datos: 'ERROR', detalle: err.message });
+      // Es pública: el detalle técnico va solo al log del servidor.
+      console.error('Health check: sin conexión a la base de datos:', err.message);
+      res.status(500).json({ servidor: 'OK', base_de_datos: 'ERROR' });
     }
   });
 }

@@ -13,6 +13,7 @@ const pool = require('../../config/db');
 const { calcularPaginacion } = require('../../lib/paginacion');
 const { crearFactura, facturarViaje, emitirNotaCredito, importeFacturableDeViaje, r2 } = require('./facturacion.servicio');
 const { enviarFacturaPDF } = require('./facturacion.pdf');
+const { responderError } = require('../../lib/errores');
 
 const router = express.Router();
 const emp = req => req.usuario.id_empresa;
@@ -38,7 +39,7 @@ router.get('/', async (req, res) => {
     );
     res.json({ datos: filas, paginacion: { pagina, por_pagina: porPagina, total, total_paginas: totalPaginas } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -66,7 +67,7 @@ router.get('/viajes-facturables', async (req, res) => {
     });
     res.json(conNeto);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -113,7 +114,7 @@ router.post('/desde-viaje/:idViaje', async (req, res) => {
 
     res.status(201).json({ id_factura: idFactura });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -131,7 +132,7 @@ router.post('/manual', async (req, res) => {
     const idFactura = await crearFactura(idEmpresa, { id_cuenta, items, observaciones });
     res.status(201).json({ id_factura: idFactura });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -169,7 +170,7 @@ router.post('/:id/nota-credito', async (req, res) => {
 
     res.status(201).json({ id_factura: idNC });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
@@ -193,7 +194,7 @@ router.get('/:id/pdf', async (req, res) => {
     }
     enviarFacturaPDF(res, empresa, factura, items, facturaAsociada);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    responderError(res, err, req);
   }
 });
 
