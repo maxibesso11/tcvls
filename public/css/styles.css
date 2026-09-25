@@ -490,6 +490,7 @@ tr:hover td { background: #fbfaf6; }
 .campo.ancho-completo { grid-column: 1 / -1; }
 
 .campo label { font-size: 13px; font-weight: 600; color: var(--texto-suave); }
+.campo-ayuda { font-size: 11.5px; color: var(--texto-suave); opacity: 0.85; line-height: 1.4; margin-top: 2px; }
 
 .campo input, .campo select {
   width: 100%;
@@ -646,6 +647,7 @@ tr:hover td { background: #fbfaf6; }
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 19px; letter-spacing: 0.5px;
 }
+.login-logo { width: 72px; height: 72px; margin: 0 auto 14px; display: block; }
 .login-titulo { font-size: 22px; font-weight: 700; color: var(--pizarra-900); }
 .login-sub { font-size: 13px; color: var(--texto-suave); margin-top: 4px; }
 .login-campo { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
@@ -779,3 +781,65 @@ tr:hover td { background: #fbfaf6; }
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ====================== Modales de facturación ====================== */
+.fac-intro {
+  grid-column: 1 / -1;
+  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--fondo-suave, rgba(0,0,0,0.03));
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 12.5px; color: var(--texto-suave); line-height: 1.5;
+}
+.fac-intro .fac-intro-icono {
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 6px;
+  background: var(--ambar); color: var(--pizarra-900);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px;
+}
+
+/* Lista de viajes facturables como tarjetas seleccionables */
+.fac-lista { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
+.fac-opcion {
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid var(--borde); border-radius: 10px;
+  padding: 11px 13px; cursor: pointer; transition: border-color .12s, background .12s;
+}
+.fac-opcion:hover { border-color: var(--ambar); background: var(--fondo-suave, rgba(0,0,0,0.02)); }
+.fac-opcion input { accent-color: var(--ambar); width: 17px; height: 17px; flex: 0 0 auto; }
+.fac-opcion.elegida { border-color: var(--ambar); background: var(--fondo-suave, rgba(232,161,60,0.07)); }
+.fac-op-info { flex: 1; min-width: 0; }
+.fac-op-ruta { font-weight: 600; font-size: 14px; }
+.fac-op-meta { font-size: 12px; color: var(--texto-suave); margin-top: 2px; }
+.fac-op-monto { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.fac-op-monto small { display: block; font-weight: 400; font-size: 11px; color: var(--texto-suave); text-align: right; }
+
+/* Filas de ítems de la factura manual */
+.fac-items { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.fac-item-fila {
+  display: grid; grid-template-columns: 1fr 64px 110px 104px 34px; gap: 8px; align-items: center;
+}
+.fac-item-fila input, .fac-item-fila select { padding: 8px 10px; }
+.fac-item-quitar {
+  width: 34px; height: 34px; padding: 0; border-radius: 8px; font-size: 18px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.fac-items-cabecera {
+  display: grid; grid-template-columns: 1fr 64px 110px 104px 34px; gap: 8px;
+  font-size: 11px; font-weight: 600; color: var(--texto-suave);
+  text-transform: uppercase; letter-spacing: 0.04em; padding: 0 2px;
+}
+.fac-agregar { align-self: flex-start; }
+
+/* Resumen de totales destacado */
+.fac-totales {
+  grid-column: 1 / -1;
+  display: flex; justify-content: flex-end; gap: 22px; flex-wrap: wrap;
+  background: var(--pizarra-900); color: #fff;
+  border-radius: 10px; padding: 12px 16px; margin-top: 2px;
+}
+.fac-total-item { text-align: right; }
+.fac-total-item .et { font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.04em; }
+.fac-total-item .va { font-size: 15px; font-weight: 600; margin-top: 2px; }
+.fac-total-item.destacado .va { color: var(--ambar); font-size: 18px; }

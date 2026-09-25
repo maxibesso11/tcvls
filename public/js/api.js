@@ -44,6 +44,25 @@ const API = {
   listarEmpresas() { return this._solicitud('/api/admin/empresas'); },
   crearEmpresa(datos) { return this._solicitud('/api/admin/empresas', { method: 'POST', body: JSON.stringify(datos) }); },
   actualizarEmpresa(id, datos) { return this._solicitud(`/api/admin/empresas/${id}`, { method: 'PUT', body: JSON.stringify(datos) }); },
+  certificadoEstado(idEmpresa) { return this._solicitud(`/api/certificados/${idEmpresa}`); },
+  certificadoGenerar(idEmpresa) { return this._solicitud(`/api/certificados/${idEmpresa}/generar`, { method: 'POST' }); },
+  certificadoSubir(idEmpresa, certificado_pem) { return this._solicitud(`/api/certificados/${idEmpresa}/certificado`, { method: 'POST', body: JSON.stringify({ certificado_pem }) }); },
+  certificadoEliminar(idEmpresa) { return this._solicitud(`/api/certificados/${idEmpresa}`, { method: 'DELETE' }); },
+  async descargarCSR(idEmpresa, nombreArchivo) {
+    const headers = {};
+    if (this._token) headers['Authorization'] = `Bearer ${this._token}`;
+    const res = await fetch(`/api/certificados/${idEmpresa}/csr`, { headers });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error || 'No se pudo descargar el CSR');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nombreArchivo || 'solicitud.csr';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
   listarUsuarios() { return this._solicitud('/api/admin/usuarios'); },
   crearUsuario(datos) { return this._solicitud('/api/admin/usuarios', { method: 'POST', body: JSON.stringify(datos) }); },
   actualizarUsuario(id, datos) { return this._solicitud(`/api/admin/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(datos) }); },
@@ -133,6 +152,17 @@ const API = {
   urlPdfCuenta(id) {
     const t = this._token ? `?token=${encodeURIComponent(this._token)}` : '';
     return `/api/cuentas-corrientes/${id}/pdf${t}`;
+  },
+
+  // Facturación
+  listarFacturas(pagina = 1) { return this._solicitud(`/api/facturacion?pagina=${pagina}`); },
+  viajesFacturables() { return this._solicitud('/api/facturacion/viajes-facturables'); },
+  facturarViaje(idViaje) { return this._solicitud(`/api/facturacion/desde-viaje/${idViaje}`, { method: 'POST' }); },
+  facturarManual(datos) { return this._solicitud('/api/facturacion/manual', { method: 'POST', body: JSON.stringify(datos) }); },
+  notaCredito(idFactura) { return this._solicitud(`/api/facturacion/${idFactura}/nota-credito`, { method: 'POST', body: JSON.stringify({}) }); },
+  urlPdfFactura(id) {
+    const t = this._token ? `?token=${encodeURIComponent(this._token)}` : '';
+    return `/api/facturacion/${id}/pdf${t}`;
   },
 
   // Operaciones de stock

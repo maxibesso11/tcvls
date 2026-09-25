@@ -5,6 +5,22 @@ const express = require('express');
 const pool = require('../config/db');
 const router = express.Router();
 
+// ---------- Expresiones de importes de viajes (reutilizables en SQL) ----------
+// Valor bruto del viaje (tarifa × resultado, o tarifa fija si es UNICA).
+const SQL_BASE_VIAJE = `(CASE WHEN v.tipo_tarifa='UNICA' THEN v.tarifa
+      ELSE v.tarifa * COALESCE(v.resultado, v.cantidad_cargada, 0) END)`;
+
+// Neto que se le cobra al cliente: la comisión reduce el valor a cobrar.
+const SQL_NETO_VIAJE = `(${SQL_BASE_VIAJE} * (1 - COALESCE(v.comision, 0) / 100))`;
+
+// IVA del viaje. Solo existe cuando el viaje fue FACTURADO y su modo de
+// facturación lleva IVA (líquido producto o factura formal). Los viajes
+// marcados SIN_FACTURAR no generan IVA. Los viajes anteriores a la columna
+// modo_facturacion (NULL) se tratan como con IVA, igual que su imputación.
+const SQL_IVA_VIAJE = `(CASE WHEN v.estado = 'FACTURADO'
+        AND COALESCE(v.modo_facturacion, 'LIQUIDO_PRODUCTO') <> 'SIN_FACTURAR'
+      THEN ${SQL_NETO_VIAJE} * 0.21 ELSE 0 END)`;
+
 // Construye condiciones WHERE incluyendo SIEMPRE el filtro de empresa,
 // más rango de fechas y equipo opcionales. La columna de empresa puede
 // llevar alias (ej. 'v.id_empresa').
@@ -40,10 +56,15 @@ router.get('/kpis', async (req, res) => {
       FROM VIAJES${fViajes.clausula}
     `, fViajes.params);
 
+    // Ingresos = valor de los viajes con trabajo terminado (finalizados o
+    // facturados). Se excluyen los viajes en curso/planificados, cuyo valor
+    // todavía no es un ingreso realizado. Nota: "facturado" no implica
+    // "cobrado"; lo efectivamente pendiente de cobro sale de las cuentas
+    // corrientes (consulta siguiente).
     const [[ingresos]] = await pool.query(`
       SELECT COALESCE(SUM(CASE WHEN tipo_tarifa = 'UNICA' THEN tarifa
                    ELSE tarifa * COALESCE(resultado, cantidad_cargada, 0) END), 0) AS ingresos_totales
-      FROM VIAJES${fViajes.clausula}
+      FROM VIAJES${fViajes.clausula} AND estado IN ('FINALIZADO','FACTURADO')
     `, fViajes.params);
 
     const [[cobros]] = await pool.query(`
@@ -151,6 +172,59 @@ router.get('/alertas', async (req, res) => {
       ORDER BY ultima_jornada_descanso LIMIT ${LIMITE}
     `, [e]);
 
+    // Cobros vencidos: clientes con plazo de pago definido que hoy están en
+    // deuda (saldo < 0, condición DEUDOR) desde hace más días que su plazo.
+    // "Desde cuándo debe" = fecha en que el saldo acumulado entró en deuda y
+    // se mantuvo así hasta hoy. Se calcula recorriendo los movimientos en
+    // orden cronológico.
+    const [clientesConPlazo] = await pool.query(`
+      SELECT id_cuenta, nombre, plazo_pago_dias
+      FROM CUENTA
+      WHERE id_empresa = ? AND tipo = 'CLIENTE'
+        AND plazo_pago_dias IS NOT NULL AND plazo_pago_dias > 0
+    `, [e]);
+
+    const cobros = [];
+    for (const cli of clientesConPlazo) {
+      const [movs] = await pool.query(
+        `SELECT monto, fecha FROM MOVIMIENTOS
+          WHERE id_empresa = ? AND id_cuenta = ?
+          ORDER BY fecha ASC, id_movimiento ASC`,
+        [e, cli.id_cuenta]
+      );
+      // Recorrer acumulando el saldo. Registrar la fecha en que el saldo
+      // pasó a ser deuda (< 0) viniendo de >= 0; esa es la fecha desde la
+      // que el cliente debe de forma continua.
+      let saldo = 0;
+      let fechaInicioDeuda = null;
+      for (const m of movs) {
+        const antes = saldo;
+        saldo = Math.round((saldo + Number(m.monto)) * 100) / 100;
+        if (antes >= 0 && saldo < 0) fechaInicioDeuda = m.fecha;   // entra en deuda
+        if (saldo >= 0) fechaInicioDeuda = null;                    // se saldó
+      }
+      if (saldo < 0 && fechaInicioDeuda) {
+        const inicio = new Date(fechaInicioDeuda);
+        const hoy = new Date();
+        const diasDebiendo = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24));
+        const diasExcedido = diasDebiendo - cli.plazo_pago_dias;
+        if (diasExcedido > 0) {
+          cobros.push({
+            id_cuenta: cli.id_cuenta,
+            nombre: cli.nombre,
+            saldo_adeudado: Math.abs(saldo),
+            plazo_pago_dias: cli.plazo_pago_dias,
+            dias_debiendo: diasDebiendo,
+            dias_excedido: diasExcedido,
+            fecha_inicio_deuda: fechaInicioDeuda
+          });
+        }
+      }
+    }
+    // Más vencidos primero
+    cobros.sort((a, b) => b.dias_excedido - a.dias_excedido);
+    const cobrosLimitados = cobros.slice(0, LIMITE);
+
     const [[totales]] = await pool.query(`
       SELECT
         (SELECT COUNT(*) FROM CHOFERES WHERE id_empresa = ? AND vencimiento_carnet <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)) AS carnets,
@@ -160,10 +234,11 @@ router.get('/alertas', async (req, res) => {
     `, [e, e, e, e]);
 
     res.json({
-      carnets, vencimientos, mantenimientos, descansos,
+      carnets, vencimientos, mantenimientos, descansos, cobros: cobrosLimitados,
       totales: {
         carnets: Number(totales.carnets), vencimientos: Number(totales.vencimientos),
-        mantenimientos: Number(totales.mantenimientos), descansos: Number(totales.descansos)
+        mantenimientos: Number(totales.mantenimientos), descansos: Number(totales.descansos),
+        cobros: cobros.length
       },
       limite: LIMITE
     });
@@ -310,9 +385,11 @@ router.get('/ingresos-por-viaje', async (req, res) => {
       const [rows] = await pool.query(`
         SELECT v.id_viaje, v.fecha_origen, v.origen, v.destino, v.tipo_carga,
           v.tarifa, v.tipo_tarifa, v.resultado, v.cantidad_cargada, v.estado, v.pagador, v.numero_remito,
+          v.comision, v.modo_facturacion,
           up.patente AS patente_principal, us.patente AS patente_secundaria,
-          (CASE WHEN v.tipo_tarifa='UNICA' THEN v.tarifa
-                ELSE v.tarifa * COALESCE(v.resultado, v.cantidad_cargada, 0) END) AS ingreso
+          ${SQL_BASE_VIAJE} AS ingreso,
+          ${SQL_IVA_VIAJE} AS iva,
+          (${SQL_BASE_VIAJE} + ${SQL_IVA_VIAJE}) AS ingreso_con_iva
         FROM VIAJES v
         JOIN EQUIPO e ON e.id_equipo = v.id_equipo
         JOIN UNIDADES up ON up.id_unidad = e.id_unidad_principal
@@ -325,17 +402,19 @@ router.get('/ingresos-por-viaje', async (req, res) => {
 
     const [[resumen]] = await pool.query(`
       SELECT COUNT(*) AS cantidad_viajes,
-        COALESCE(SUM(CASE WHEN v.tipo_tarifa='UNICA' THEN v.tarifa
-                 ELSE v.tarifa * COALESCE(v.resultado, v.cantidad_cargada, 0) END), 0) AS ingreso_total,
-        COALESCE(AVG(CASE WHEN v.tipo_tarifa='UNICA' THEN v.tarifa
-                 ELSE v.tarifa * COALESCE(v.resultado, v.cantidad_cargada, 0) END), 0) AS ingreso_promedio
+        COALESCE(SUM(${SQL_BASE_VIAJE}), 0) AS ingreso_total,
+        COALESCE(AVG(${SQL_BASE_VIAJE}), 0) AS ingreso_promedio,
+        COALESCE(SUM(${SQL_IVA_VIAJE}), 0) AS iva_total,
+        COALESCE(SUM(${SQL_BASE_VIAJE} + ${SQL_IVA_VIAJE}), 0) AS ingreso_total_con_iva,
+        SUM(CASE WHEN ${SQL_IVA_VIAJE} > 0 THEN 1 ELSE 0 END) AS viajes_con_iva
       FROM VIAJES v${f.clausula}
     `, f.params);
 
     const [porTipo] = await pool.query(`
       SELECT v.tipo_tarifa, COUNT(*) AS cantidad,
-        COALESCE(SUM(CASE WHEN v.tipo_tarifa='UNICA' THEN v.tarifa
-                 ELSE v.tarifa * COALESCE(v.resultado, v.cantidad_cargada, 0) END), 0) AS ingreso
+        COALESCE(SUM(${SQL_BASE_VIAJE}), 0) AS ingreso,
+        COALESCE(SUM(${SQL_IVA_VIAJE}), 0) AS iva,
+        COALESCE(SUM(${SQL_BASE_VIAJE} + ${SQL_IVA_VIAJE}), 0) AS ingreso_con_iva
       FROM VIAJES v${f.clausula}
       GROUP BY v.tipo_tarifa ORDER BY ingreso DESC
     `, f.params);
@@ -344,8 +423,9 @@ router.get('/ingresos-por-viaje', async (req, res) => {
     const [topViajes] = await pool.query(`
       SELECT v.id_viaje, v.fecha_origen, v.origen, v.destino, v.pagador,
         up.patente AS patente_principal,
-        (CASE WHEN v.tipo_tarifa='UNICA' THEN v.tarifa
-              ELSE v.tarifa * COALESCE(v.resultado, v.cantidad_cargada, 0) END) AS ingreso
+        ${SQL_BASE_VIAJE} AS ingreso,
+        ${SQL_IVA_VIAJE} AS iva,
+        (${SQL_BASE_VIAJE} + ${SQL_IVA_VIAJE}) AS ingreso_con_iva
       FROM VIAJES v
       JOIN EQUIPO e ON e.id_equipo = v.id_equipo
       JOIN UNIDADES up ON up.id_unidad = e.id_unidad_principal
@@ -357,7 +437,10 @@ router.get('/ingresos-por-viaje', async (req, res) => {
       resumen: {
         cantidad_viajes: Number(resumen.cantidad_viajes),
         ingreso_total: Number(resumen.ingreso_total),
-        ingreso_promedio: Number(resumen.ingreso_promedio)
+        ingreso_promedio: Number(resumen.ingreso_promedio),
+        iva_total: Number(resumen.iva_total),
+        ingreso_total_con_iva: Number(resumen.ingreso_total_con_iva),
+        viajes_con_iva: Number(resumen.viajes_con_iva)
       },
       top_viajes: topViajes,
       por_tipo: porTipo
@@ -414,8 +497,8 @@ router.get('/rentabilidad-equipos', async (req, res) => {
     const resultado = [];
     for (const eq of equipos) {
       const [[ing]] = await pool.query(`
-        SELECT COALESCE(SUM(CASE WHEN v.tipo_tarifa='UNICA' THEN v.tarifa
-                 ELSE v.tarifa * COALESCE(v.resultado, v.cantidad_cargada, 0) END), 0) AS ingresos
+        SELECT COALESCE(SUM(${SQL_BASE_VIAJE}), 0) AS ingresos,
+               COALESCE(SUM(${SQL_IVA_VIAJE}), 0) AS iva
         FROM VIAJES v WHERE v.id_empresa = ? AND v.id_equipo = ?${wVi}
       `, [e, eq.id_equipo, ...pVi]);
 
@@ -452,16 +535,22 @@ router.get('/rentabilidad-equipos', async (req, res) => {
       }
 
       const ingresos = Number(ing.ingresos);
+      const iva = Number(ing.iva);
+      const ingresosConIva = ingresos + iva;
       const costoComb = Number(comb.gasto);
       const costoGen = Number(gen.gasto);
       const costos = costoComb + costoGen + sueldo;
+      const rentabilidad = ingresos - costos;
       resultado.push({
         id_equipo: eq.id_equipo, patente_principal: eq.patente_principal,
         patente_secundaria: eq.patente_secundaria, chofer: eq.chofer,
         tipo_remuneracion: eq.tipo_remuneracion,
-        ingresos, costo_combustible: costoComb, costo_generales: costoGen,
-        sueldo, costos, rentabilidad: ingresos - costos,
-        margen: ingresos > 0 ? ((ingresos - costos) / ingresos) * 100 : 0
+        ingresos, iva, ingresos_con_iva: ingresosConIva,
+        costo_combustible: costoComb, costo_generales: costoGen,
+        sueldo, costos, rentabilidad,
+        rentabilidad_con_iva: ingresosConIva - costos,
+        margen: ingresos > 0 ? (rentabilidad / ingresos) * 100 : 0,
+        margen_con_iva: ingresosConIva > 0 ? ((ingresosConIva - costos) / ingresosConIva) * 100 : 0
       });
     }
 
@@ -477,12 +566,16 @@ router.get('/rentabilidad-equipos', async (req, res) => {
     );
 
     const sumaRent = resultado.reduce((s, r) => s + r.rentabilidad, 0);
+    const sumaIva = resultado.reduce((s, r) => s + r.iva, 0);
     const totalGA = Number(gastosAdmin.total);
     res.json({
       equipos: resultado, dias_periodo: diasPeriodo,
       gastos_administrativos: totalGA,
       rentabilidad_equipos: sumaRent,
-      rentabilidad_neta: sumaRent - totalGA
+      rentabilidad_neta: sumaRent - totalGA,
+      iva_total: sumaIva,
+      rentabilidad_equipos_con_iva: sumaRent + sumaIva,
+      rentabilidad_neta_con_iva: sumaRent + sumaIva - totalGA
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

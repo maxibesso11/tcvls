@@ -22,7 +22,7 @@ const MODULOS = [
   { clave: 'vencimientos',   nombre: 'Vencimientos',            grupo: 'Flota',          depende: ['unidades'],       rutas: ['vencimientos'] },
 
   // Operaciones
-  { clave: 'viajes',         nombre: 'Viajes',                  grupo: 'Operaciones',    depende: ['equipos', 'cuentas'], rutas: ['viajes'] },
+  { clave: 'viajes',         nombre: 'Viajes',                  grupo: 'Operaciones',    depende: ['equipos', 'cuentas', 'facturacion'], rutas: ['viajes'] },
 
   // Gastos
   { clave: 'consumos-combustible', nombre: 'Consumos de combustible', grupo: 'Gastos',   depende: ['equipos', 'cuentas'], rutas: ['consumos-combustible'] },
@@ -30,22 +30,30 @@ const MODULOS = [
   { clave: 'gastos-administrativos', nombre: 'Gastos administrativos', grupo: 'Gastos',  depende: ['cuentas'],         rutas: ['gastos-administrativos'] },
 
   // Administración
-  { clave: 'cuentas',           nombre: 'Cuentas',              grupo: 'Administración', depende: [],                 rutas: ['cuentas'] },
+  { clave: 'cuentas',           nombre: 'Cuentas',              grupo: 'Administración', depende: [],                 rutas: ['cuentas'], obligatorio: true },
   { clave: 'movimientos',       nombre: 'Movimientos',          grupo: 'Administración', depende: ['cuentas'],        rutas: ['movimientos'] },
   { clave: 'cuentas-corrientes', nombre: 'Cuentas corrientes',  grupo: 'Administración', depende: ['cuentas'],        rutas: ['cuentas-corrientes'] },
-  { clave: 'stock',             nombre: 'Stock',                grupo: 'Administración', depende: [],                 rutas: ['stock'] }
+  { clave: 'stock',             nombre: 'Stock',                grupo: 'Administración', depende: [],                 rutas: ['stock'] },
+  { clave: 'facturacion',       nombre: 'Facturación',          grupo: 'Administración', depende: ['cuentas'],        rutas: ['facturacion'], obligatorio: true }
 ];
 
 const CLAVES = MODULOS.map(m => m.clave);
+
+// Módulos que están SIEMPRE activos en toda empresa y no se pueden desactivar.
+// Facturación y Cuentas son núcleo del circuito viaje → cuenta corriente:
+// con la forma de trabajar actual, marcar un viaje como facturado imputa en la
+// cuenta del cliente, así que estos módulos no tienen sentido apagados.
+const MODULOS_OBLIGATORIOS = MODULOS.filter(m => m.obligatorio).map(m => m.clave);
 
 // Mapa rápido ruta -> clave de módulo (para el middleware)
 const RUTA_A_MODULO = {};
 MODULOS.forEach(m => m.rutas.forEach(r => { RUTA_A_MODULO[r] = m.clave; }));
 
 // Devuelve los errores de dependencia para un conjunto de módulos activos.
-// Si está vacío, la configuración es coherente.
+// Los módulos obligatorios se dan por activos siempre (no se pueden apagar),
+// así que nunca generan un error de dependencia.
 function validarDependencias(activos) {
-  const set = new Set(activos);
+  const set = new Set([...activos, ...MODULOS_OBLIGATORIOS]);
   const errores = [];
   MODULOS.forEach(m => {
     if (!set.has(m.clave)) return;
@@ -59,4 +67,10 @@ function validarDependencias(activos) {
   return errores;
 }
 
-module.exports = { MODULOS, CLAVES, RUTA_A_MODULO, validarDependencias };
+// Normaliza una lista de módulos elegidos: garantiza que los obligatorios
+// siempre estén presentes, sin duplicar.
+function conObligatorios(activos) {
+  return [...new Set([...(activos || []), ...MODULOS_OBLIGATORIOS])];
+}
+
+module.exports = { MODULOS, CLAVES, RUTA_A_MODULO, MODULOS_OBLIGATORIOS, validarDependencias, conObligatorios };

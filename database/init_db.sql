@@ -36,6 +36,10 @@ CREATE TABLE EMPRESAS (
     domicilio VARCHAR(150),
     telefono VARCHAR(30),
     email VARCHAR(100),
+    condicion_iva VARCHAR(40) DEFAULT 'RESPONSABLE INSCRIPTO',
+    ingresos_brutos VARCHAR(20),
+    inicio_actividades DATE,
+    punto_venta INT DEFAULT 1,
     activa TINYINT(1) NOT NULL DEFAULT 1,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_nombre (nombre)
@@ -69,6 +73,27 @@ CREATE TABLE MODULOS_EMPRESA (
     activo TINYINT(1) NOT NULL DEFAULT 1,
     PRIMARY KEY (id_empresa, modulo),
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE
+);
+
+-- CERTIFICADOS_ARCA: material del certificado de facturación electrónica de
+-- cada empresa. La clave privada se guarda CIFRADA (AES-256-GCM); nunca en
+-- texto plano ni expuesta por la API. Una empresa tiene un certificado activo
+-- por vez. El flujo de estados:
+--   CSR_GENERADO → se generó la clave y el CSR, falta subir el .crt de ARCA
+--   ACTIVO       → certificado cargado y vigente
+--   VENCIDO      → pasó su fecha de vencimiento (hay que renovar)
+CREATE TABLE CERTIFICADOS_ARCA (
+    id_certificado INT AUTO_INCREMENT PRIMARY KEY,
+    id_empresa INT NOT NULL,
+    estado ENUM('CSR_GENERADO', 'ACTIVO', 'VENCIDO') NOT NULL DEFAULT 'CSR_GENERADO',
+    alias VARCHAR(50),
+    clave_privada_cifrada MEDIUMTEXT NOT NULL,
+    csr_pem MEDIUMTEXT,
+    certificado_pem MEDIUMTEXT,
+    fecha_generacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_vencimiento DATE,
+    FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
+    INDEX idx_cert_empresa (id_empresa)
 );
 
 -- =========================================================
@@ -135,24 +160,31 @@ CREATE TABLE VIAJES (
     origen VARCHAR(100) NOT NULL,
     destino VARCHAR(100) NOT NULL,
     id_equipo INT NOT NULL,
+    id_chofer INT,
     tarifa DECIMAL(10, 2) NOT NULL,
     tipo_tarifa ENUM('POR KM', 'POR TONELADA', 'UNICA') NOT NULL,
     cantidad_cargada DECIMAL(10, 2),
     resultado DECIMAL(10, 2),
     comision DECIMAL(5, 2) DEFAULT 0,
     estado ENUM('EN CURSO', 'EN DESTINO', 'FINALIZADO', 'FACTURADO') NOT NULL,
+    modo_facturacion ENUM('SIN_FACTURAR', 'LIQUIDO_PRODUCTO', 'FACTURA') DEFAULT NULL,
     fecha_llegada DATETIME,
     pagador VARCHAR(100),
     numero_remito VARCHAR(20),
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
     FOREIGN KEY (id_equipo) REFERENCES EQUIPO(id_equipo) ON DELETE RESTRICT,
+    FOREIGN KEY (id_chofer) REFERENCES CHOFERES(id_chofer) ON DELETE SET NULL,
     INDEX idx_equipo (id_equipo),
     INDEX idx_estado (estado),
     INDEX idx_fecha_origen (fecha_origen),
     INDEX idx_pagador (pagador),
     INDEX idx_numero_remito (numero_remito)
 );
+-- Nota: id_chofer es la "foto" del chofer que hizo el viaje, tomada del
+-- equipo al momento de crear el viaje (o al cambiarle el equipo). La
+-- liquidación al chofer usa esta foto, no el chofer actual del equipo,
+-- para que las rotaciones de choferes no alteren viajes históricos.
 
 -- 5. CONSUMOS COMBUSTIBLE
 CREATE TABLE CONSUMOS_COMBUSTIBLE (
@@ -199,11 +231,65 @@ CREATE TABLE CUENTA (
     nombre VARCHAR(150) NOT NULL,
     domicilio VARCHAR(150),
     telefono VARCHAR(15),
+    plazo_pago_dias INT DEFAULT NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
     UNIQUE KEY uq_cuenta_cuil (id_empresa, cuil),
     INDEX idx_tipo (tipo),
     INDEX idx_nombre (nombre)
+);
+
+-- FACTURAS: comprobantes emitidos (siempre Factura A en esta etapa).
+-- Se crea después de VIAJES y CUENTA porque tiene claves foráneas a ambas.
+-- Se asocia obligatoriamente a una CUENTA (el receptor) y opcionalmente a un
+-- VIAJE. La numeración es correlativa por (empresa, punto de venta, tipo).
+-- Los campos del receptor se guardan como "foto" al momento de emitir.
+-- El CAE se completa cuando ARCA autoriza; hasta entonces queda en BORRADOR.
+CREATE TABLE FACTURAS (
+    id_factura INT AUTO_INCREMENT PRIMARY KEY,
+    id_empresa INT NOT NULL,
+    clase ENUM('FACTURA', 'NOTA_CREDITO') NOT NULL DEFAULT 'FACTURA',
+    tipo_comprobante CHAR(1) NOT NULL DEFAULT 'A',
+    punto_venta INT NOT NULL,
+    numero INT NOT NULL,
+    fecha_emision DATE NOT NULL,
+    id_cuenta INT NOT NULL,
+    id_viaje INT,
+    id_factura_asociada INT,
+    receptor_cuit VARCHAR(13) NOT NULL,
+    receptor_nombre VARCHAR(150) NOT NULL,
+    receptor_domicilio VARCHAR(150),
+    receptor_condicion_iva VARCHAR(40) DEFAULT 'RESPONSABLE INSCRIPTO',
+    neto_gravado DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    iva DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    total DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    cae VARCHAR(20),
+    cae_vencimiento DATE,
+    estado ENUM('BORRADOR', 'EMITIDA', 'ANULADA') NOT NULL DEFAULT 'BORRADOR',
+    observaciones VARCHAR(255),
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
+    FOREIGN KEY (id_cuenta) REFERENCES CUENTA(id_cuenta) ON DELETE RESTRICT,
+    FOREIGN KEY (id_viaje) REFERENCES VIAJES(id_viaje) ON DELETE SET NULL,
+    FOREIGN KEY (id_factura_asociada) REFERENCES FACTURAS(id_factura) ON DELETE SET NULL,
+    UNIQUE KEY uq_factura_numero (id_empresa, clase, tipo_comprobante, punto_venta, numero),
+    INDEX idx_fac_empresa (id_empresa),
+    INDEX idx_fac_cuenta (id_cuenta),
+    INDEX idx_fac_viaje (id_viaje),
+    INDEX idx_fac_fecha (fecha_emision)
+);
+
+-- Renglones (ítems) de cada factura.
+CREATE TABLE FACTURA_ITEMS (
+    id_item INT AUTO_INCREMENT PRIMARY KEY,
+    id_factura INT NOT NULL,
+    descripcion VARCHAR(255) NOT NULL,
+    cantidad DECIMAL(10, 2) NOT NULL DEFAULT 1,
+    unidad VARCHAR(20),
+    precio_unitario DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    subtotal DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    FOREIGN KEY (id_factura) REFERENCES FACTURAS(id_factura) ON DELETE CASCADE,
+    INDEX idx_item_factura (id_factura)
 );
 
 -- 8. MOVIMIENTOS
@@ -305,8 +391,8 @@ CREATE TABLE GASTOS_ADMINISTRATIVOS (
 -- =========================================================
 
 -- ---------- EMPRESAS ----------
-INSERT INTO EMPRESAS (id_empresa, nombre, iniciales, cuit, domicilio, telefono, email) VALUES
-(1, '3 de Abril SAS', '3A', '30-71122334-5', 'Ruta 9 km 698, Córdoba', '351-5559000', 'contacto@3deabril.com.ar');
+INSERT INTO EMPRESAS (id_empresa, nombre, iniciales, cuit, domicilio, telefono, email, condicion_iva, ingresos_brutos, inicio_actividades, punto_venta) VALUES
+(1, '3 de Abril SAS', '3A', '30-71122334-5', 'Ruta 9 km 698, Córdoba', '351-5559000', 'contacto@3deabril.com.ar', 'RESPONSABLE INSCRIPTO', '901-123456-7', '2015-03-04', 1);
 
 -- ---------- USUARIOS ----------
 -- admin / admin123  (administrador global, gestiona empresas y usuarios)
@@ -321,7 +407,8 @@ INSERT INTO MODULOS_EMPRESA (id_empresa, modulo, activo) VALUES
 (1, 'choferes', 1), (1, 'unidades', 1), (1, 'equipos', 1), (1, 'cubiertas', 1),
 (1, 'mantenimientos', 1), (1, 'vencimientos', 1), (1, 'viajes', 1),
 (1, 'consumos-combustible', 1), (1, 'consumos-generales', 1), (1, 'gastos-administrativos', 1),
-(1, 'cuentas', 1), (1, 'movimientos', 1), (1, 'cuentas-corrientes', 1), (1, 'stock', 1);
+(1, 'cuentas', 1), (1, 'movimientos', 1), (1, 'cuentas-corrientes', 1), (1, 'stock', 1),
+(1, 'facturacion', 1);
 
 -- ---------- CHOFERES (uno por cada tipo de remuneración) ----------
 INSERT INTO CHOFERES (id_empresa, nombre, cuil, edad, ultima_jornada_descanso, vencimiento_carnet, domicilio, telefono, remuneracion, tipo_remuneracion) VALUES
@@ -404,6 +491,10 @@ INSERT INTO VIAJES (id_empresa, fecha_origen, tipo_carga, origen, destino, id_eq
 (1, DATE_SUB(NOW(), INTERVAL 28 DAY), 'Girasol',      'Laboulaye',     'Quequén',      4, 43500,   'POR TONELADA', 29.8,  29.7, 0,  'FACTURADO',  DATE_SUB(NOW(), INTERVAL 27 DAY),'Oleaginosa Pampa',   'R-0001-00012511'),
 -- #9 FINALIZADO POR KM (chofer 5 POR KM 205/km)
 (1, DATE_SUB(NOW(), INTERVAL 15 DAY), 'Cemento',      'Córdoba',       'San Juan',     5, 1980,    'POR KM',       NULL,  540,  0,  'FINALIZADO', DATE_SUB(NOW(), INTERVAL 14 DAY),'Molinos Unidos',     'R-0001-00012620');
+
+-- Foto del chofer en los viajes de ejemplo (el chofer del equipo al crearse)
+UPDATE VIAJES v JOIN EQUIPO e ON e.id_equipo = v.id_equipo
+SET v.id_chofer = e.id_chofer WHERE v.id_chofer IS NULL;
 
 -- ---------- CONSUMOS COMBUSTIBLE ----------
 INSERT INTO CONSUMOS_COMBUSTIBLE (id_empresa, estacion_carga, proveedor, id_equipo, cantidad_litros, km_recorridos, precio_por_litro, fecha) VALUES

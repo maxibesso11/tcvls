@@ -4,7 +4,7 @@ const express = require('express');
 const pool = require('../config/db');
 const { hashearContrasena } = require('../config/auth');
 const { requiereAutenticacion, requiereAdmin } = require('./middleware/autenticacion');
-const { MODULOS, CLAVES, validarDependencias } = require('../config/modulos');
+const { MODULOS, CLAVES, validarDependencias, conObligatorios } = require('../config/modulos');
 
 const router = express.Router();
 router.use(requiereAutenticacion, requiereAdmin);
@@ -54,7 +54,8 @@ router.post('/empresas', async (req, res) => {
 
 router.put('/empresas/:id', async (req, res) => {
   try {
-    const { nombre, iniciales, cuit, domicilio, telefono, email, activa } = req.body;
+    const { nombre, iniciales, cuit, domicilio, telefono, email, activa,
+            condicion_iva, ingresos_brutos, inicio_actividades, punto_venta } = req.body;
     const data = {};
     if (nombre !== undefined) data.nombre = nombre;
     if (iniciales !== undefined) data.iniciales = (iniciales || '').trim().slice(0, 4).toUpperCase() || null;
@@ -63,6 +64,10 @@ router.put('/empresas/:id', async (req, res) => {
     if (telefono !== undefined) data.telefono = telefono || null;
     if (email !== undefined) data.email = email || null;
     if (activa !== undefined) data.activa = activa ? 1 : 0;
+    if (condicion_iva !== undefined) data.condicion_iva = condicion_iva || null;
+    if (ingresos_brutos !== undefined) data.ingresos_brutos = ingresos_brutos || null;
+    if (inicio_actividades !== undefined) data.inicio_actividades = inicio_actividades || null;
+    if (punto_venta !== undefined) data.punto_venta = parseInt(punto_venta, 10) || 1;
     const [result] = await pool.query('UPDATE EMPRESAS SET ? WHERE id_empresa = ?', [data, req.params.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Empresa no encontrada.' });
     res.json({ id_empresa: Number(req.params.id), ...data });
@@ -230,8 +235,9 @@ router.put('/empresas/:id/modulos', async (req, res) => {
     if (!Array.isArray(modulos)) {
       return res.status(400).json({ error: 'Se esperaba una lista de módulos.' });
     }
-    // Filtrar a claves válidas y quitar duplicados
-    modulos = [...new Set(modulos.filter(m => CLAVES.includes(m)))];
+    // Filtrar a claves válidas, quitar duplicados y forzar los obligatorios
+    // (facturación y cuentas siempre activos, no se pueden desactivar).
+    modulos = conObligatorios(modulos.filter(m => CLAVES.includes(m)));
 
     // Validar dependencias antes de guardar
     const errores = validarDependencias(modulos);

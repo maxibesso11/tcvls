@@ -71,7 +71,8 @@ const MODULOS = {
       { nombre: 'estado', etiqueta: 'Estado', tipo: 'select', requerido: true, opciones: ['EN CURSO', 'EN DESTINO', 'FINALIZADO', 'FACTURADO'], soloEdicion: true },
       { nombre: 'fecha_llegada', etiqueta: 'Fecha de llegada', tipo: 'datetime-local', soloEdicion: true },
       { nombre: 'pagador', etiqueta: 'Pagador', tipo: 'select_cuenta', tiposCuenta: ['CLIENTE', 'PROVEEDOR'], requerido: true },
-      { nombre: 'numero_remito', etiqueta: 'Número de remito', tipo: 'text', maxlen: 20, requerido: true }
+      { nombre: 'numero_remito', etiqueta: 'Número de remito', tipo: 'text', maxlen: 20, requerido: true },
+      { nombre: '_valor', etiqueta: 'Valor facturado', soloTabla: true, calcular: fila => valorViajeFacturado(fila) }
     ],
     filtrosAvanzados: true,
     accionesPersonalizadas: (fila) => {
@@ -127,7 +128,8 @@ const MODULOS = {
       { nombre: 'cuil', etiqueta: 'CUIL', tipo: 'text', requerido: true },
       { nombre: 'nombre', etiqueta: 'Nombre', tipo: 'text', requerido: true, ancho: true },
       { nombre: 'domicilio', etiqueta: 'Domicilio', tipo: 'text', ancho: true, requerido: true },
-      { nombre: 'telefono', etiqueta: 'Teléfono', tipo: 'text', requerido: true }
+      { nombre: 'telefono', etiqueta: 'Teléfono', tipo: 'text', requerido: true },
+      { nombre: 'plazo_pago_dias', etiqueta: 'Plazo de pago (días) — solo clientes', tipo: 'number', ayuda: 'Días que el cliente puede adeudar antes de que aparezca una alerta de cobro vencido. Dejar vacío si no aplica.' }
     ],
     accionesPersonalizadas: (fila) => {
       if (fila.tipo === 'CHOFER') {
@@ -255,6 +257,72 @@ function fechaISO(desplazamientoDias = 0) {
 // Rango por defecto: últimos 30 días (desde hace 30 días hasta hoy).
 function rango30Dias() {
   return { fecha_desde: fechaISO(-30), fecha_hasta: fechaISO(0) };
+}
+
+// Formatea una fecha local como YYYY-MM-DD (sin pasar por UTC, que podría
+// correr el día en husos negativos como el de Argentina).
+function isoLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Rango de un mes calendario. mes va de 1 a 12.
+// El día 0 del mes siguiente es el último día del mes pedido.
+function rangoMes(anio, mes) {
+  return {
+    fecha_desde: isoLocal(new Date(anio, mes - 1, 1)),
+    fecha_hasta: isoLocal(new Date(anio, mes, 0))
+  };
+}
+
+// Rango de un trimestre. trimestre va de 1 a 4.
+function rangoTrimestre(anio, trimestre) {
+  const mesInicio = (trimestre - 1) * 3 + 1;
+  return {
+    fecha_desde: isoLocal(new Date(anio, mesInicio - 1, 1)),
+    fecha_hasta: isoLocal(new Date(anio, mesInicio + 2, 0))
+  };
+}
+
+// Rango de un año completo.
+function rangoAnio(anio) {
+  return { fecha_desde: `${anio}-01-01`, fecha_hasta: `${anio}-12-31` };
+}
+
+const NOMBRES_MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+// Años ofrecidos en los selectores: desde 4 atrás hasta el actual.
+function aniosDisponibles() {
+  const actual = new Date().getFullYear();
+  const lista = [];
+  for (let a = actual; a >= actual - 4; a--) lista.push(a);
+  return lista;
+}
+
+// Describe un rango en lenguaje natural para mostrarlo como período activo.
+function describirPeriodo(desde, hasta) {
+  if (!desde && !hasta) return '';
+  if (!desde || !hasta) return `Período: ${desde || '…'} a ${hasta || '…'}`;
+  const d = new Date(desde + 'T00:00:00'), h = new Date(hasta + 'T00:00:00');
+  const anio = d.getFullYear();
+  // Año completo
+  if (anio === h.getFullYear() && d.getMonth() === 0 && d.getDate() === 1
+      && h.getMonth() === 11 && h.getDate() === 31) {
+    return `Período: año ${anio}`;
+  }
+  // Mes completo
+  const finMes = new Date(anio, d.getMonth() + 1, 0);
+  if (anio === h.getFullYear() && d.getMonth() === h.getMonth()
+      && d.getDate() === 1 && h.getDate() === finMes.getDate()) {
+    return `Período: ${NOMBRES_MES[d.getMonth()]} ${anio}`;
+  }
+  // Trimestre completo
+  if (anio === h.getFullYear() && d.getDate() === 1 && d.getMonth() % 3 === 0
+      && h.getMonth() === d.getMonth() + 2
+      && h.getDate() === new Date(anio, h.getMonth() + 1, 0).getDate()) {
+    return `Período: ${d.getMonth() / 3 + 1}° trimestre ${anio}`;
+  }
+  return `Período: ${desde} a ${hasta}`;
 }
 
 // Deriva iniciales (hasta 3 letras) a partir del nombre de una empresa,
@@ -409,7 +477,7 @@ function navegar() {
   if (typeof cerrarSidebar === 'function') cerrarSidebar();
   // Bloquear acceso directo (por URL) a módulos desactivados para la empresa
   const claveModulo = hash.startsWith('cuenta-corriente/') ? 'cuentas-corrientes' : hash;
-  if (!esVistaAdmin(hash) && !moduloActivo(claveModulo) && (MODULOS[hash] || claveModulo === 'cuentas-corrientes')) {
+  if (!esVistaAdmin(hash) && !moduloActivo(claveModulo) && (MODULOS[hash] || claveModulo === 'cuentas-corrientes' || claveModulo === 'facturacion')) {
     mostrarToast('Ese módulo no está habilitado para tu empresa.', true);
     location.hash = 'dashboard';
     return;
@@ -421,6 +489,7 @@ function navegar() {
   else if (hash === 'alertas') renderAlertas();
   else if (hash.startsWith('metrica/')) renderMetricaDetalle(hash.split('/')[1]);
   else if (hash === 'cuentas-corrientes') renderCuentasCorrientes();
+  else if (hash === 'facturacion') renderFacturacion();
   else if (hash.startsWith('cuenta-corriente/')) renderDetalleCuenta(hash.split('/')[1]);
   else if (MODULOS[hash]) renderModulo(hash);
   else if (SESION && SESION.rol === 'ADMIN') renderAdminEmpresas();
@@ -454,9 +523,18 @@ document.addEventListener('keydown', e => {
 // Dashboard
 // ============================================================
 // Estado del filtro de fecha global del dashboard
-const filtroDash = rango30Dias();
+const filtroDash = { ...rango30Dias(), tipo: 'rango' };
 
 async function renderDashboard() {
+  // Valores preseleccionados en los selectores de período: si ya hay un
+  // período aplicado se refleja ese; si no, el mes/trimestre/año en curso.
+  const refFecha = filtroDash.fecha_desde
+    ? new Date(filtroDash.fecha_desde + 'T00:00:00')
+    : new Date();
+  const anioActual = refFecha.getFullYear();
+  const mesActual = refFecha.getMonth() + 1;
+  const trimestreActual = Math.floor(refFecha.getMonth() / 3) + 1;
+
   contenido.innerHTML = `
     <div class="vista-cabecera">
       <div>
@@ -467,13 +545,43 @@ async function renderDashboard() {
     </div>
     <div class="filtros-avanzados" id="dash-filtros">
       <div class="filtro-grupo">
+        <label class="filtro-label">Período</label>
+        <select class="buscador" id="dash-tipo">
+          <option value="rango"${filtroDash.tipo === 'rango' ? ' selected' : ''}>Rango de fechas</option>
+          <option value="mes"${filtroDash.tipo === 'mes' ? ' selected' : ''}>Mes</option>
+          <option value="trimestre"${filtroDash.tipo === 'trimestre' ? ' selected' : ''}>Trimestre</option>
+          <option value="anio"${filtroDash.tipo === 'anio' ? ' selected' : ''}>Año</option>
+        </select>
+      </div>
+
+      <div class="filtro-grupo" data-periodo="rango">
         <label class="filtro-label">Desde</label>
         <input type="date" class="buscador filtro-fecha" id="dash-desde" value="${filtroDash.fecha_desde}">
       </div>
-      <div class="filtro-grupo">
+      <div class="filtro-grupo" data-periodo="rango">
         <label class="filtro-label">Hasta</label>
         <input type="date" class="buscador filtro-fecha" id="dash-hasta" value="${filtroDash.fecha_hasta}">
       </div>
+
+      <div class="filtro-grupo" data-periodo="mes">
+        <label class="filtro-label">Mes</label>
+        <select class="buscador" id="dash-mes">
+          ${NOMBRES_MES.map((n, i) => `<option value="${i + 1}"${(i + 1) === mesActual ? ' selected' : ''}>${n}</option>`).join('')}
+        </select>
+      </div>
+      <div class="filtro-grupo" data-periodo="trimestre">
+        <label class="filtro-label">Trimestre</label>
+        <select class="buscador" id="dash-trimestre">
+          ${[1, 2, 3, 4].map(q => `<option value="${q}"${q === trimestreActual ? ' selected' : ''}>${q}° trimestre (${NOMBRES_MES[(q - 1) * 3].slice(0, 3)}–${NOMBRES_MES[(q - 1) * 3 + 2].slice(0, 3)})</option>`).join('')}
+        </select>
+      </div>
+      <div class="filtro-grupo" data-periodo="mes trimestre anio">
+        <label class="filtro-label">Año</label>
+        <select class="buscador" id="dash-anio">
+          ${aniosDisponibles().map(a => `<option value="${a}"${a === anioActual ? ' selected' : ''}>${a}</option>`).join('')}
+        </select>
+      </div>
+
       <button class="btn btn-secundario btn-mini" id="dash-aplicar">Aplicar período</button>
       <button class="btn btn-secundario btn-mini" id="dash-limpiar">Últimos 30 días</button>
       <span class="filtro-label" id="dash-periodo-activo" style="align-self:center"></span>
@@ -482,20 +590,39 @@ async function renderDashboard() {
     <div class="panel-grid" id="dash-paneles"></div>
   `;
 
+  // Muestra solo los controles que corresponden al tipo de período elegido.
+  function mostrarControlesPeriodo() {
+    const tipo = $('#dash-tipo').value;
+    document.querySelectorAll('#dash-filtros [data-periodo]').forEach(el => {
+      el.style.display = el.dataset.periodo.split(' ').includes(tipo) ? '' : 'none';
+    });
+  }
+  $('#dash-tipo').addEventListener('change', mostrarControlesPeriodo);
+  mostrarControlesPeriodo();
+
   $('#dash-aplicar').addEventListener('click', () => {
-    filtroDash.fecha_desde = $('#dash-desde').value;
-    filtroDash.fecha_hasta = $('#dash-hasta').value;
+    const tipo = $('#dash-tipo').value;
+    filtroDash.tipo = tipo;
+    const anio = Number($('#dash-anio').value);
+    let r;
+    if (tipo === 'mes') r = rangoMes(anio, Number($('#dash-mes').value));
+    else if (tipo === 'trimestre') r = rangoTrimestre(anio, Number($('#dash-trimestre').value));
+    else if (tipo === 'anio') r = rangoAnio(anio);
+    else r = { fecha_desde: $('#dash-desde').value, fecha_hasta: $('#dash-hasta').value };
+    filtroDash.fecha_desde = r.fecha_desde;
+    filtroDash.fecha_hasta = r.fecha_hasta;
     renderDashboard();
   });
   $('#dash-limpiar').addEventListener('click', () => {
     const r = rango30Dias();
+    filtroDash.tipo = 'rango';
     filtroDash.fecha_desde = r.fecha_desde;
     filtroDash.fecha_hasta = r.fecha_hasta;
     renderDashboard();
   });
   if (filtroDash.fecha_desde || filtroDash.fecha_hasta) {
     $('#dash-periodo-activo').textContent =
-      `Período: ${filtroDash.fecha_desde || '…'} a ${filtroDash.fecha_hasta || '…'}`;
+      describirPeriodo(filtroDash.fecha_desde, filtroDash.fecha_hasta);
   }
 
   const periodo = { fecha_desde: filtroDash.fecha_desde, fecha_hasta: filtroDash.fecha_hasta };
@@ -518,7 +645,7 @@ async function renderDashboard() {
       <div class="kpi">
         <div class="kpi-etiqueta">Ingresos totales</div>
         <div class="kpi-valor exito">${fmtDinero(kpis.ingresos.ingresos_totales)}</div>
-        <div class="kpi-detalle">Pendiente de cobro: ${fmtDinero(kpis.ingresos.pendiente_cobro)}</div>
+        <div class="kpi-detalle">Viajes finalizados y facturados · Pendiente de cobro: ${fmtDinero(kpis.ingresos.pendiente_cobro)}</div>
       </div>
       <div class="kpi">
         <div class="kpi-etiqueta">Ganancia neta</div>
@@ -545,7 +672,7 @@ async function renderDashboard() {
       mantenimientos: alertas.mantenimientos.length,
       descansos: alertas.descansos.length
     };
-    const totalAlertas = tot.carnets + tot.vencimientos + tot.mantenimientos + tot.descansos;
+    const totalAlertas = tot.carnets + tot.vencimientos + tot.mantenimientos + tot.descansos + ((alertas.cobros || []).length);
 
     // Unificar y ordenar por urgencia; mostrar solo las 7 más urgentes
     const alertasOrdenadas = unificarAlertas(alertas);
@@ -667,17 +794,20 @@ async function renderDashboard() {
       : `
         <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px">
           <div><div class="kpi-etiqueta">Viajes</div><div style="font-size:18px;font-weight:600">${ipv.cantidad_viajes}</div></div>
-          <div><div class="kpi-etiqueta">Ingreso total</div><div style="font-size:18px;font-weight:600;color:var(--exito)">${fmtDinero(ipv.ingreso_total)}</div></div>
-          <div><div class="kpi-etiqueta">Promedio por viaje</div><div style="font-size:18px;font-weight:600;color:var(--info)">${fmtDinero(ipv.ingreso_promedio)}</div></div>
+          <div><div class="kpi-etiqueta">Ingreso sin IVA</div><div style="font-size:18px;font-weight:600;color:var(--exito)">${fmtDinero(ipv.ingreso_total)}</div></div>
+          <div><div class="kpi-etiqueta" title="IVA de los viajes facturados con IVA. No es ingreso propio: se debe a ARCA.">IVA facturado</div><div style="font-size:18px;font-weight:600;color:var(--info)">${fmtDinero(ipv.iva_total || 0)}</div></div>
+          <div><div class="kpi-etiqueta">Total con IVA</div><div style="font-size:18px;font-weight:600">${fmtDinero(ipv.ingreso_total_con_iva || ipv.ingreso_total)}</div></div>
         </div>
         <div class="kpi-etiqueta" style="margin-bottom:6px">Viajes con más ingresos</div>
         ${tablaSimple(
-          ['Viaje', 'Ruta', 'Pagador', 'Ingreso'],
+          ['Viaje', 'Ruta', 'Pagador', 'Sin IVA', 'IVA', 'Con IVA'],
           topViajes.map(v => [
             `#${v.id_viaje}`,
             `${esc(v.origen)} → ${esc(v.destino)}`,
             esc(v.pagador || '—'),
-            `<td class="celda-num">${fmtDinero(v.ingreso)}</td>`
+            `<td class="celda-num">${fmtDinero(v.ingreso)}</td>`,
+            `<td class="celda-num" style="color:var(--texto-suave)">${Number(v.iva) > 0 ? fmtDinero(v.iva) : '—'}</td>`,
+            `<td class="celda-num">${fmtDinero(v.ingreso_con_iva ?? v.ingreso)}</td>`
           ])
         )}
         ${ipv.cantidad_viajes > topViajes.length
@@ -772,10 +902,15 @@ async function renderDashboard() {
 // Dentro de cada categoría se ordena por la cantidad de días en alerta:
 // lo más urgente primero (los ya vencidos, con días negativos, van arriba).
 function unificarAlertas(alertas) {
-  // Orden de prioridad por tipo (menor = más prioritario)
-  const PRIORIDAD = { vencimiento: 1, mantenimiento: 2, carnet: 3, descanso: 4 };
+  // Orden de prioridad por tipo (menor = más prioritario). Los cobros
+  // vencidos van primero: es dinero que la empresa debería haber cobrado.
+  const PRIORIDAD = { cobro: 1, vencimiento: 2, mantenimiento: 3, carnet: 4, descanso: 5 };
 
   const items = [];
+  (alertas.cobros || []).forEach(a => items.push({
+    texto: `Cobro vencido · ${a.nombre}`, dias: -a.dias_excedido, tipo: 'cobro',
+    saldo: a.saldo_adeudado, diasExcedido: a.dias_excedido, plazo: a.plazo_pago_dias
+  }));
   (alertas.vencimientos || []).forEach(a => items.push({
     texto: `${a.concepto} · ${a.patente}`, dias: a.dias_restantes, tipo: 'vencimiento'
   }));
@@ -792,23 +927,33 @@ function unificarAlertas(alertas) {
   return items.sort((a, b) => {
     // 1) por categoría
     if (PRIORIDAD[a.tipo] !== PRIORIDAD[b.tipo]) return PRIORIDAD[a.tipo] - PRIORIDAD[b.tipo];
-    // 2) dentro de la categoría, por días en alerta (más urgente primero)
+    // 2) dentro de la categoría, por urgencia
     if (a.tipo === 'descanso') {
-      // Más días sin descanso = más urgente
       return (b.diasSinDescanso || 0) - (a.diasSinDescanso || 0);
+    }
+    if (a.tipo === 'cobro') {
+      // Más días excedido = más urgente
+      return b.diasExcedido - a.diasExcedido;
     }
     // Menos días restantes (o más vencido) = más urgente
     return a.dias - b.dias;
   });
 }
 
-// Renderiza una fila de alerta unificada (incluye el caso de descanso).
+// Renderiza una fila de alerta unificada (incluye descanso y cobro).
 function filaAlertaUnificada(it) {
   if (it.tipo === 'descanso') {
     return `
       <div class="alerta-item">
         <span>${esc(it.texto)}</span>
         <span class="insignia rojo">${it.diasSinDescanso} días sin descanso</span>
+      </div>`;
+  }
+  if (it.tipo === 'cobro') {
+    return `
+      <div class="alerta-item">
+        <span>${esc(it.texto)} · ${fmtDinero(it.saldo)}</span>
+        <span class="insignia rojo" title="Plazo de pago: ${it.plazo} días">Vencido hace ${it.diasExcedido} días</span>
       </div>`;
   }
   return filaAlerta(esc(it.texto), it.dias);
@@ -835,9 +980,10 @@ async function renderAlertas() {
       carnets: (alertas.carnets || []).length,
       vencimientos: (alertas.vencimientos || []).length,
       mantenimientos: (alertas.mantenimientos || []).length,
-      descansos: (alertas.descansos || []).length
+      descansos: (alertas.descansos || []).length,
+      cobros: (alertas.cobros || []).length
     };
-    const total = tot.carnets + tot.vencimientos + tot.mantenimientos + tot.descansos;
+    const total = tot.carnets + tot.vencimientos + tot.mantenimientos + tot.descansos + (tot.cobros || 0);
 
     contenido.innerHTML = `
       <div class="vista-cabecera">
@@ -850,9 +996,10 @@ async function renderAlertas() {
 
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-etiqueta">Total de alertas</div><div class="kpi-valor ${total ? 'peligro' : 'exito'}">${total}</div></div>
-        <div class="kpi"><div class="kpi-etiqueta">Carnets</div><div class="kpi-valor">${tot.carnets}</div></div>
+        <div class="kpi"><div class="kpi-etiqueta">Cobros vencidos</div><div class="kpi-valor ${tot.cobros ? 'peligro' : ''}">${tot.cobros || 0}</div></div>
         <div class="kpi"><div class="kpi-etiqueta">Vencimientos</div><div class="kpi-valor">${tot.vencimientos}</div></div>
         <div class="kpi"><div class="kpi-etiqueta">Mantenimientos</div><div class="kpi-valor">${tot.mantenimientos}</div></div>
+        <div class="kpi"><div class="kpi-etiqueta">Carnets</div><div class="kpi-valor">${tot.carnets}</div></div>
         <div class="kpi"><div class="kpi-etiqueta">Descansos</div><div class="kpi-valor">${tot.descansos}</div></div>
       </div>
 
@@ -974,16 +1121,19 @@ async function cargarMetrica(clave) {
     if (clave === 'ingresos-por-viaje') {
       const filas = await API.ingresosPorViaje(params);
       const total = filas.reduce((s, v) => s + Number(v.ingreso), 0);
+      const totalIva = filas.reduce((s, v) => s + Number(v.iva || 0), 0);
       cont.innerHTML = `
         <div class="kpi-grid">
           <div class="kpi"><div class="kpi-etiqueta">Viajes en el período</div><div class="kpi-valor">${filas.length}</div></div>
           <div class="kpi"><div class="kpi-etiqueta">Ingreso total (sin IVA)</div><div class="kpi-valor exito">${fmtDinero(total)}</div></div>
+          <div class="kpi"><div class="kpi-etiqueta" title="IVA de los viajes facturados con IVA. Se cobra al cliente pero se le debe a ARCA.">IVA facturado</div><div class="kpi-valor info">${fmtDinero(totalIva)}</div></div>
+          <div class="kpi"><div class="kpi-etiqueta">Total con IVA</div><div class="kpi-valor">${fmtDinero(total + totalIva)}</div></div>
           <div class="kpi"><div class="kpi-etiqueta">Promedio por viaje</div><div class="kpi-valor info">${fmtDinero(filas.length ? total / filas.length : 0)}</div></div>
         </div>
         <div class="panel"><div class="panel-cuerpo sin-padding"><div class="tabla-contenedor">
         ${filas.length === 0 ? '<div class="estado-vacio">Sin viajes para los filtros seleccionados.</div>' : `
           <table><thead><tr>
-            <th>Fecha</th><th>Ruta</th><th>Carga</th><th>Equipo</th><th>Tipo</th><th>Estado</th><th>Ingreso</th>
+            <th>Fecha</th><th>Ruta</th><th>Carga</th><th>Equipo</th><th>Tipo</th><th>Estado</th><th>Sin IVA</th><th>IVA</th><th>Con IVA</th>
           </tr></thead><tbody>
           ${filas.map(v => `<tr>
             <td>${fmtFecha(v.fecha_origen)}</td>
@@ -993,9 +1143,15 @@ async function cargarMetrica(clave) {
             <td>${esc(v.tipo_tarifa)}</td>
             <td>${insigniaEstado(v.estado)}</td>
             <td class="celda-num">${fmtDinero(v.ingreso)}</td>
+            <td class="celda-num" style="color:var(--texto-suave)">${Number(v.iva) > 0 ? fmtDinero(v.iva) : '—'}</td>
+            <td class="celda-num" style="font-weight:600">${fmtDinero(v.ingreso_con_iva ?? v.ingreso)}</td>
           </tr>`).join('')}
           </tbody></table>`}
-        </div></div></div>`;
+        </div></div></div>
+        <div style="padding:10px 4px;font-size:12px;color:var(--texto-suave);line-height:1.5">
+          El IVA aparece solo en los viajes facturados con IVA (líquido producto o factura).
+          Los marcados como "sin facturar" no lo generan.
+        </div>`;
 
     } else if (clave === 'consumos-por-equipo') {
       const filas = await API.consumosPorEquipo(params);
@@ -1028,9 +1184,11 @@ async function cargarMetrica(clave) {
       const rentEquipos = data.rentabilidad_equipos || 0;
       const gAdmin = data.gastos_administrativos || 0;
       const rentNeta = data.rentabilidad_neta || 0;
+      const ivaTotal = data.iva_total || 0;
+      const rentNetaIva = data.rentabilidad_neta_con_iva ?? rentNeta;
       cont.innerHTML = `
         <div class="kpi-grid">
-          <div class="kpi"><div class="kpi-etiqueta">Ingresos totales</div><div class="kpi-valor exito">${fmtDinero(totalIngresos)}</div></div>
+          <div class="kpi"><div class="kpi-etiqueta">Ingresos sin IVA</div><div class="kpi-valor exito">${fmtDinero(totalIngresos)}</div></div>
           <div class="kpi"><div class="kpi-etiqueta">Costos de equipos</div><div class="kpi-valor peligro">${fmtDinero(totalCostos)}</div></div>
           <div class="kpi"><div class="kpi-etiqueta">Gastos administrativos</div><div class="kpi-valor peligro">${fmtDinero(gAdmin)}</div></div>
           <div class="kpi"><div class="kpi-etiqueta">Rentabilidad neta</div><div class="kpi-valor ${rentNeta >= 0 ? 'exito' : 'peligro'}">${fmtDinero(rentNeta)}</div></div>
@@ -1067,6 +1225,47 @@ async function cargarMetrica(clave) {
           </tr>
           </tbody></table>`}
         </div></div></div>
+
+        <div class="panel" style="margin-top:16px">
+          <div class="panel-cabecera">
+            <span>Rentabilidad con IVA incluido</span>
+          </div>
+          <div class="panel-cuerpo sin-padding"><div class="tabla-contenedor">
+          ${filas.length === 0 ? '<div class="estado-vacio">Sin equipos para los filtros seleccionados.</div>' : `
+            <table><thead><tr>
+              <th>Equipo</th><th>Ingresos sin IVA</th><th>IVA</th><th>Ingresos con IVA</th><th>Costos</th><th>Rent. sin IVA</th><th>Rent. con IVA</th>
+            </tr></thead><tbody>
+            ${filas.map(r => `<tr>
+              <td>${esc(r.patente_principal)} / ${esc(r.patente_secundaria || '?')}</td>
+              <td class="celda-num">${fmtDinero(r.ingresos)}</td>
+              <td class="celda-num" style="color:var(--texto-suave)">${Number(r.iva) > 0 ? fmtDinero(r.iva) : '—'}</td>
+              <td class="celda-num">${fmtDinero(r.ingresos_con_iva ?? r.ingresos)}</td>
+              <td class="celda-num">${fmtDinero(r.costos)}</td>
+              <td class="celda-num" style="color:${r.rentabilidad >= 0 ? 'var(--exito)' : 'var(--peligro)'}">${fmtDinero(r.rentabilidad)}</td>
+              <td class="celda-num" style="font-weight:600;color:${(r.rentabilidad_con_iva ?? r.rentabilidad) >= 0 ? 'var(--exito)' : 'var(--peligro)'}">${fmtDinero(r.rentabilidad_con_iva ?? r.rentabilidad)}</td>
+            </tr>`).join('')}
+            <tr style="border-top:2px solid var(--borde);font-weight:600">
+              <td>Totales</td>
+              <td class="celda-num">${fmtDinero(totalIngresos)}</td>
+              <td class="celda-num">${fmtDinero(ivaTotal)}</td>
+              <td class="celda-num">${fmtDinero(totalIngresos + ivaTotal)}</td>
+              <td class="celda-num">${fmtDinero(totalCostos)}</td>
+              <td class="celda-num" style="color:${rentEquipos >= 0 ? 'var(--exito)' : 'var(--peligro)'}">${fmtDinero(rentEquipos)}</td>
+              <td class="celda-num" style="color:${(data.rentabilidad_equipos_con_iva ?? rentEquipos) >= 0 ? 'var(--exito)' : 'var(--peligro)'}">${fmtDinero(data.rentabilidad_equipos_con_iva ?? rentEquipos)}</td>
+            </tr>
+            <tr style="font-weight:700;border-top:1px dashed var(--borde)">
+              <td colspan="5">RENTABILIDAD NETA (tras gastos administrativos)</td>
+              <td class="celda-num" style="color:${rentNeta >= 0 ? 'var(--exito)' : 'var(--peligro)'}">${fmtDinero(rentNeta)}</td>
+              <td class="celda-num" style="color:${rentNetaIva >= 0 ? 'var(--exito)' : 'var(--peligro)'}">${fmtDinero(rentNetaIva)}</td>
+            </tr>
+            </tbody></table>`}
+          </div></div>
+          <div style="padding:10px 16px;font-size:12px;color:var(--texto-suave);line-height:1.5;border-top:1px solid var(--borde)">
+            El IVA se cobra al cliente pero se le debe a ARCA: no es ganancia propia.
+            La columna <strong>Rent. sin IVA</strong> es la que refleja la rentabilidad real del equipo;
+            la de <strong>con IVA</strong> sirve para ver el dinero que efectivamente ingresa por caja.
+          </div>
+        </div>
         ${filas.some(r => r.tipo_remuneracion === 'FIJA') ? `<div class="estado-vacio">Para choferes con sueldo FIJO, el costo se prorratea: (remuneración ÷ 30) × ${data.dias_periodo} días del período.</div>` : ''}`;
 
     } else if (clave === 'gastos-administrativos') {
@@ -1123,6 +1322,228 @@ function tablaSimple(cabeceras, filas) {
       <thead><tr>${cabeceras.map(h => `<th>${h}</th>`).join('')}</tr></thead>
       <tbody>${filas.map(f => `<tr>${f.map(c => c.startsWith('<td') ? c : `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
     </table>`;
+}
+
+// ============================================================
+// Facturación: listado, facturar viaje, factura manual, PDF
+// ============================================================
+async function renderFacturacion() {
+  contenido.innerHTML = `
+    <div class="vista-cabecera">
+      <div>
+        <div class="vista-titulo">Facturación</div>
+        <div class="vista-sub">Comprobantes tipo Factura A</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secundario" onclick="abrirFacturarViaje()">Facturar un viaje</button>
+        <button class="btn btn-primario" onclick="abrirFacturaManual()">Factura manual</button>
+      </div>
+    </div>
+    <div class="tabla-contenedor" id="fac-tabla"><div class="estado-vacio">Cargando…</div></div>`;
+  cargarFacturas();
+}
+
+async function cargarFacturas(pagina = 1) {
+  try {
+    const { datos, paginacion } = await API.listarFacturas(pagina);
+    if (!datos.length) {
+      $('#fac-tabla').innerHTML = '<div class="estado-vacio">Todavía no se emitieron facturas. Usá los botones de arriba para crear la primera.</div>';
+      return;
+    }
+    $('#fac-tabla').innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Comprobante</th><th>Fecha</th><th>Receptor</th><th>CUIT</th>
+          <th>Neto</th><th>IVA</th><th>Total</th><th>Estado</th><th>Acciones</th>
+        </tr></thead>
+        <tbody>
+          ${datos.map(f => {
+            const esNC = f.clase === 'NOTA_CREDITO';
+            const tipo = esNC ? 'NC A' : 'Factura A';
+            const nro = `${String(f.punto_venta).padStart(4,'0')}-${String(f.numero).padStart(8,'0')}`;
+            const estado = f.estado === 'EMITIDA'
+              ? '<span class="insignia verde">Emitida</span>'
+              : f.estado === 'ANULADA' ? '<span class="insignia gris">Anulada</span>'
+              : '<span class="insignia ambar" title="Pendiente de CAE de ARCA">Borrador</span>';
+            // El botón de nota de crédito solo aplica a facturas no anuladas
+            const btnNC = (!esNC && f.estado !== 'ANULADA')
+              ? `<button class="btn btn-secundario btn-mini" onclick="emitirNotaCredito(${f.id_factura}, '${nro}')">Nota de crédito</button>`
+              : '';
+            return `<tr>
+              <td><strong>${esNC ? '<span class="insignia ambar">NC</span> ' : ''}${tipo}</strong> ${nro}${f.id_viaje ? ` <span class="insignia" title="Generada desde un viaje">viaje #${f.id_viaje}</span>` : ''}</td>
+              <td>${fmtFecha(f.fecha_emision)}</td>
+              <td>${esc(f.receptor_nombre)}</td>
+              <td>${esc(f.receptor_cuit)}</td>
+              <td class="celda-num">${fmtDinero(f.neto_gravado)}</td>
+              <td class="celda-num">${fmtDinero(f.iva)}</td>
+              <td class="celda-num" style="font-weight:600">${fmtDinero(f.total)}</td>
+              <td>${estado}</td>
+              <td style="white-space:nowrap">
+                <a class="btn btn-primario btn-mini" style="text-decoration:none" href="${API.urlPdfFactura(f.id_factura)}" target="_blank">PDF</a>
+                ${btnNC}
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      ${controlesPaginacion(paginacion, p => cargarFacturas(p))}`;
+  } catch (err) {
+    $('#fac-tabla').innerHTML = `<div class="estado-vacio">Error: ${esc(err.message)}</div>`;
+  }
+}
+
+// Emite una nota de crédito que anula una factura existente
+async function emitirNotaCredito(idFactura, nro) {
+  if (!confirm(`¿Emitir una nota de crédito que anule la Factura A ${nro}?\n\nSe generará una Nota de Crédito A por el total de la factura y la factura quedará anulada. Esta acción no se puede deshacer.`)) return;
+  try {
+    const { id_factura } = await API.notaCredito(idFactura);
+    mostrarToast('Nota de crédito emitida.');
+    window.open(API.urlPdfFactura(id_factura), '_blank');
+    renderFacturacion();
+  } catch (err) {
+    mostrarToast(err.message, true);
+  }
+}
+
+async function abrirFacturarViaje() {
+  try {
+    const viajes = await API.viajesFacturables();
+    $('#modal-titulo').textContent = 'Facturar un viaje';
+    if (!viajes.length) {
+      $('#modal-cuerpo').innerHTML = '<div class="estado-vacio">No hay viajes pendientes de facturar. Un viaje es facturable si está finalizado y su pagador está registrado como cuenta de cliente con CUIT.</div>';
+      configurarGuardado(async () => true);
+      abrirModalGenerico();
+      return;
+    }
+    $('#modal-cuerpo').innerHTML = `
+      <div class="fac-intro">
+        <span class="fac-intro-icono">A</span>
+        <span>Elegí el viaje a facturar. Se emite una <strong>Factura A</strong> al CUIT del pagador por el neto del flete (sin comisión) más IVA 21%.</span>
+      </div>
+      <div class="fac-lista">
+        ${viajes.map(v => `
+          <label class="fac-opcion">
+            <input type="radio" name="viaje-fac" value="${v.id_viaje}" onchange="_facMarcar(this)">
+            <div class="fac-op-info">
+              <div class="fac-op-ruta">${esc(v.origen)} → ${esc(v.destino)}</div>
+              <div class="fac-op-meta">${fmtFecha(v.fecha_origen)} · ${esc(v.pagador)} · CUIT ${esc(v.pagador_cuit)}${v.numero_remito ? ' · Remito ' + esc(v.numero_remito) : ''}</div>
+            </div>
+            <div class="fac-op-monto">${fmtDinero(v.neto)}<small>neto</small></div>
+          </label>`).join('')}
+      </div>
+      <div id="fac-error" class="login-error" hidden></div>`;
+    configurarGuardado(async () => {
+      const sel = document.querySelector('input[name="viaje-fac"]:checked');
+      if (!sel) { _facError('Seleccioná un viaje.'); return false; }
+      try {
+        const { id_factura } = await API.facturarViaje(sel.value);
+        mostrarToast('Factura generada.');
+        window.open(API.urlPdfFactura(id_factura), '_blank');
+        renderFacturacion();
+        return true;
+      } catch (err) { _facError(err.message); return false; }
+    });
+    abrirModalGenerico();
+  } catch (err) {
+    mostrarToast('No se pudieron cargar los viajes: ' + err.message, true);
+  }
+}
+
+async function abrirFacturaManual() {
+  try {
+    const cuentas = await API.listarTodo('cuentas');
+    const conCuit = cuentas.filter(c => c.cuil);
+    $('#modal-titulo').textContent = 'Factura manual';
+    $('#modal-cuerpo').innerHTML = `
+      <div class="fac-intro">
+        <span class="fac-intro-icono">A</span>
+        <span>Emití una <strong>Factura A</strong> a una cuenta del sistema. Cargá los ítems con su precio sin IVA; el total se calcula solo.</span>
+      </div>
+      <div class="campo ancho-completo">
+        <label>Cuenta (receptor)</label>
+        <select id="fm-cuenta">
+          <option value="">— Seleccionar cuenta —</option>
+          ${conCuit.map(c => `<option value="${c.id_cuenta}">${esc(c.nombre)} — ${esc(c.cuil)} (${esc(c.tipo)})</option>`).join('')}
+        </select>
+      </div>
+      <div class="fac-items">
+        <div class="fac-items-cabecera">
+          <span>Descripción</span><span>Cant.</span><span>Unidad</span><span>P. unitario</span><span></span>
+        </div>
+        <div id="fm-items"></div>
+        <button type="button" class="btn btn-secundario btn-mini fac-agregar" onclick="_fmAgregarItem()">+ Agregar ítem</button>
+      </div>
+      <div class="campo ancho-completo"><label>Observaciones (opcional)</label><input id="fm-obs" placeholder="Notas adicionales para el comprobante"></div>
+      <div class="fac-totales" id="fm-total"></div>
+      <div id="fac-error" class="login-error" hidden></div>`;
+    _fmAgregarItem();
+    configurarGuardado(async () => {
+      const id_cuenta = $('#fm-cuenta').value;
+      if (!id_cuenta) { _facError('Seleccioná una cuenta.'); return false; }
+      const items = _fmRecogerItems();
+      if (!items.length) { _facError('Agregá al menos un ítem con importe.'); return false; }
+      try {
+        const { id_factura } = await API.facturarManual({ id_cuenta, items, observaciones: $('#fm-obs').value });
+        mostrarToast('Factura generada.');
+        window.open(API.urlPdfFactura(id_factura), '_blank');
+        renderFacturacion();
+        return true;
+      } catch (err) { _facError(err.message); return false; }
+    });
+    abrirModalGenerico();
+  } catch (err) {
+    mostrarToast('No se pudieron cargar las cuentas: ' + err.message, true);
+  }
+}
+
+function _fmAgregarItem() {
+  const cont = $('#fm-items');
+  const fila = document.createElement('div');
+  fila.className = 'fac-item-fila';
+  const unidades = ['unidades', 'horas', 'kilómetros', 'toneladas', 'kilogramos', 'litros', 'días', 'viajes', 'metros cúbicos', 'global'];
+  fila.innerHTML = `
+    <input class="fm-desc" placeholder="Descripción del ítem">
+    <input class="fm-cant" type="number" min="0" step="0.01" value="1">
+    <select class="fm-unidad">
+      ${unidades.map(u => `<option value="${u}">${u}</option>`).join('')}
+    </select>
+    <input class="fm-precio" type="number" min="0" step="0.01" placeholder="0,00">
+    <button type="button" class="btn btn-peligro fac-item-quitar" title="Quitar ítem">×</button>`;
+  fila.querySelector('button').onclick = () => { fila.remove(); _fmActualizarTotal(); };
+  fila.querySelectorAll('input, select').forEach(i => i.addEventListener('input', _fmActualizarTotal));
+  cont.appendChild(fila);
+  _fmActualizarTotal();
+}
+
+function _fmRecogerItems() {
+  return Array.from(document.querySelectorAll('#fm-items > div')).map(f => ({
+    descripcion: f.querySelector('.fm-desc').value.trim(),
+    cantidad: parseFloat(f.querySelector('.fm-cant').value) || 0,
+    unidad: f.querySelector('.fm-unidad').value,
+    precio_unitario: parseFloat(f.querySelector('.fm-precio').value) || 0
+  })).filter(it => it.descripcion && it.precio_unitario > 0 && it.cantidad > 0);
+}
+
+function _fmActualizarTotal() {
+  const items = _fmRecogerItems();
+  const neto = items.reduce((s, it) => s + it.cantidad * it.precio_unitario, 0);
+  const iva = neto * 0.21;
+  const el = $('#fm-total');
+  if (el) el.innerHTML = `
+    <div class="fac-total-item"><div class="et">Neto gravado</div><div class="va">${fmtDinero(neto)}</div></div>
+    <div class="fac-total-item"><div class="et">IVA 21%</div><div class="va">${fmtDinero(iva)}</div></div>
+    <div class="fac-total-item destacado"><div class="et">Total</div><div class="va">${fmtDinero(neto + iva)}</div></div>`;
+}
+
+// Resalta visualmente la tarjeta de viaje elegida
+function _facMarcar(input) {
+  document.querySelectorAll('.fac-opcion').forEach(o => o.classList.remove('elegida'));
+  if (input.checked) input.closest('.fac-opcion').classList.add('elegida');
+}
+
+function _facError(msg) {
+  const box = $('#fac-error');
+  if (box) { box.textContent = msg; box.hidden = false; }
 }
 
 // ============================================================
@@ -1195,7 +1616,7 @@ async function cargarCuentasCorrientes(q = '', pagina = 1) {
         <thead>
           <tr>
             <th>Titular</th><th>Tipo</th><th>CUIL</th><th>Movs.</th>
-            <th>Créditos</th><th>Débitos</th><th>Saldo final</th>
+            <th>Débitos</th><th>Créditos</th><th>Saldo final</th>
             <th>Condición</th><th>Acciones</th>
           </tr>
         </thead>
@@ -1206,8 +1627,8 @@ async function cargarCuentasCorrientes(q = '', pagina = 1) {
               <td>${insigniaEstado(c.tipo)}</td>
               <td>${esc(c.cuil)}</td>
               <td class="celda-num">${c.cantidad_movimientos}</td>
-              <td class="celda-num">${fmtDinero(c.total_creditos)}</td>
               <td class="celda-num">${fmtDinero(c.total_debitos)}</td>
+              <td class="celda-num">${fmtDinero(c.total_creditos)}</td>
               <td class="celda-num" style="font-weight:600;color:${colorSaldo(c.condicion)}">${fmtDinero(Math.abs(c.saldo))}</td>
               <td>${insigniaCondicion(c.condicion)}</td>
               <td>
@@ -1235,9 +1656,8 @@ function colorSaldo(condicion) {
 
 function insigniaCondicion(condicion) {
   const color = condicion === 'DEUDOR' ? 'verde' : condicion === 'ACREEDOR' ? 'rojo' : 'gris';
-  // Texto más claro sobre quién debe a quién
-  const texto = condicion === 'DEUDOR' ? 'A favor (le deben)'
-              : condicion === 'ACREEDOR' ? 'En contra (se debe)'
+  const texto = condicion === 'DEUDOR' ? 'A favor'
+              : condicion === 'ACREEDOR' ? 'En contra'
               : 'Saldada';
   return `<span class="insignia ${color}" title="${condicion}">${texto}</span>`;
 }
@@ -1263,12 +1683,12 @@ async function renderDetalleCuenta(id) {
 
       <div class="kpi-grid">
         <div class="kpi">
-          <div class="kpi-etiqueta">Total créditos</div>
-          <div class="kpi-valor exito">${fmtDinero(resumen.total_creditos)}</div>
+          <div class="kpi-etiqueta" title="Montos en contra del titular: a favor de la empresa">Total débitos</div>
+          <div class="kpi-valor exito">${fmtDinero(resumen.total_debitos)}</div>
         </div>
         <div class="kpi">
-          <div class="kpi-etiqueta">Total débitos</div>
-          <div class="kpi-valor peligro">${fmtDinero(resumen.total_debitos)}</div>
+          <div class="kpi-etiqueta" title="Montos a favor del titular: la empresa debe">Total créditos</div>
+          <div class="kpi-valor peligro">${fmtDinero(resumen.total_creditos)}</div>
         </div>
         <div class="kpi">
           <div class="kpi-etiqueta">Saldo final</div>
@@ -1296,8 +1716,8 @@ async function renderDetalleCuenta(id) {
                       <tr>
                         <td>${fmtFecha(m.fecha)}</td>
                         <td style="white-space:normal">${m.concepto.startsWith('RECIBO') ? '<span class="insignia azul">RECIBO</span> ' + esc(m.concepto.replace(/^RECIBO\s*/, '')) : esc(m.concepto)}</td>
-                        <td class="celda-num" style="color:var(--peligro)">${m.debito ? fmtDinero(m.debito) : '—'}</td>
-                        <td class="celda-num" style="color:var(--exito)">${m.credito ? fmtDinero(m.credito) : '—'}</td>
+                        <td class="celda-num" style="color:var(--exito)">${m.debito ? fmtDinero(m.debito) : '—'}</td>
+                        <td class="celda-num" style="color:var(--peligro)">${m.credito ? fmtDinero(m.credito) : '—'}</td>
                         <td class="celda-num" style="font-weight:600">${fmtDinero(m.saldo_parcial)}</td>
                         <td>
                           <button class="btn btn-secundario btn-mini" onclick='abrirModalRecibo(${cuenta.id_cuenta}, ${JSON.stringify(m).replace(/'/g, "&#39;")})'>Editar</button>
@@ -1349,6 +1769,14 @@ async function avanzarEstadoViaje(idViaje) {
   const datos = { estado: siguiente };
   if (siguiente === 'FINALIZADO' && !viaje.fecha_llegada) {
     datos.fecha_llegada = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  }
+
+  // Al avanzar a FACTURADO, abrir el modal para elegir cómo imputar en la
+  // cuenta del cliente (sin IVA, líquido producto o emitir factura).
+  if (siguiente === 'FACTURADO') {
+    registroEditando = idViaje;
+    _registroActual = viaje;
+    return abrirModalFacturarViaje({ ...viaje, estado: 'FACTURADO' });
   }
 
   try {
@@ -1591,6 +2019,7 @@ async function eliminarMovimientoCuenta(idCuenta, idMovimiento) {
 // ============================================================
 let moduloActual = null;
 let registroEditando = null;
+let _registroActual = null;
 
 async function renderModulo(clave) {
   const mod = MODULOS[clave];
@@ -1849,6 +2278,9 @@ function _irPagina(id, pagina) {
 }
 
 function formatearCelda(valor, campo, diccionarioFk, fila) {
+  // Columnas calculadas: no guardan un valor propio en el registro, se derivan
+  // de la fila completa (ej. el valor facturado de un viaje).
+  if (campo && typeof campo.calcular === 'function') return campo.calcular(fila);
   if (valor === null || valor === undefined || valor === '') return '—';
   if (!campo) return esc(valor);
   if (campo.tipo === 'fk' && diccionarioFk) {
@@ -1886,12 +2318,14 @@ async function abrirModal(clave, id) {
     try { datos = await API.obtener(mod.recurso, id); }
     catch (err) { mostrarToast(err.message, true); return; }
   }
+  _registroActual = datos;
 
   // Al crear, excluir campos marcados como soloEdicion
-  // (ej. resultado, estado, fechas en viajes)
-  const camposVisibles = id
+  // (ej. resultado, estado, fechas en viajes). Las columnas calculadas
+  // (soloTabla) nunca se editan: no forman parte del formulario.
+  const camposVisibles = (id
     ? mod.campos
-    : mod.campos.filter(c => !c.soloEdicion);
+    : mod.campos.filter(c => !c.soloEdicion)).filter(c => !c.soloTabla);
 
   // Cargar opciones de claves foráneas (solo para campos visibles)
   const camposFk = camposVisibles.filter(c => c.tipo === 'fk');
@@ -1980,6 +2414,7 @@ async function abrirModal(clave, id) {
         <label for="f-${c.nombre}">${c.etiqueta}${c.requerido ? ' *' : ''}</label>
         <input id="f-${c.nombre}" name="${c.nombre}" type="${c.tipo}" value="${valorInput}" ${req} ${c.tipo === 'number' ? 'step="any"' : ''} ${c.maxlen ? `maxlength="${c.maxlen}"` : ''} ${c.listaDepositos ? 'list="lista-depositos"' : ''}>
         ${c.listaDepositos ? `<datalist id="lista-depositos">${sugerenciasDeposito.map(d => `<option value="${d.replace(/"/g, '&quot;')}"></option>`).join('')}</datalist>` : ''}
+        ${c.ayuda ? `<small class="campo-ayuda">${c.ayuda}</small>` : ''}
       </div>`;
   }).join('');
 
@@ -1989,10 +2424,15 @@ async function abrirModal(clave, id) {
 function cerrarModal() {
   $('#modal-fondo').hidden = true;
   registroEditando = null;
+  _registroActual = null;
   modoRecibo = null;
   modoMoverDeposito = null;
   modoAvanzarConResultado = null;
   _guardadoAdmin = null;
+  _datosViajeFacturar = null;
+  // Restaurar el botón Guardar por si algún modal lo ocultó
+  const btnGuardar = $('#btn-guardar');
+  if (btnGuardar) btnGuardar.style.display = '';
 }
 
 async function guardarRegistro() {
@@ -2018,9 +2458,10 @@ async function guardarRegistro() {
   let valido = true;
 
   // Solo iterar sobre los campos visibles en el formulario actual
-  const camposActivos = registroEditando
+  // (las columnas calculadas no tienen input y no se envían)
+  const camposActivos = (registroEditando
     ? mod.campos
-    : mod.campos.filter(c => !c.soloEdicion);
+    : mod.campos.filter(c => !c.soloEdicion)).filter(c => !c.soloTabla);
 
   camposActivos.forEach(c => {
     const input = $(`#f-${c.nombre}`);
@@ -2046,6 +2487,16 @@ async function guardarRegistro() {
     return;
   }
 
+  // Al marcar un viaje como FACTURADO, abrir el modal de facturación para
+  // elegir cómo imputarlo en la cuenta del cliente (sin IVA, líquido producto
+  // con IVA, o emitir factura). Solo si el estado cambió a FACTURADO ahora.
+  if (moduloActual === 'viajes' && datos.estado === 'FACTURADO') {
+    const estadoPrevio = registroEditando ? (_registroActual?.estado) : null;
+    if (estadoPrevio !== 'FACTURADO') {
+      return abrirModalFacturarViaje(datos);
+    }
+  }
+
   try {
     if (registroEditando) {
       await API.actualizar(mod.recurso, registroEditando, datos);
@@ -2054,6 +2505,111 @@ async function guardarRegistro() {
       await API.crear(mod.recurso, datos);
       mostrarToast('Registro creado');
     }
+    cerrarModal();
+    cargarTabla(moduloActual, $('#buscador')?.value || '', $('#filtro-equipo')?.value || '', $('#filtro-deposito')?.value || '', recogerExtras(), 1);
+  } catch (err) {
+    mostrarToast(err.message, true);
+  }
+}
+
+// Modal que se abre al marcar un viaje como FACTURADO. Ofrece tres caminos de
+// imputación en la cuenta del cliente: emitir factura formal, líquido producto
+// (con IVA) o sin facturar (sin IVA). El monto se previsualiza localmente.
+function calcularMontosViaje(datos) {
+  const base = datos.tipo_tarifa === 'UNICA'
+    ? Number(datos.tarifa) || 0
+    : (Number(datos.tarifa) || 0) * (Number(datos.resultado ?? datos.cantidad_cargada) || 0);
+  const comision = Number(datos.comision) || 0;
+  const neto = base * (1 - comision / 100);
+  const conIVA = neto * 1.21;
+  return { base, comision, neto, conIVA };
+}
+
+// Valor imputado en la cuenta del cliente para un viaje ya FACTURADO.
+// Depende del modo de facturación elegido: sin factura no lleva IVA, líquido
+// producto y factura formal sí. Los viajes anteriores a esa columna (NULL)
+// se muestran con IVA, igual que como fueron imputados.
+function valorViajeFacturado(fila) {
+  if (fila.estado !== 'FACTURADO') {
+    return '<span style="color:var(--texto-suave)">—</span>';
+  }
+  const { neto, conIVA } = calcularMontosViaje(fila);
+  const sinIva = fila.modo_facturacion === 'SIN_FACTURAR';
+  const total = sinIva ? neto : conIVA;
+  const detalle = sinIva ? 'sin IVA'
+    : fila.modo_facturacion === 'FACTURA' ? 'Factura A · IVA incl.'
+    : 'líquido producto · IVA incl.';
+  return `<strong>${fmtDinero(total)}</strong><br><span class="filtro-label">${detalle}</span>`;
+}
+
+let _datosViajeFacturar = null;
+function abrirModalFacturarViaje(datos) {
+  _datosViajeFacturar = datos;
+  const { base, comision, neto, conIVA } = calcularMontosViaje(datos);
+  const filaComision = comision > 0
+    ? `<div class="resumen-fila" style="display:flex;justify-content:space-between;padding:3px 0"><span>Comisión (${comision}%)</span><span>− ${fmtDinero(base - neto)}</span></div>`
+    : '';
+
+  $('#modal-titulo').textContent = 'Facturar viaje';
+  $('#modal-cuerpo').innerHTML = `
+    <p style="color:var(--texto-suave);font-size:14px;margin-bottom:16px">
+      Elegí cómo imputar este viaje en la cuenta del cliente <strong>${esc(datos.pagador || '')}</strong>.
+    </p>
+    <div style="background:var(--fondo-suave,#f5f5f5);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:14px">
+      <div class="resumen-fila" style="display:flex;justify-content:space-between;padding:3px 0"><span>Base del viaje</span><span>${fmtDinero(base)}</span></div>
+      ${filaComision}
+      <div class="resumen-fila" style="display:flex;justify-content:space-between;padding:3px 0;font-weight:600"><span>Neto (a cobrar)</span><span>${fmtDinero(neto)}</span></div>
+      <div class="resumen-fila" style="display:flex;justify-content:space-between;padding:3px 0"><span>+ IVA 21%</span><span>${fmtDinero(conIVA - neto)}</span></div>
+      <div class="resumen-fila" style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:6px;font-weight:700;border-top:1px solid var(--borde)"><span>Total con IVA</span><span>${fmtDinero(conIVA)}</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primario" onclick="confirmarFacturarViaje('FACTURA')">Emitir factura A · ${fmtDinero(conIVA)}</button>
+      <button class="btn btn-secundario" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Facturado líquido producto (con IVA) · ${fmtDinero(conIVA)}</button>
+      <button class="btn btn-secundario" onclick="confirmarFacturarViaje('SIN_FACTURAR')">Continuar sin facturar (sin IVA) · ${fmtDinero(neto)}</button>
+    </div>
+    <p style="color:var(--texto-suave);font-size:12px;margin-top:14px;line-height:1.5">
+      <strong>Emitir factura A</strong> genera el comprobante formal e imputa el total en la cuenta.
+      <strong>Líquido producto</strong> imputa el total con IVA sin emitir comprobante.
+      <strong>Sin facturar</strong> imputa solo el neto, sin IVA.
+    </p>`;
+  $('#btn-guardar').style.display = 'none';
+  $('#btn-cancelar').style.display = '';
+  abrirModalGenerico();
+}
+
+async function confirmarFacturarViaje(modo) {
+  if (!_datosViajeFacturar) return;
+  const datos = { ..._datosViajeFacturar, modo_facturacion: modo };
+
+  try {
+    // Guardar el viaje con su modo. El hook del backend imputa el movimiento
+    // en la cuenta del cliente según el modo elegido.
+    let idViaje = registroEditando;
+    if (registroEditando) {
+      await API.actualizar('viajes', registroEditando, datos);
+    } else {
+      const creado = await API.crear('viajes', datos);
+      idViaje = creado && (creado.id_viaje || creado.insertId || creado.id);
+    }
+
+    if (modo === 'FACTURA') {
+      if (idViaje) {
+        try {
+          await API.facturarViaje(idViaje);
+          mostrarToast('Viaje facturado y comprobante emitido');
+        } catch (errFac) {
+          mostrarToast('Viaje guardado, pero la factura no se emitió: ' + errFac.message, true);
+        }
+      } else {
+        mostrarToast('Viaje guardado. Emití el comprobante desde Facturación.');
+      }
+    } else if (modo === 'LIQUIDO_PRODUCTO') {
+      mostrarToast('Viaje imputado con IVA (líquido producto)');
+    } else {
+      mostrarToast('Viaje imputado sin IVA');
+    }
+
+    _datosViajeFacturar = null;
     cerrarModal();
     cargarTabla(moduloActual, $('#buscador')?.value || '', $('#filtro-equipo')?.value || '', $('#filtro-deposito')?.value || '', recogerExtras(), 1);
   } catch (err) {
@@ -2139,10 +2695,10 @@ async function gestionarModulos(idEmpresa, nombreEmpresa) {
       <div style="margin-bottom:14px">
         <div class="nav-group-label" style="color:var(--texto-suave);margin-bottom:6px">${esc(grupo)}</div>
         ${mods.map(m => `
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer">
-            <input type="checkbox" class="chk-modulo" value="${m.clave}" ${activosSet.has(m.clave) ? 'checked' : ''}>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:${m.obligatorio ? 'default' : 'pointer'}">
+            <input type="checkbox" class="chk-modulo" value="${m.clave}" ${(m.obligatorio || activosSet.has(m.clave)) ? 'checked' : ''} ${m.obligatorio ? 'disabled' : ''}>
             <span>${esc(m.nombre)}</span>
-            ${m.depende.length ? `<span style="font-size:11px;color:var(--texto-suave)">(requiere: ${m.depende.map(d => esc(nombrePorClave[d] || d)).join(', ')})</span>` : ''}
+            ${m.obligatorio ? '<span style="font-size:11px;color:var(--exito)">(siempre activo)</span>' : (m.depende.length ? `<span style="font-size:11px;color:var(--texto-suave)">(requiere: ${m.depende.map(d => esc(nombrePorClave[d] || d)).join(', ')})</span>` : '')}
           </label>
         `).join('')}
       </div>
@@ -2207,6 +2763,7 @@ async function renderAdminEmpresas() {
         `<td>
           <button class="btn btn-secundario btn-mini" onclick='abrirModalEmpresa(${JSON.stringify(e).replace(/'/g, "&#39;")})'>Editar</button>
           <button class="btn btn-secundario btn-mini" onclick="gestionarModulos(${e.id_empresa}, '${esc(e.nombre).replace(/'/g, "\\'")}')">Módulos</button>
+          <button class="btn btn-secundario btn-mini" onclick="abrirModalCertificado(${e.id_empresa}, '${esc(e.nombre).replace(/'/g, "\\'")}', '${esc(e.cuit || '').replace(/'/g, "\\'")}')">Certificado ARCA</button>
         </td>`
       ])
     );
@@ -2225,7 +2782,22 @@ function abrirModalEmpresa(empresa = null) {
     <div class="campo"><label>Teléfono</label><input id="e-telefono" value="${ed && empresa.telefono ? esc(empresa.telefono) : ''}"></div>
     <div class="campo ancho-completo"><label>Domicilio</label><input id="e-domicilio" value="${ed && empresa.domicilio ? esc(empresa.domicilio) : ''}"></div>
     <div class="campo ancho-completo"><label>Email</label><input id="e-email" value="${ed && empresa.email ? esc(empresa.email) : ''}"></div>
-    ${ed ? `<div class="campo"><label>Estado</label><select id="e-activa"><option value="1" ${empresa.activa ? 'selected' : ''}>Activa</option><option value="0" ${!empresa.activa ? 'selected' : ''}>Inactiva</option></select></div>` : ''}
+    ${ed ? `
+    <div class="campo ancho-completo" style="border-top:1px solid var(--borde);margin-top:8px;padding-top:12px">
+      <label style="font-weight:700;color:var(--texto)">Datos fiscales (para las facturas)</label>
+      <div class="filtro-label" style="margin-top:2px">Estos datos aparecen en el encabezado de tus facturas. Cargalos con la información real de tu empresa en ARCA.</div>
+    </div>
+    <div class="campo"><label>Condición frente al IVA</label>
+      <select id="e-condicion-iva">
+        ${['RESPONSABLE INSCRIPTO', 'MONOTRIBUTO', 'EXENTO'].map(c =>
+          `<option value="${c}"${(empresa.condicion_iva || 'RESPONSABLE INSCRIPTO') === c ? ' selected' : ''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="campo"><label>N° de Ingresos Brutos</label><input id="e-ingresos-brutos" placeholder="ej. 901-234567-8" value="${empresa.ingresos_brutos ? esc(empresa.ingresos_brutos) : ''}"></div>
+    <div class="campo"><label>Inicio de actividades</label><input id="e-inicio-actividades" type="date" value="${empresa.inicio_actividades ? String(empresa.inicio_actividades).slice(0, 10) : ''}"></div>
+    <div class="campo"><label>Punto de venta</label><input id="e-punto-venta" type="number" min="1" placeholder="ej. 1" value="${empresa.punto_venta != null ? empresa.punto_venta : ''}"></div>
+    <div class="campo"><label>Estado</label><select id="e-activa"><option value="1" ${empresa.activa ? 'selected' : ''}>Activa</option><option value="0" ${!empresa.activa ? 'selected' : ''}>Inactiva</option></select></div>
+    ` : ''}
   `;
   configurarGuardado(async () => {
     const datos = {
@@ -2239,6 +2811,10 @@ function abrirModalEmpresa(empresa = null) {
     if (!datos.nombre) { mostrarToast('El nombre es obligatorio.', true); return false; }
     if (ed) {
       datos.activa = $('#e-activa').value === '1';
+      datos.condicion_iva = $('#e-condicion-iva').value;
+      datos.ingresos_brutos = $('#e-ingresos-brutos').value.trim();
+      datos.inicio_actividades = $('#e-inicio-actividades').value || null;
+      datos.punto_venta = $('#e-punto-venta').value.trim();
       await API.actualizarEmpresa(empresa.id_empresa, datos);
     } else {
       await API.crearEmpresa(datos);
@@ -2248,6 +2824,123 @@ function abrirModalEmpresa(empresa = null) {
     return true;
   });
   abrirModalGenerico();
+}
+
+async function abrirModalCertificado(idEmpresa, nombreEmpresa, cuit) {
+  $('#modal-titulo').textContent = 'Certificado ARCA';
+  $('#modal-cuerpo').innerHTML = '<div class="estado-vacio">Cargando estado del certificado…</div>';
+  $('#btn-guardar').style.display = 'none';
+  abrirModalGenerico();
+
+  let estado;
+  try { estado = await API.certificadoEstado(idEmpresa); }
+  catch (err) { $('#modal-cuerpo').innerHTML = `<div class="estado-vacio">Error: ${esc(err.message)}</div>`; return; }
+
+  const avisos = [];
+  if (!estado.node_forge_disponible) {
+    avisos.push('⚠️ Falta la dependencia <strong>node-forge</strong> en el servidor. Ejecutá <code>npm install</code> antes de generar certificados.');
+  }
+  if (estado.secreto_inseguro) {
+    avisos.push('⚠️ No está configurado <strong>CERT_SECRET</strong> en el servidor. Configuralo en el .env antes de generar claves reales, o no podrás descifrarlas después.');
+  }
+  if (!cuit) {
+    avisos.push('⚠️ Esta empresa no tiene <strong>CUIT</strong> cargado. Cargalo en "Editar" antes de generar el certificado.');
+  }
+
+  const cert = estado.certificado;
+  let cuerpo = '';
+
+  if (avisos.length) {
+    cuerpo += `<div style="background:#fff8e6;border:1px solid #f0d488;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px;line-height:1.6">${avisos.join('<br>')}</div>`;
+  }
+
+  cuerpo += `<p style="color:var(--texto-suave);font-size:14px;margin-bottom:16px">
+    Generá el certificado de facturación de <strong>${esc(nombreEmpresa)}</strong> sin usar OpenSSL.
+    El sistema crea la clave y la solicitud (CSR); vos la subís a ARCA y traés de vuelta el certificado.
+  </p>`;
+
+  // Estado actual
+  if (!cert) {
+    cuerpo += `
+      <div class="paso-cert">
+        <strong>Paso 1 — Generar clave y solicitud (CSR)</strong>
+        <p style="color:var(--texto-suave);font-size:13px;margin:4px 0 10px">Crea la clave privada (se guarda cifrada) y el CSR para ARCA.</p>
+        <button class="btn btn-primario" id="cert-generar"${(!estado.node_forge_disponible || !cuit) ? ' disabled' : ''}>Generar clave y CSR</button>
+      </div>`;
+  } else if (cert.estado === 'CSR_GENERADO') {
+    cuerpo += `
+      <div style="background:var(--fondo-suave,#f5f5f5);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:13px">
+        ✅ Clave y CSR generados (alias <strong>${esc(cert.alias || '—')}</strong>).
+      </div>
+      <div class="paso-cert" style="margin-bottom:16px">
+        <strong>Paso 2 — Descargar el CSR y subirlo a ARCA</strong>
+        <p style="color:var(--texto-suave);font-size:13px;margin:4px 0 10px">Descargá el CSR y cargalo en "Administración de Certificados Digitales" de ARCA. Después descargá el certificado (.crt).</p>
+        <button class="btn btn-secundario" id="cert-descargar">Descargar CSR</button>
+      </div>
+      <div class="paso-cert">
+        <strong>Paso 3 — Subir el certificado (.crt) de ARCA</strong>
+        <p style="color:var(--texto-suave);font-size:13px;margin:4px 0 8px">Pegá el contenido del .crt o subí el archivo.</p>
+        <input type="file" id="cert-archivo" accept=".crt,.pem,.cer" style="margin-bottom:8px;font-size:13px">
+        <textarea id="cert-pem" rows="5" placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:11px;padding:8px;border:1px solid var(--borde);border-radius:8px"></textarea>
+        <button class="btn btn-primario" id="cert-subir" style="margin-top:10px">Subir certificado</button>
+      </div>
+      <button class="btn btn-peligro btn-mini" id="cert-regenerar" style="margin-top:16px">Descartar y regenerar</button>`;
+  } else if (cert.estado === 'ACTIVO') {
+    const vence = cert.fecha_vencimiento ? String(cert.fecha_vencimiento).slice(0, 10).split('-').reverse().join('/') : '—';
+    const vencido = cert.fecha_vencimiento && new Date(cert.fecha_vencimiento) < new Date();
+    cuerpo += `
+      <div style="background:${vencido ? '#fdecea' : '#e3f4e9'};border:1px solid ${vencido ? '#e6a49b' : '#a3d9b8'};border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:14px">
+        ${vencido ? '⚠️ <strong>Certificado vencido.</strong> Regeneralo para seguir facturando.' : '✅ <strong>Certificado activo.</strong> La facturación electrónica está habilitada para esta empresa.'}
+        <br><span style="font-size:13px;color:var(--texto-suave)">Vence: ${vence}</span>
+      </div>
+      <button class="btn btn-peligro btn-mini" id="cert-regenerar">Regenerar certificado</button>`;
+  }
+
+  $('#modal-cuerpo').innerHTML = cuerpo;
+
+  // --- Acciones ---
+  const recargar = () => abrirModalCertificado(idEmpresa, nombreEmpresa, cuit);
+
+  const btnGen = $('#cert-generar');
+  if (btnGen) btnGen.addEventListener('click', async () => {
+    btnGen.disabled = true; btnGen.textContent = 'Generando…';
+    try { await API.certificadoGenerar(idEmpresa); mostrarToast('Clave y CSR generados.'); recargar(); }
+    catch (err) { mostrarToast(err.message, true); btnGen.disabled = false; btnGen.textContent = 'Generar clave y CSR'; }
+  });
+
+  const btnDesc = $('#cert-descargar');
+  if (btnDesc) btnDesc.addEventListener('click', async () => {
+    try { await API.descargarCSR(idEmpresa, `${cert.alias || 'solicitud'}.csr`); }
+    catch (err) { mostrarToast(err.message, true); }
+  });
+
+  const inputArchivo = $('#cert-archivo');
+  if (inputArchivo) inputArchivo.addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const lector = new FileReader();
+    lector.onload = ev => { $('#cert-pem').value = ev.target.result; };
+    lector.readAsText(f);
+  });
+
+  const btnSubir = $('#cert-subir');
+  if (btnSubir) btnSubir.addEventListener('click', async () => {
+    const pem = $('#cert-pem').value.trim();
+    if (!pem) { mostrarToast('Pegá o subí el certificado.', true); return; }
+    btnSubir.disabled = true; btnSubir.textContent = 'Subiendo…';
+    try {
+      const r = await API.certificadoSubir(idEmpresa, pem);
+      mostrarToast(r.mensaje || 'Certificado cargado.');
+      recargar();
+    } catch (err) { mostrarToast(err.message, true); btnSubir.disabled = false; btnSubir.textContent = 'Subir certificado'; }
+  });
+
+  const btnRegen = $('#cert-regenerar');
+  if (btnRegen) btnRegen.addEventListener('click', async () => {
+    if (!confirm('Esto descarta la clave y el certificado actuales. Vas a tener que generar y tramitar uno nuevo. ¿Continuar?')) return;
+    try { await API.certificadoEliminar(idEmpresa); mostrarToast('Certificado eliminado.'); recargar(); }
+    catch (err) { mostrarToast(err.message, true); }
+  });
 }
 
 async function renderAdminUsuarios() {

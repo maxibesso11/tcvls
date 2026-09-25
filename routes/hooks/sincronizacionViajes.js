@@ -14,9 +14,26 @@ function calcularMontoViaje(viaje) {
 }
 
 function calcularMontoFacturado(viaje) {
+  // Monto con IVA (comportamiento histórico / líquido producto).
+  return calcularNetoConComision(viaje) * (1 + IVA);
+}
+
+// Neto del viaje ya descontada la comisión (lo que efectivamente se le cobra
+// al cliente antes de IVA). La comisión reduce lo que paga el cliente.
+function calcularNetoConComision(viaje) {
   const base = calcularMontoViaje(viaje);
   const comision = Number(viaje.comision) || 0;
-  const neto = base * (1 - comision / 100);
+  return base * (1 - comision / 100);
+}
+
+// Monto a imputar en la cuenta del cliente según el modo de facturación.
+//   SIN_FACTURAR      → neto sin IVA
+//   LIQUIDO_PRODUCTO  → neto + IVA
+//   FACTURA           → neto + IVA (además se emite el comprobante formal)
+//   (NULL/otro)       → neto + IVA (compatibilidad con viajes previos)
+function calcularMontoCuentaCliente(viaje) {
+  const neto = calcularNetoConComision(viaje);
+  if (viaje.modo_facturacion === 'SIN_FACTURAR') return neto;
   return neto * (1 + IVA);
 }
 
@@ -55,7 +72,21 @@ async function buscarCuentaPagador(nombre, idEmpresa) {
   return c || null;
 }
 
+// Devuelve el chofer que hizo el viaje, con su cuenta CHOFER.
+// Prioridad: la "foto" guardada en viaje.id_chofer (el chofer al momento de
+// crear el viaje). Respaldo para viajes viejos sin foto: el chofer actual
+// del equipo. Así las rotaciones de choferes no alteran viajes históricos.
 async function obtenerChoferDelViaje(viaje, idEmpresa) {
+  if (viaje.id_chofer) {
+    const [[chofer]] = await pool.query(`
+      SELECT ch.*, c.id_cuenta
+      FROM CHOFERES ch
+      LEFT JOIN CUENTA c ON c.cuil = ch.cuil AND c.id_empresa = ch.id_empresa AND c.tipo = 'CHOFER'
+      WHERE ch.id_chofer = ? AND ch.id_empresa = ? LIMIT 1
+    `, [viaje.id_chofer, idEmpresa]);
+    if (chofer) return chofer;
+    // La foto apunta a un chofer eliminado: caer al chofer actual del equipo.
+  }
   if (!viaje.id_equipo) return null;
   const [[chofer]] = await pool.query(`
     SELECT ch.*, c.id_cuenta
@@ -65,6 +96,17 @@ async function obtenerChoferDelViaje(viaje, idEmpresa) {
     WHERE e.id_equipo = ? AND e.id_empresa = ? LIMIT 1
   `, [viaje.id_equipo, idEmpresa]);
   return chofer || null;
+}
+
+// Guarda en el viaje la foto del chofer que tiene el equipo en este momento.
+async function fotografiarChofer(idViaje, idEquipo, idEmpresa) {
+  if (!idEquipo) return;
+  await pool.query(`
+    UPDATE VIAJES v
+    JOIN EQUIPO e ON e.id_equipo = ? AND e.id_empresa = ?
+    SET v.id_chofer = e.id_chofer
+    WHERE v.id_viaje = ? AND v.id_empresa = ?
+  `, [idEquipo, idEmpresa, idViaje, idEmpresa]);
 }
 
 // ---------- Movimientos ----------
@@ -80,14 +122,24 @@ async function crearFacturacion(viaje, idEmpresa) {
   if (!viaje.pagador) return;
   const cuenta = await buscarCuentaPagador(viaje.pagador, idEmpresa);
   if (!cuenta) return;
-  const monto = calcularMontoFacturado(viaje);
+  const monto = calcularMontoCuentaCliente(viaje);
   if (monto === 0) return;
 
   const comision = Number(viaje.comision) || 0;
-  const detalleFiscal = comision > 0 ? `[comisión ${comision}% + IVA 21%]` : '[IVA 21%]';
+  const conIVA = viaje.modo_facturacion !== 'SIN_FACTURAR';
+  // Etiqueta fiscal según el modo elegido, para que se entienda en la cuenta.
+  let etiqueta;
+  if (viaje.modo_facturacion === 'SIN_FACTURAR') {
+    etiqueta = comision > 0 ? `[comisión ${comision}% · sin IVA]` : '[sin IVA]';
+  } else if (viaje.modo_facturacion === 'FACTURA') {
+    etiqueta = comision > 0 ? `[comisión ${comision}% + IVA 21% · facturado]` : '[IVA 21% · facturado]';
+  } else {
+    // LIQUIDO_PRODUCTO o compatibilidad (NULL)
+    etiqueta = comision > 0 ? `[comisión ${comision}% + IVA 21% · líquido producto]` : '[IVA 21% · líquido producto]';
+  }
   const concepto = `FACTURACION VIAJE #${viaje.id_viaje} — ${viaje.origen} → ${viaje.destino}` +
                    (viaje.numero_remito ? ` (remito ${viaje.numero_remito})` : '') +
-                   ` ${detalleFiscal}`;
+                   ` ${etiqueta}`;
 
   await pool.query('INSERT INTO MOVIMIENTOS SET ?', [{
     id_empresa: idEmpresa,
@@ -148,8 +200,39 @@ async function validarPagador(data, anterior, idEmpresa) {
   return null;
 }
 
+// Validaciones de estado compartidas entre creación y actualización.
+// data: los campos entrantes; anterior: registro previo (null al crear).
+function validarEstado(data, anterior) {
+  const estadoFuturo = data.estado ?? anterior?.estado;
+
+  if (estadoFuturo === 'FACTURADO') {
+    const pagador = data.pagador !== undefined ? data.pagador : anterior?.pagador;
+    if (!pagador) {
+      return 'Para marcar el viaje como FACTURADO debe asignarse un pagador con cuenta registrada.';
+    }
+  }
+
+  if (estadoFuturo === 'FINALIZADO' || estadoFuturo === 'FACTURADO') {
+    const tipoTarifa = data.tipo_tarifa ?? anterior?.tipo_tarifa;
+    const resultado = data.resultado !== undefined ? data.resultado : anterior?.resultado;
+    const necesitaResultado = tipoTarifa === 'POR TONELADA' || tipoTarifa === 'POR KM';
+    const sinResultado = resultado === null || resultado === undefined || resultado === '';
+    if (necesitaResultado && sinResultado) {
+      return `Para marcar el viaje como ${estadoFuturo} con tarifa "${tipoTarifa}" debe cargarse el resultado (toneladas descargadas o kilómetros recorridos).`;
+    }
+  }
+
+  return null;
+}
+
 async function antesDeCrearViaje(data, req) {
-  return validarPagador(data, null, req.usuario.id_empresa);
+  const errorPagador = await validarPagador(data, null, req.usuario.id_empresa);
+  if (errorPagador) return errorPagador;
+  // Un viaje puede nacer directamente FINALIZADO o FACTURADO (carga histórica),
+  // así que las validaciones de estado aplican también en la creación. Sin
+  // esto, un viaje POR KM creado como FINALIZADO sin resultado dejaría al
+  // chofer sin liquidar silenciosamente.
+  return validarEstado(data, null);
 }
 
 async function antesDeActualizarViaje(id, data, anterior, req) {
@@ -158,24 +241,8 @@ async function antesDeActualizarViaje(id, data, anterior, req) {
   const errorPagador = await validarPagador(data, anterior, req.usuario.id_empresa);
   if (errorPagador) return errorPagador;
 
-  const estadoFuturo = data.estado ?? anterior.estado;
-
-  if (estadoFuturo === 'FACTURADO') {
-    const pagador = data.pagador !== undefined ? data.pagador : anterior.pagador;
-    if (!pagador) {
-      return 'Para marcar el viaje como FACTURADO debe asignarse un pagador con cuenta registrada.';
-    }
-  }
-
-  if (estadoFuturo === 'FINALIZADO' || estadoFuturo === 'FACTURADO') {
-    const tipoTarifa = data.tipo_tarifa ?? anterior.tipo_tarifa;
-    const resultado = data.resultado !== undefined ? data.resultado : anterior.resultado;
-    const necesitaResultado = tipoTarifa === 'POR TONELADA' || tipoTarifa === 'POR KM';
-    const sinResultado = resultado === null || resultado === undefined || resultado === '';
-    if (necesitaResultado && sinResultado) {
-      return `Para marcar el viaje como ${estadoFuturo} con tarifa "${tipoTarifa}" debe cargarse el resultado (toneladas descargadas o kilómetros recorridos).`;
-    }
-  }
+  const errorEstado = validarEstado(data, anterior);
+  if (errorEstado) return errorEstado;
 
   if (anterior.estado === 'FACTURADO' && data.estado && data.estado !== 'FACTURADO') {
     return 'Un viaje en estado FACTURADO no puede volver a un estado anterior.';
@@ -194,11 +261,26 @@ function antesDeEliminarViaje(viaje) {
 // ---------- Efectos (after) ----------
 
 async function alCrearViaje(viaje, req) {
-  await reconciliarMovimientos(viaje.id_viaje, req.usuario.id_empresa);
+  const idEmpresa = req.usuario.id_empresa;
+  // Fijar la foto del chofer que hace el viaje (el asignado al equipo hoy)
+  await fotografiarChofer(viaje.id_viaje, viaje.id_equipo, idEmpresa);
+  await reconciliarMovimientos(viaje.id_viaje, idEmpresa);
 }
 
 async function alActualizarViaje(viaje, anterior, req) {
-  await reconciliarMovimientos(viaje.id_viaje, req.usuario.id_empresa);
+  const idEmpresa = req.usuario.id_empresa;
+  // Si se cambió el equipo del viaje, el chofer real también cambió:
+  // actualizar la foto. Cualquier otra edición conserva el chofer original.
+  // Nota: el formulario envía id_equipo como string y la base lo devuelve
+  // como número, así que la comparación debe normalizar ambos lados; de lo
+  // contrario cualquier edición re-fotografiaría y pisaría al chofer
+  // histórico con el actual del equipo.
+  const equipoNuevo = viaje.id_equipo !== undefined ? Number(viaje.id_equipo) : null;
+  const equipoAnterior = anterior ? Number(anterior.id_equipo) : null;
+  if (equipoNuevo !== null && equipoAnterior !== null && equipoNuevo !== equipoAnterior) {
+    await fotografiarChofer(viaje.id_viaje, viaje.id_equipo, idEmpresa);
+  }
+  await reconciliarMovimientos(viaje.id_viaje, idEmpresa);
 }
 
 async function alEliminarViaje(viaje, req) {

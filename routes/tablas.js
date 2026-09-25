@@ -38,7 +38,7 @@ module.exports = [
     filtrosLike: ['tipo_carga'],
     filtroFecha: { columna: 'fecha_origen' },
     ordenable: ['fecha_origen', 'fecha_llegada', 'tarifa', 'resultado', 'estado', 'id_viaje'],
-    fields: ['fecha_origen', 'tipo_carga', 'origen', 'destino', 'id_equipo', 'tarifa', 'tipo_tarifa', 'cantidad_cargada', 'resultado', 'comision', 'estado', 'fecha_llegada', 'pagador', 'numero_remito'],
+    fields: ['fecha_origen', 'tipo_carga', 'origen', 'destino', 'id_equipo', 'tarifa', 'tipo_tarifa', 'cantidad_cargada', 'resultado', 'comision', 'estado', 'modo_facturacion', 'fecha_llegada', 'pagador', 'numero_remito'],
     hooks: {
       beforeCreate: syncViajes.antesDeCrearViaje,
       beforeUpdate: syncViajes.antesDeActualizarViaje,
@@ -79,7 +79,7 @@ module.exports = [
     ruta: 'cuentas',
     table: 'CUENTA',
     idField: 'id_cuenta',
-    fields: ['tipo', 'cuil', 'nombre', 'domicilio', 'telefono'],
+    fields: ['tipo', 'cuil', 'nombre', 'domicilio', 'telefono', 'plazo_pago_dias'],
     hooks: {
       beforeCreate: sync.antesDeCrearCuenta,
       beforeUpdate: sync.antesDeActualizarCuenta,

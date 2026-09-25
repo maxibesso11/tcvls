@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="TCV LogiSuite">
+  <rect x="6" y="6" width="108" height="108" rx="24" fill="#16386b"/>
+  <path d="M28 86 Q49 86 62 68 T96 42" fill="none" stroke="#38b6ff" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="28" cy="86" r="6" fill="#f7fafd"/>
+  <path d="M89 33 L103 42 L89 51 Z" fill="#38b6ff"/>
+  <text x="60" y="98" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#f7fafd" letter-spacing="1">TCV</text>
+</svg>

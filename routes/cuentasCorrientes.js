@@ -96,10 +96,16 @@ async function obtenerDetalleCuenta(id, idEmpresa) {
     ORDER BY fecha ASC, id_movimiento ASC
   `, [id, idEmpresa]);
 
+  // Redondeo a 2 decimales en cada paso: la acumulación con números de punto
+  // flotante deja residuos (ej. 0.0000000001) que en pantalla se ven como
+  // $ 0,00 pero clasificarían la cuenta como deudora/acreedora en vez de
+  // saldada.
+  const r2 = n => Math.round(n * 100) / 100;
+
   let saldoParcial = 0;
   const detalle = movimientos.map(m => {
     const monto = Number(m.monto);
-    saldoParcial += monto;
+    saldoParcial = r2(saldoParcial + monto);
     return {
       ...m,
       monto,
@@ -109,8 +115,8 @@ async function obtenerDetalleCuenta(id, idEmpresa) {
     };
   });
 
-  const totalCreditos = detalle.reduce((a, m) => a + m.credito, 0);
-  const totalDebitos = detalle.reduce((a, m) => a + m.debito, 0);
+  const totalCreditos = r2(detalle.reduce((a, m) => a + m.credito, 0));
+  const totalDebitos = r2(detalle.reduce((a, m) => a + m.debito, 0));
 
   return {
     cuenta,
@@ -152,6 +158,14 @@ router.get('/:id/pdf', async (req, res) => {
     const fmt = n => '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtFecha = f => (f ? String(f).slice(0, 10).split('-').reverse().join('/') : '—');
 
+    // Datos de la empresa emisora (la que está usando el sistema), para el
+    // encabezado. Se toma de la base según el tenant, no un valor fijo.
+    const [[empresa]] = await pool.query(
+      'SELECT nombre, cuit, domicilio FROM EMPRESAS WHERE id_empresa = ?',
+      [req.usuario.id_empresa]
+    );
+    const nombreEmpresa = (empresa && empresa.nombre) ? empresa.nombre : 'Empresa';
+
     const nombreArchivo = `resumen_cuenta_${cuenta.id_cuenta}_${cuenta.nombre.replace(/\s+/g, '_')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
@@ -166,7 +180,7 @@ router.get('/:id/pdf', async (req, res) => {
     // Encabezado
     doc.rect(50, 50, 495, 70).fill(verde);
     doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold')
-       .text('3 DE ABRIL SAS', 70, 68);
+       .text(nombreEmpresa, 70, 68, { width: 300, ellipsis: true });
     doc.fontSize(10).font('Helvetica')
        .text('Resumen de cuenta corriente', 70, 92);
     doc.fontSize(9)
@@ -224,9 +238,11 @@ router.get('/:id/pdf', async (req, res) => {
       doc.fillColor('#202624');
       doc.text(fmtFecha(m.fecha), col.fecha + 4, y + 5);
       doc.text(String(m.concepto).slice(0, 48), col.concepto, y + 5, { width: 210 });
-      doc.fillColor(m.debito ? '#c0392b' : gris)
+      // Desde la perspectiva de la empresa: débito al titular = a favor de
+      // la empresa (verde); crédito al titular = la empresa debe (rojo).
+      doc.fillColor(m.debito ? '#2e7d4f' : gris)
          .text(m.debito ? fmt(m.debito) : '—', col.debito, y + 5, { width: 70, align: 'right' });
-      doc.fillColor(m.credito ? '#2e7d4f' : gris)
+      doc.fillColor(m.credito ? '#c0392b' : gris)
          .text(m.credito ? fmt(m.credito) : '—', col.credito, y + 5, { width: 68, align: 'right' });
       doc.fillColor('#202624')
          .text(fmt(m.saldo_parcial), col.saldo, y + 5, { width: 62, align: 'right' });
@@ -242,8 +258,8 @@ router.get('/:id/pdf', async (req, res) => {
 
     doc.fillColor(verde).fontSize(11).font('Helvetica-Bold').text('Resumen', 66, y + 12);
     doc.fontSize(9).font('Helvetica').fillColor('#202624');
-    doc.text(`Total créditos: ${fmt(resumen.total_creditos)}`, 66, y + 32);
-    doc.text(`Total débitos: ${fmt(resumen.total_debitos)}`, 66, y + 48);
+    doc.text(`Total débitos: ${fmt(resumen.total_debitos)}`, 66, y + 32);
+    doc.text(`Total créditos: ${fmt(resumen.total_creditos)}`, 66, y + 48);
     doc.text(`Movimientos: ${resumen.cantidad_movimientos}`, 66, y + 64);
 
     const esDeudor = resumen.saldo_final < 0;
@@ -252,8 +268,8 @@ router.get('/:id/pdf', async (req, res) => {
     // Desde la empresa: deudor (saldo < 0) es a favor → verde; acreedor (> 0) es pasivo → rojo
     doc.fontSize(16).fillColor(esDeudor ? '#2e7d4f' : resumen.saldo_final > 0 ? '#c0392b' : gris)
        .text(fmt(Math.abs(resumen.saldo_final)), 330, y + 34, { width: 195, align: 'right' });
-    const textoCond = resumen.condicion === 'DEUDOR' ? 'A favor (le deben a la empresa)'
-                    : resumen.condicion === 'ACREEDOR' ? 'En contra (la empresa debe)'
+    const textoCond = resumen.condicion === 'DEUDOR' ? 'A favor'
+                    : resumen.condicion === 'ACREEDOR' ? 'En contra'
                     : 'Saldada';
     doc.fontSize(9).fillColor(ambar)
        .text(`Condición: ${textoCond}`, 330, y + 58, { width: 195, align: 'right' });

@@ -9,8 +9,11 @@ const tablas = require('./routes/tablas');
 const dashboardRouter = require('./routes/dashboard');
 const stockExtraRouter = require('./routes/stockExtra');
 const cuentasCorrientesRouter = require('./routes/cuentasCorrientes');
+const facturacionRouter = require('./routes/facturacion');
 const authRouter = require('./routes/auth');
+const asesoriaRouter = require('./routes/asesoria');
 const adminRouter = require('./routes/admin');
+const certificadosRouter = require('./routes/certificados');
 const { requiereAutenticacion, requiereEmpresa } = require('./routes/middleware/autenticacion');
 const { requiereModulo } = require('./routes/middleware/modulos');
 const pool = require('./config/db');
@@ -30,13 +33,24 @@ const corsOrigin = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin.split(',').map(s => s.trim()) }));
 
 app.use(express.json());
+
+// Landing comercial en la raíz (debe registrarse ANTES de express.static,
+// que de lo contrario serviría index.html en '/'). El sistema vive en /app.
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Rutas públicas de autenticación (login)
 app.use('/api/auth', authRouter);
 
+// Solicitud de asesoría desde la landing (pública, sin login)
+app.use('/api/asesoria', asesoriaRouter);
+
 // Rutas de administración (requieren ADMIN; el propio router lo valida)
 app.use('/api/admin', adminRouter);
+app.use('/api/certificados', certificadosRouter);
 
 // A partir de aquí, todas las rutas de datos requieren sesión + empresa.
 // El ADMIN no opera datos de empresa, así que requiereEmpresa lo bloquea.
@@ -53,6 +67,7 @@ tablas.forEach(def => {
 // Métricas (el dashboard se adapta solo a lo activo) y cuentas corrientes
 app.use('/api/dashboard', protegerDatos, dashboardRouter);
 app.use('/api/cuentas-corrientes', protegerDatos, requiereModulo('cuentas-corrientes'), cuentasCorrientesRouter);
+app.use('/api/facturacion', protegerDatos, requiereModulo('facturacion'), facturacionRouter);
 
 // Salud (pública) — útil para monitoreo y health checks del proxy
 app.get('/api/health', async (req, res) => {
