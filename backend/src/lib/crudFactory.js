@@ -2,9 +2,56 @@
 // Genera rutas CRUD (GET, POST, PUT, DELETE) para cualquier tabla del esquema.
 // Aísla los datos por empresa: cada operación se restringe a la empresa del
 // usuario autenticado (req.usuario.id_empresa), que adjunta el middleware.
+//
+// Las escrituras (alta, edición, baja) y sus hooks after* corren en UNA
+// transacción: si un automatismo falla (por ejemplo, el movimiento de cuenta
+// corriente de un consumo), se deshace todo y se responde con error, en lugar
+// de dejar el registro guardado y la cuenta corriente desincronizada.
+// Los hooks deben usar req.db (la conexión de esa transacción) para escribir.
 const express = require('express');
 const pool = require('../config/db');
 const { calcularPaginacion } = require('./paginacion');
+
+const MENSAJE_FALLA_AUTOMATISMO =
+  'No se pudo completar la operación: falló la actualización automática de las cuentas corrientes. No se guardó ningún cambio.';
+
+// Ejecuta fn(conexion) dentro de una transacción y deja la conexión en req.db
+// para que los hooks escriban en la misma transacción.
+async function enTransaccion(req, fn) {
+  const conexion = await pool.getConnection();
+  req.db = conexion;
+  try {
+    await conexion.beginTransaction();
+    const resultado = await fn(conexion);
+    await conexion.commit();
+    return resultado;
+  } catch (err) {
+    try { await conexion.rollback(); } catch (e) { /* conexión ya sin transacción */ }
+    throw err;
+  } finally {
+    req.db = null;
+    conexion.release();
+  }
+}
+
+// Corre un hook after*: si falla, lo marca para responder un error claro.
+async function correrHookPosterior(nombre, fn) {
+  try {
+    await fn();
+  } catch (err) {
+    console.error(`Error en ${nombre}:`, err.message);
+    err.fallaAutomatismo = true;
+    throw err;
+  }
+}
+
+function responderError(res, err) {
+  if (err.fallaAutomatismo) return res.status(500).json({ error: MENSAJE_FALLA_AUTOMATISMO });
+  if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+    return res.status(409).json({ error: 'No se puede eliminar: el registro está siendo utilizado por otra tabla' });
+  }
+  return res.status(500).json({ error: err.message });
+}
 
 function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, filtrosLike, filtroFecha, ordenable, hooks = {} }) {
   const router = express.Router();
@@ -119,17 +166,18 @@ function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, fil
         if (error) return res.status(400).json({ error });
       }
 
-      const [result] = await pool.query(`INSERT INTO ${table} SET ?`, [data]);
-      const creado = { [idField]: result.insertId, ...data };
-
-      if (hooks.afterCreate) {
-        try { await hooks.afterCreate(creado, req); }
-        catch (errHook) { console.error('Error en afterCreate:', errHook.message); }
-      }
+      const creado = await enTransaccion(req, async conexion => {
+        const [result] = await conexion.query(`INSERT INTO ${table} SET ?`, [data]);
+        const registro = { [idField]: result.insertId, ...data };
+        if (hooks.afterCreate) {
+          await correrHookPosterior('afterCreate', () => hooks.afterCreate(registro, req));
+        }
+        return registro;
+      });
 
       res.status(201).json(creado);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      responderError(res, err);
     }
   });
 
@@ -153,21 +201,28 @@ function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, fil
         if (error) return res.status(400).json({ error });
       }
 
-      const [result] = await pool.query(
-        `UPDATE ${table} SET ? WHERE ${idField} = ? AND id_empresa = ?`,
-        [data, req.params.id, req.usuario.id_empresa]
-      );
-      if (result.affectedRows === 0) return res.status(404).json({ error: 'Registro no encontrado' });
-
       const actualizado = { [idField]: Number(req.params.id), ...data };
-      if (hooks.afterUpdate) {
-        try { await hooks.afterUpdate(actualizado, anterior, req); }
-        catch (errHook) { console.error('Error en afterUpdate:', errHook.message); }
-      }
+      const encontrado = await enTransaccion(req, async conexion => {
+        if (Object.keys(data).length > 0) {
+          const [result] = await conexion.query(
+            `UPDATE ${table} SET ? WHERE ${idField} = ? AND id_empresa = ?`,
+            [data, req.params.id, req.usuario.id_empresa]
+          );
+          if (result.affectedRows === 0) return false;
+        }
+        // El hook recibe el registro completo (anterior + cambios): una
+        // edición parcial no debe perder los datos que no se reenviaron.
+        if (hooks.afterUpdate) {
+          const completo = { ...anterior, ...actualizado };
+          await correrHookPosterior('afterUpdate', () => hooks.afterUpdate(completo, anterior, req));
+        }
+        return true;
+      });
+      if (!encontrado) return res.status(404).json({ error: 'Registro no encontrado' });
 
       res.json(actualizado);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      responderError(res, err);
     }
   });
 
@@ -185,23 +240,22 @@ function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, fil
         if (error) return res.status(400).json({ error });
       }
 
-      const [result] = await pool.query(
-        `DELETE FROM ${table} WHERE ${idField} = ? AND id_empresa = ?`,
-        [req.params.id, req.usuario.id_empresa]
-      );
-      if (result.affectedRows === 0) return res.status(404).json({ error: 'Registro no encontrado' });
-
-      if (hooks.afterDelete) {
-        try { await hooks.afterDelete(registro, req); }
-        catch (errHook) { console.error('Error en afterDelete:', errHook.message); }
-      }
+      const eliminado = await enTransaccion(req, async conexion => {
+        const [result] = await conexion.query(
+          `DELETE FROM ${table} WHERE ${idField} = ? AND id_empresa = ?`,
+          [req.params.id, req.usuario.id_empresa]
+        );
+        if (result.affectedRows === 0) return false;
+        if (hooks.afterDelete) {
+          await correrHookPosterior('afterDelete', () => hooks.afterDelete(registro, req));
+        }
+        return true;
+      });
+      if (!eliminado) return res.status(404).json({ error: 'Registro no encontrado' });
 
       res.json({ mensaje: 'Registro eliminado correctamente' });
     } catch (err) {
-      if (err.code === 'ER_ROW_IS_REFERENCED_2') {
-        return res.status(409).json({ error: 'No se puede eliminar: el registro está siendo utilizado por otra tabla' });
-      }
-      res.status(500).json({ error: err.message });
+      responderError(res, err);
     }
   });
 

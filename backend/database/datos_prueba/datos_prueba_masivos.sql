@@ -5650,4 +5650,41 @@ INSERT INTO CUBIERTAS (id_empresa, identificador, estado, id_unidad, ubicacion, 
 (@emp, '295-80-6536', 'Desgaste alto', (SELECT id_unidad FROM UNIDADES WHERE patente='YU109DV' AND id_empresa=@emp LIMIT 1), 'AUXILIO', '2026-05-30'),
 (@emp, '295-80-2352', 'Media vida', (SELECT id_unidad FROM UNIDADES WHERE patente='EA570WK' AND id_empresa=@emp LIMIT 1), 'COLOCADA', '2026-08-23'),
 (@emp, '295-80-1755', 'Media vida', (SELECT id_unidad FROM UNIDADES WHERE patente='CQ258OJ' AND id_empresa=@emp LIMIT 1), 'COLOCADA', '2026-02-07');
+-- Vincular los movimientos automáticos con su documento de origen
+-- (origen_tipo/origen_id), igual que la migración 023.
+-- Movimientos de viajes, consumos y gastos: "<PREFIJO> #<id> — ..."
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'VIAJE_FACTURACION', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^FACTURACION VIAJE #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'VIAJE_LIQUIDACION', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^LIQUIDACION VIAJE #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'CONSUMO_COMBUSTIBLE', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^CONSUMO COMBUSTIBLE #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'CONSUMO_GENERAL', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^CONSUMO GENERAL #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'GASTO_ADMINISTRATIVO', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^GASTO ADMINISTRATIVO #[0-9]+ —';
+
+-- Facturas manuales y notas de crédito: "FACTURA A 0001-00000012 ..." y
+-- "NOTA DE CREDITO A 0001-00000003 ...", vinculadas por punto de venta y número.
+UPDATE MOVIMIENTOS m
+  JOIN FACTURAS f ON f.id_empresa = m.id_empresa AND f.clase = 'FACTURA' AND f.id_viaje IS NULL
+   AND m.concepto LIKE CONCAT('FACTURA A ', LPAD(f.punto_venta, 4, '0'), '-', LPAD(f.numero, 8, '0'), '%')
+   SET m.origen_tipo = 'FACTURA', m.origen_id = f.id_factura
+ WHERE m.origen_tipo IS NULL;
+
+UPDATE MOVIMIENTOS m
+  JOIN FACTURAS f ON f.id_empresa = m.id_empresa AND f.clase = 'NOTA_CREDITO'
+   AND m.concepto LIKE CONCAT('NOTA DE CREDITO A ', LPAD(f.punto_venta, 4, '0'), '-', LPAD(f.numero, 8, '0'), '%')
+   SET m.origen_tipo = 'NOTA_CREDITO', m.origen_id = f.id_factura
+ WHERE m.origen_tipo IS NULL;
+
 COMMIT;

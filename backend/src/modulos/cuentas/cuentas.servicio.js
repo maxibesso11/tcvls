@@ -6,9 +6,10 @@ const pool = require('../../config/db');
 
 // Busca la cuenta del proveedor por nombre exacto DENTRO de la empresa.
 // Si hay una PROVEEDOR y una CLIENTE con el mismo nombre, prefiere PROVEEDOR.
-async function buscarCuentaProveedor(nombre, idEmpresa) {
+// db: conexión a usar (por defecto el pool; los hooks pasan la de su transacción).
+async function buscarCuentaProveedor(nombre, idEmpresa, db = pool) {
   if (!nombre) return null;
-  const [[cuenta]] = await pool.query(
+  const [[cuenta]] = await db.query(
     `SELECT id_cuenta FROM CUENTA
      WHERE nombre = ? AND id_empresa = ? AND tipo IN ('PROVEEDOR', 'CLIENTE')
      ORDER BY FIELD(tipo, 'PROVEEDOR', 'CLIENTE') LIMIT 1`,

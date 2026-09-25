@@ -9,7 +9,8 @@
     "init-db": "mysql -u $DB_USER -p $DB_NAME < backend/database/esquema/init_db.sql",
     "verificar": "node scripts/verificar-requires.js",
     "smoke": "node scripts/smoke-test.js",
-    "test": "node --test backend/test/viajes.calculos.test.js backend/test/facturacion.servicio.test.js"
+    "test": "node --test backend/test/viajes.calculos.test.js backend/test/facturacion.servicio.test.js",
+    "test:integracion": "node --test --test-concurrency=1 backend/test/integracion/circuitoCuentas.test.js"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -2,17 +2,17 @@
 // Sincronización entre CHOFERES y CUENTA (tipo CHOFER), aislada por empresa.
 // El CUIL identifica al chofer dentro de su empresa (puede repetirse entre
 // empresas distintas).
-const pool = require('../../config/db');
+// Los hooks after* escriben con req.db, dentro de la transacción del CRUD.
 
 async function alCrearChofer(chofer, req) {
   const idEmpresa = req.usuario.id_empresa;
-  const [[existente]] = await pool.query(
+  const [[existente]] = await req.db.query(
     'SELECT id_cuenta FROM CUENTA WHERE cuil = ? AND id_empresa = ?',
     [chofer.cuil, idEmpresa]
   );
   if (existente) return;
 
-  await pool.query('INSERT INTO CUENTA SET ?', [{
+  await req.db.query('INSERT INTO CUENTA SET ?', [{
     id_empresa: idEmpresa,
     tipo: 'CHOFER',
     cuil: chofer.cuil,
@@ -26,7 +26,7 @@ async function alActualizarChofer(chofer, anterior, req) {
   const idEmpresa = req.usuario.id_empresa;
   const cuilBusqueda = anterior?.cuil || chofer.cuil;
 
-  const [resultado] = await pool.query(
+  const [resultado] = await req.db.query(
     `UPDATE CUENTA SET cuil = ?, nombre = ?, domicilio = ?, telefono = ?
      WHERE cuil = ? AND id_empresa = ? AND tipo = 'CHOFER'`,
     [chofer.cuil, chofer.nombre, chofer.domicilio || null, chofer.telefono || null, cuilBusqueda, idEmpresa]
@@ -39,17 +39,17 @@ async function alActualizarChofer(chofer, anterior, req) {
 
 async function alEliminarChofer(chofer, req) {
   const idEmpresa = req.usuario.id_empresa;
-  const [[cuenta]] = await pool.query(
+  const [[cuenta]] = await req.db.query(
     "SELECT id_cuenta FROM CUENTA WHERE cuil = ? AND id_empresa = ? AND tipo = 'CHOFER'",
     [chofer.cuil, idEmpresa]
   );
   if (!cuenta) return;
 
-  const [[mov]] = await pool.query(
+  const [[mov]] = await req.db.query(
     'SELECT COUNT(*) AS total FROM MOVIMIENTOS WHERE id_cuenta = ?', [cuenta.id_cuenta]
   );
   if (Number(mov.total) === 0) {
-    await pool.query('DELETE FROM CUENTA WHERE id_cuenta = ?', [cuenta.id_cuenta]);
+    await req.db.query('DELETE FROM CUENTA WHERE id_cuenta = ?', [cuenta.id_cuenta]);
   }
 }
 

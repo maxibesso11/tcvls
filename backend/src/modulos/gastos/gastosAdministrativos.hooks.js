@@ -1,7 +1,9 @@
 // backend/src/modulos/gastos/gastosAdministrativos.hooks.js
 // Sincroniza GASTOS_ADMINISTRATIVOS con la cuenta del proveedor, por empresa.
-const pool = require('../../config/db');
+// Cada movimiento queda vinculado a su gasto por origen_tipo/origen_id; los
+// hooks after* escriben con req.db, dentro de la transacción del CRUD.
 const { buscarCuentaProveedor, validarProveedor } = require('../cuentas/cuentas.servicio');
+const { ORIGEN, crearMovimientoAutomatico, eliminarMovimientosDeOrigen } = require('../cuentas/movimientos.servicio');
 
 async function antesDeCrearGasto(data, req) {
   return validarProveedor(data, null, req.usuario.id_empresa);
@@ -11,36 +13,31 @@ async function antesDeActualizarGasto(id, data, anterior, req) {
   return validarProveedor(data, anterior, req.usuario.id_empresa);
 }
 
-async function eliminarMovimiento(idGasto, idEmpresa) {
-  await pool.query(
-    'DELETE FROM MOVIMIENTOS WHERE id_empresa = ? AND concepto LIKE ?',
-    [idEmpresa, `GASTO ADMINISTRATIVO #${idGasto} —%`]
-  );
-}
-
-async function crearMovimiento(gasto, idEmpresa) {
-  const cuenta = await buscarCuentaProveedor(gasto.proveedor, idEmpresa);
+async function crearMovimiento(db, gasto, idEmpresa) {
+  const cuenta = await buscarCuentaProveedor(gasto.proveedor, idEmpresa, db);
   if (!cuenta) return;
-  await pool.query('INSERT INTO MOVIMIENTOS SET ?', [{
-    id_empresa: idEmpresa,
-    id_cuenta: cuenta.id_cuenta,
+  await crearMovimientoAutomatico(db, {
+    idEmpresa,
+    idCuenta: cuenta.id_cuenta,
     monto: Math.abs(Number(gasto.monto)),
     fecha: gasto.fecha,
-    concepto: `GASTO ADMINISTRATIVO #${gasto.id_gasto_administrativo} — ${gasto.concepto}`.slice(0, 255)
-  }]);
+    concepto: `GASTO ADMINISTRATIVO #${gasto.id_gasto_administrativo} — ${gasto.concepto}`,
+    origenTipo: ORIGEN.GASTO_ADMINISTRATIVO,
+    origenId: gasto.id_gasto_administrativo
+  });
 }
 
 async function alCrearGasto(gasto, req) {
-  await crearMovimiento(gasto, req.usuario.id_empresa);
+  await crearMovimiento(req.db, gasto, req.usuario.id_empresa);
 }
 
 async function alActualizarGasto(gasto, anterior, req) {
-  await eliminarMovimiento(gasto.id_gasto_administrativo, req.usuario.id_empresa);
-  await crearMovimiento(gasto, req.usuario.id_empresa);
+  await alEliminarGasto(gasto, req);
+  await crearMovimiento(req.db, gasto, req.usuario.id_empresa);
 }
 
 async function alEliminarGasto(gasto, req) {
-  await eliminarMovimiento(gasto.id_gasto_administrativo, req.usuario.id_empresa);
+  await eliminarMovimientosDeOrigen(req.db, req.usuario.id_empresa, ORIGEN.GASTO_ADMINISTRATIVO, gasto.id_gasto_administrativo);
 }
 
 module.exports = {

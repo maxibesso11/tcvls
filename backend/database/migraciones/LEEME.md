@@ -33,23 +33,32 @@ ni perder datos.
 | 020 | modo de facturación del viaje (modo_facturacion) + relleno |
 | 021 | certificados de facturación ARCA por empresa (CERTIFICADOS_ARCA) |
 | 022 | facturación pasa a ser requisito de viajes (activa donde falta) |
+| 023 | referencia formal de cada movimiento automático a su origen (origen_tipo, origen_id) + relleno |
 | reparar_facturacion | repara instalaciones de facturación a medias (ver abajo) |
 
 ## Cómo actualizar una base en producción
 
 Aplicá **en orden** las migraciones posteriores a tu versión instalada.
+Reemplazá `NOMBRE_BD` por el valor de `DB_NAME` en tu `.env` (en la
+instalación original es `erp_3_abril`, pero puede tener otro nombre).
 Por ejemplo, si tu base quedó en la 014:
 
 ```bash
-mysql -u erp_user -p erp_3_abril < migracion_015_pesos_equipo.sql
-mysql -u erp_user -p erp_3_abril < migracion_016_modulos_empresa.sql
-mysql -u erp_user -p erp_3_abril < migracion_017_facturacion.sql
-mysql -u erp_user -p erp_3_abril < migracion_018_chofer_viaje.sql
+mysql -u erp_user -p NOMBRE_BD < migracion_015_pesos_equipo.sql
+mysql -u erp_user -p NOMBRE_BD < migracion_016_modulos_empresa.sql
+mysql -u erp_user -p NOMBRE_BD < migracion_017_facturacion.sql
+mysql -u erp_user -p NOMBRE_BD < migracion_018_chofer_viaje.sql
 ```
 
 Las migraciones incluyen los rellenos necesarios para los datos ya
 cargados (la 016 activa los módulos de las empresas existentes; la 018
-asigna a los viajes históricos el chofer actual de su equipo).
+asigna a los viajes históricos el chofer actual de su equipo; la 023
+vincula cada movimiento automático con su viaje, consumo, gasto o factura).
+
+La 023 muestra al final un resumen por tipo de origen y la lista de
+movimientos que parecen automáticos pero no se pudieron vincular (por
+ejemplo, porque alguien editó el concepto a mano). Esa lista debería quedar
+vacía; si no, revisá esos movimientos antes de seguir.
 
 ## Caso especial: facturación instalada a medias
 
@@ -58,7 +67,7 @@ migración 017 (síntomas: error "factura_items doesn't exist", o errores
 por las columnas `clase`, `id_factura_asociada` o `unidad`), corré:
 
 ```bash
-mysql -u erp_user -p erp_3_abril < reparar_facturacion.sql
+mysql -u erp_user -p NOMBRE_BD < reparar_facturacion.sql
 ```
 
 Es seguro correrlo más de una vez: crea solo lo que falta y no borra

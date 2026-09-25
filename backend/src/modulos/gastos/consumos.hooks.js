@@ -5,11 +5,13 @@
 // Convención: al registrar un consumo, la empresa queda debiéndole al
 // proveedor → crédito (monto > 0) en su cuenta.
 //
-// Movimientos rastreados por concepto:
+// Cada movimiento queda vinculado a su consumo por origen_tipo/origen_id
+// (ver cuentas/movimientos.servicio.js). El concepto es solo descriptivo:
 //   "CONSUMO COMBUSTIBLE #<id> — <detalle>"
 //   "CONSUMO GENERAL #<id> — <detalle>"
-const pool = require('../../config/db');
+// Los hooks after* escriben con req.db, dentro de la transacción del CRUD.
 const { buscarCuentaProveedor, validarProveedor } = require('../cuentas/cuentas.servicio');
+const { ORIGEN, crearMovimientoAutomatico, eliminarMovimientosDeOrigen } = require('../cuentas/movimientos.servicio');
 
 async function antesDeCrearConsumo(data, req) {
   return validarProveedor(data, null, req.usuario.id_empresa);
@@ -20,33 +22,27 @@ async function antesDeActualizarConsumo(id, data, anterior, req) {
 }
 
 // Crea el movimiento de cuenta corriente para un consumo.
-async function crearMovimientoDesdeConsumo({ tipoConsumo, idConsumo, proveedor, monto, fecha, descripcion, idEmpresa }) {
-  const cuenta = await buscarCuentaProveedor(proveedor, idEmpresa);
-  if (!cuenta) return false;
-  await pool.query('INSERT INTO MOVIMIENTOS SET ?', [{
-    id_empresa: idEmpresa,
-    id_cuenta: cuenta.id_cuenta,
+async function crearMovimientoDesdeConsumo(db, { origenTipo, etiqueta, idConsumo, proveedor, monto, fecha, descripcion, idEmpresa }) {
+  const cuenta = await buscarCuentaProveedor(proveedor, idEmpresa, db);
+  if (!cuenta) return;
+  await crearMovimientoAutomatico(db, {
+    idEmpresa,
+    idCuenta: cuenta.id_cuenta,
     monto: Math.abs(Number(monto)),
     fecha,
-    concepto: `CONSUMO ${tipoConsumo} #${idConsumo} — ${descripcion}`.slice(0, 255)
-  }]);
-  return true;
-}
-
-// Elimina el movimiento asociado a un consumo (dentro de la empresa).
-async function eliminarMovimientoDeConsumo(tipoConsumo, idConsumo, idEmpresa) {
-  await pool.query(
-    'DELETE FROM MOVIMIENTOS WHERE id_empresa = ? AND concepto LIKE ?',
-    [idEmpresa, `CONSUMO ${tipoConsumo} #${idConsumo} —%`]
-  );
+    concepto: `CONSUMO ${etiqueta} #${idConsumo} — ${descripcion}`,
+    origenTipo,
+    origenId: idConsumo
+  });
 }
 
 // ---------- CONSUMOS_COMBUSTIBLE ----------
 
 async function alCrearConsumoCombustible(consumo, req) {
   const monto = Number(consumo.cantidad_litros) * Number(consumo.precio_por_litro);
-  await crearMovimientoDesdeConsumo({
-    tipoConsumo: 'COMBUSTIBLE',
+  await crearMovimientoDesdeConsumo(req.db, {
+    origenTipo: ORIGEN.CONSUMO_COMBUSTIBLE,
+    etiqueta: 'COMBUSTIBLE',
     idConsumo: consumo.id_consumo_combustible,
     proveedor: consumo.proveedor,
     monto,
@@ -57,19 +53,20 @@ async function alCrearConsumoCombustible(consumo, req) {
 }
 
 async function alActualizarConsumoCombustible(consumo, anterior, req) {
-  await eliminarMovimientoDeConsumo('COMBUSTIBLE', consumo.id_consumo_combustible, req.usuario.id_empresa);
+  await alEliminarConsumoCombustible(consumo, req);
   await alCrearConsumoCombustible(consumo, req);
 }
 
 async function alEliminarConsumoCombustible(consumo, req) {
-  await eliminarMovimientoDeConsumo('COMBUSTIBLE', consumo.id_consumo_combustible, req.usuario.id_empresa);
+  await eliminarMovimientosDeOrigen(req.db, req.usuario.id_empresa, ORIGEN.CONSUMO_COMBUSTIBLE, consumo.id_consumo_combustible);
 }
 
 // ---------- CONSUMOS_GENERALES ----------
 
 async function alCrearConsumoGeneral(consumo, req) {
-  await crearMovimientoDesdeConsumo({
-    tipoConsumo: 'GENERAL',
+  await crearMovimientoDesdeConsumo(req.db, {
+    origenTipo: ORIGEN.CONSUMO_GENERAL,
+    etiqueta: 'GENERAL',
     idConsumo: consumo.id_consumo_general,
     proveedor: consumo.proveedor,
     monto: Number(consumo.monto),
@@ -80,12 +77,12 @@ async function alCrearConsumoGeneral(consumo, req) {
 }
 
 async function alActualizarConsumoGeneral(consumo, anterior, req) {
-  await eliminarMovimientoDeConsumo('GENERAL', consumo.id_consumo_general, req.usuario.id_empresa);
+  await alEliminarConsumoGeneral(consumo, req);
   await alCrearConsumoGeneral(consumo, req);
 }
 
 async function alEliminarConsumoGeneral(consumo, req) {
-  await eliminarMovimientoDeConsumo('GENERAL', consumo.id_consumo_general, req.usuario.id_empresa);
+  await eliminarMovimientosDeOrigen(req.db, req.usuario.id_empresa, ORIGEN.CONSUMO_GENERAL, consumo.id_consumo_general);
 }
 
 module.exports = {

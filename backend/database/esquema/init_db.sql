@@ -306,9 +306,13 @@ CREATE TABLE MOVIMIENTOS (
     monto DECIMAL(10, 2) NOT NULL,
     fecha DATETIME NOT NULL,
     concepto VARCHAR(255) NOT NULL,
+    -- Documento que generó el movimiento (NULL = cargado a mano). Ver migración 023.
+    origen_tipo VARCHAR(30) NULL,
+    origen_id INT NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
     FOREIGN KEY (id_cuenta) REFERENCES CUENTA(id_cuenta) ON DELETE RESTRICT,
+    INDEX idx_mov_origen (id_empresa, origen_tipo, origen_id),
     INDEX idx_cuenta (id_cuenta),
     INDEX idx_fecha (fecha),
     INDEX idx_monto (monto)
@@ -628,6 +632,43 @@ INSERT INTO MOVIMIENTOS (id_empresa, id_cuenta, monto, fecha, concepto) VALUES
 (1, (SELECT id_cuenta FROM CUENTA WHERE nombre='Rentas Córdoba' AND id_empresa=1),        320000.00, DATE_SUB(NOW(), INTERVAL 9 DAY),  'GASTO ADMINISTRATIVO #3 — Impuesto a los Ingresos Brutos'),
 (1, (SELECT id_cuenta FROM CUENTA WHERE nombre='Consultora Vial SRL' AND id_empresa=1),   180000.00, DATE_SUB(NOW(), INTERVAL 14 DAY), 'GASTO ADMINISTRATIVO #4 — Asesoría en habilitaciones de flota'),
 (1, (SELECT id_cuenta FROM CUENTA WHERE nombre='AFIP' AND id_empresa=1),                  540000.00, DATE_SUB(NOW(), INTERVAL 18 DAY), 'GASTO ADMINISTRATIVO #5 — Aportes y contribuciones (cargas soc.)');
+
+-- Vincular los movimientos automáticos con su documento de origen
+-- (origen_tipo/origen_id), igual que la migración 023.
+-- Movimientos de viajes, consumos y gastos: "<PREFIJO> #<id> — ..."
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'VIAJE_FACTURACION', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^FACTURACION VIAJE #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'VIAJE_LIQUIDACION', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^LIQUIDACION VIAJE #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'CONSUMO_COMBUSTIBLE', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^CONSUMO COMBUSTIBLE #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'CONSUMO_GENERAL', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^CONSUMO GENERAL #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'GASTO_ADMINISTRATIVO', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^GASTO ADMINISTRATIVO #[0-9]+ —';
+
+-- Facturas manuales y notas de crédito: "FACTURA A 0001-00000012 ..." y
+-- "NOTA DE CREDITO A 0001-00000003 ...", vinculadas por punto de venta y número.
+UPDATE MOVIMIENTOS m
+  JOIN FACTURAS f ON f.id_empresa = m.id_empresa AND f.clase = 'FACTURA' AND f.id_viaje IS NULL
+   AND m.concepto LIKE CONCAT('FACTURA A ', LPAD(f.punto_venta, 4, '0'), '-', LPAD(f.numero, 8, '0'), '%')
+   SET m.origen_tipo = 'FACTURA', m.origen_id = f.id_factura
+ WHERE m.origen_tipo IS NULL;
+
+UPDATE MOVIMIENTOS m
+  JOIN FACTURAS f ON f.id_empresa = m.id_empresa AND f.clase = 'NOTA_CREDITO'
+   AND m.concepto LIKE CONCAT('NOTA DE CREDITO A ', LPAD(f.punto_venta, 4, '0'), '-', LPAD(f.numero, 8, '0'), '%')
+   SET m.origen_tipo = 'NOTA_CREDITO', m.origen_id = f.id_factura
+ WHERE m.origen_tipo IS NULL;
 
 -- =========================================================
 -- FIN DE LA INSTALACIÓN

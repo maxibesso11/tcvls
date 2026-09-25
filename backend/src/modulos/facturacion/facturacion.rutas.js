@@ -11,7 +11,7 @@
 const express = require('express');
 const pool = require('../../config/db');
 const { calcularPaginacion } = require('../../lib/paginacion');
-const { crearFactura, importeFacturableDeViaje, r2 } = require('./facturacion.servicio');
+const { crearFactura, facturarViaje, emitirNotaCredito, importeFacturableDeViaje, r2 } = require('./facturacion.servicio');
 const { enviarFacturaPDF } = require('./facturacion.pdf');
 
 const router = express.Router();
@@ -80,6 +80,9 @@ router.post('/desde-viaje/:idViaje', async (req, res) => {
       'SELECT * FROM VIAJES WHERE id_viaje = ? AND id_empresa = ?', [req.params.idViaje, idEmpresa]);
     if (!viaje) return res.status(404).json({ error: 'Viaje no encontrado.' });
     if (!viaje.pagador) return res.status(400).json({ error: 'El viaje no tiene un pagador asignado.' });
+    if (viaje.estado !== 'FINALIZADO' && viaje.estado !== 'FACTURADO') {
+      return res.status(400).json({ error: 'Solo se pueden facturar viajes finalizados.' });
+    }
 
     // Buscar la cuenta CLIENTE del pagador
     const [[cuenta]] = await pool.query(
@@ -99,17 +102,14 @@ router.post('/desde-viaje/:idViaje', async (req, res) => {
       (viaje.numero_remito ? ` — Remito ${viaje.numero_remito}` : '') +
       (viaje.tipo_carga ? ` (${viaje.tipo_carga})` : '');
 
-    const idFactura = await crearFactura(idEmpresa, {
+    // Factura, viaje FACTURADO y débito en la cuenta del cliente, en una
+    // sola transacción (ver facturarViaje en facturacion.servicio.js).
+    const idFactura = await facturarViaje(idEmpresa, {
       id_cuenta: cuenta.id_cuenta,
       id_viaje: viaje.id_viaje,
       items: [{ descripcion, cantidad: 1, precio_unitario: neto }],
       observaciones: ''
     });
-
-    // Marcar el viaje como FACTURADO si no lo estaba
-    await pool.query(
-      `UPDATE VIAJES SET estado = 'FACTURADO' WHERE id_viaje = ? AND id_empresa = ? AND estado <> 'FACTURADO'`,
-      [viaje.id_viaje, idEmpresa]);
 
     res.status(201).json({ id_factura: idFactura });
   } catch (err) {
@@ -159,19 +159,13 @@ router.post('/:id/nota-credito', async (req, res) => {
     }));
 
     const nroFactura = `${String(factura.punto_venta).padStart(4, '0')}-${String(factura.numero).padStart(8, '0')}`;
-    const idNC = await crearFactura(idEmpresa, {
-      id_cuenta: factura.id_cuenta,
+    // Nota de crédito y anulación de la factura, en una sola transacción.
+    const idNC = await emitirNotaCredito(idEmpresa, factura, {
       items: itemsNC,
       observaciones: (req.body && req.body.observaciones)
         ? String(req.body.observaciones).slice(0, 255)
-        : `Anula la Factura A ${nroFactura}`,
-      clase: 'NOTA_CREDITO',
-      id_factura_asociada: factura.id_factura
+        : `Anula la Factura A ${nroFactura}`
     });
-
-    // Marcar la factura original como anulada
-    await pool.query(`UPDATE FACTURAS SET estado = 'ANULADA' WHERE id_factura = ? AND id_empresa = ?`,
-      [factura.id_factura, idEmpresa]);
 
     res.status(201).json({ id_factura: idNC });
   } catch (err) {

@@ -91,6 +91,45 @@ def esc(s):
     return str(s).replace("'", "''")
 
 
+
+# Vincula los movimientos automáticos con su documento de origen
+# (origen_tipo/origen_id), igual que la migración 023.
+SQL_VINCULAR_ORIGEN = """-- Movimientos de viajes, consumos y gastos: "<PREFIJO> #<id> — ..."
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'VIAJE_FACTURACION', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^FACTURACION VIAJE #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'VIAJE_LIQUIDACION', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^LIQUIDACION VIAJE #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'CONSUMO_COMBUSTIBLE', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^CONSUMO COMBUSTIBLE #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'CONSUMO_GENERAL', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^CONSUMO GENERAL #[0-9]+ —';
+
+UPDATE MOVIMIENTOS
+   SET origen_tipo = 'GASTO_ADMINISTRATIVO', origen_id = CAST(REGEXP_SUBSTR(concepto, '[0-9]+') AS UNSIGNED)
+ WHERE origen_tipo IS NULL AND concepto REGEXP '^GASTO ADMINISTRATIVO #[0-9]+ —';
+
+-- Facturas manuales y notas de crédito: "FACTURA A 0001-00000012 ..." y
+-- "NOTA DE CREDITO A 0001-00000003 ...", vinculadas por punto de venta y número.
+UPDATE MOVIMIENTOS m
+  JOIN FACTURAS f ON f.id_empresa = m.id_empresa AND f.clase = 'FACTURA' AND f.id_viaje IS NULL
+   AND m.concepto LIKE CONCAT('FACTURA A ', LPAD(f.punto_venta, 4, '0'), '-', LPAD(f.numero, 8, '0'), '%')
+   SET m.origen_tipo = 'FACTURA', m.origen_id = f.id_factura
+ WHERE m.origen_tipo IS NULL;
+
+UPDATE MOVIMIENTOS m
+  JOIN FACTURAS f ON f.id_empresa = m.id_empresa AND f.clase = 'NOTA_CREDITO'
+   AND m.concepto LIKE CONCAT('NOTA DE CREDITO A ', LPAD(f.punto_venta, 4, '0'), '-', LPAD(f.numero, 8, '0'), '%')
+   SET m.origen_tipo = 'NOTA_CREDITO', m.origen_id = f.id_factura
+ WHERE m.origen_tipo IS NULL;
+"""
+
 class Generador:
     def __init__(self, factor, id_empresa=1):
         self.factor = factor
@@ -129,6 +168,7 @@ class Generador:
         self._vencimientos(unidades_p + unidades_s)
         self._cubiertas(unidades_p + unidades_s)
 
+        self.add(SQL_VINCULAR_ORIGEN)
         self.add("COMMIT;")
         return '\n'.join(self.sql)
 
