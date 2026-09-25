@@ -130,7 +130,23 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="/js/api.js?v=20260718"></script>
-  <script src="/js/app.js?v=20260718"></script>
+  <!-- Orden de carga: cliente de la API, núcleo, vistas, sesión y arranque.
+       Todas las funciones son globales (las usan los onclick del HTML generado).
+       Al modificar un JS, actualizar ?v= para evitar la caché del navegador. -->
+  <script src="/js/api.js?v=20260924"></script>
+  <script src="/js/nucleo/modulos.js?v=20260924"></script>
+  <script src="/js/nucleo/utilidades.js?v=20260924"></script>
+  <script src="/js/nucleo/navegacion.js?v=20260924"></script>
+  <script src="/js/vistas/dashboard.js?v=20260924"></script>
+  <script src="/js/vistas/metricas.js?v=20260924"></script>
+  <script src="/js/vistas/facturacion.js?v=20260924"></script>
+  <script src="/js/vistas/cuentasCorrientes.js?v=20260924"></script>
+  <script src="/js/vistas/viajes.js?v=20260924"></script>
+  <script src="/js/vistas/stock.js?v=20260924"></script>
+  <script src="/js/vistas/crud.js?v=20260924"></script>
+  <script src="/js/vistas/apariencia.js?v=20260924"></script>
+  <script src="/js/vistas/admin.js?v=20260924"></script>
+  <script src="/js/nucleo/sesion.js?v=20260924"></script>
+  <script src="/js/app.js?v=20260924"></script>
 </body>
 </html>
