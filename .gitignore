@@ -6,7 +6,8 @@ node_modules/
 
 # Logs
 *.log
-logs/
+logs/*
+!logs/.gitkeep
 npm-debug.log*
 
 # Salidas de PM2
