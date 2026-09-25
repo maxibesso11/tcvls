@@ -124,7 +124,7 @@ En el sistema:
    inicio de actividades y el **número de punto de venta** de la Parte B.
 2. El certificado (`.crt`) y la clave (`.key`) se cargan en la configuración de
    ARCA del servidor (variables de entorno / archivos del certificado). Esta
-   parte requiere completar la integración técnica en `config/arca.js`, que hoy
+   parte requiere completar la integración técnica en `backend/src/integraciones/arca.js`, que hoy
    está preparada pero no conectada.
 
 > **Importante:** primero conviene probar todo contra el **entorno de

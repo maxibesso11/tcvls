@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "init-db": "mysql -u $DB_USER -p $DB_NAME < database/init_db.sql",
     "verificar": "node scripts/verificar-requires.js",
-    "smoke": "node scripts/smoke-test.js"
+    "smoke": "node scripts/smoke-test.js",
+    "test": "node --test backend/test/viajes.calculos.test.js backend/test/facturacion.servicio.test.js"
   },
   "engines": {
     "node": ">=18.0.0"

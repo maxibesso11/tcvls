@@ -5,59 +5,10 @@
 // FACTURADO  → débito al pagador (cuenta CLIENTE/PROVEEDOR), con comisión + IVA
 const pool = require('../../config/db');
 
-const IVA = 0.21;
-
-function calcularMontoViaje(viaje) {
-  if (viaje.tipo_tarifa === 'UNICA') return Number(viaje.tarifa) || 0;
-  const cantidad = Number(viaje.resultado ?? viaje.cantidad_cargada) || 0;
-  return (Number(viaje.tarifa) || 0) * cantidad;
-}
-
-function calcularMontoFacturado(viaje) {
-  // Monto con IVA (comportamiento histórico / líquido producto).
-  return calcularNetoConComision(viaje) * (1 + IVA);
-}
-
-// Neto del viaje ya descontada la comisión (lo que efectivamente se le cobra
-// al cliente antes de IVA). La comisión reduce lo que paga el cliente.
-function calcularNetoConComision(viaje) {
-  const base = calcularMontoViaje(viaje);
-  const comision = Number(viaje.comision) || 0;
-  return base * (1 - comision / 100);
-}
-
-// Monto a imputar en la cuenta del cliente según el modo de facturación.
-//   SIN_FACTURAR      → neto sin IVA
-//   LIQUIDO_PRODUCTO  → neto + IVA
-//   FACTURA           → neto + IVA (además se emite el comprobante formal)
-//   (NULL/otro)       → neto + IVA (compatibilidad con viajes previos)
-function calcularMontoCuentaCliente(viaje) {
-  const neto = calcularNetoConComision(viaje);
-  if (viaje.modo_facturacion === 'SIN_FACTURAR') return neto;
-  return neto * (1 + IVA);
-}
-
-function calcularLiquidacionChofer(viaje, chofer) {
-  if (!chofer || !chofer.tipo_remuneracion || chofer.remuneracion == null) {
-    return { monto: 0, incompleto: false };
-  }
-  const remu = Number(chofer.remuneracion);
-  if (!Number.isFinite(remu) || remu <= 0) return { monto: 0, incompleto: false };
-
-  switch (chofer.tipo_remuneracion) {
-    case 'PORCENTAJE':
-      return { monto: calcularMontoViaje(viaje) * (remu / 100), incompleto: false };
-    case 'POR KM':
-      if (viaje.tipo_tarifa === 'POR KM') {
-        const km = Number(viaje.resultado) || 0;
-        return { monto: km * remu, incompleto: false };
-      }
-      return { monto: 0, incompleto: true };
-    case 'FIJA':
-    default:
-      return { monto: 0, incompleto: false };
-  }
-}
+const {
+  calcularMontoCuentaCliente,
+  calcularLiquidacionChofer
+} = require('./viajes.calculos');
 
 // ---------- Búsqueda de cuentas (por empresa) ----------
 

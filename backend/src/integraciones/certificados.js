@@ -5,7 +5,7 @@
 //
 // Flujo por empresa:
 //   1. generarClaveYCSR()  → crea la clave privada y el CSR.
-//   2. La clave privada se guarda CIFRADA (config/cifrado.js) en la base.
+//   2. La clave privada se guarda CIFRADA (lib/seguridad/cifrado.js) en la base.
 //   3. El cliente descarga el CSR, lo sube a ARCA y obtiene su certificado.
 //   4. El certificado (.crt) se guarda asociado a la empresa.
 //

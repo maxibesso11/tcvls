@@ -6,7 +6,7 @@ const crypto = require('crypto');
 
 // Secreto para firmar los tokens. En producción debe venir del entorno.
 const SECRETO = process.env.AUTH_SECRET || 'cambiar-este-secreto-en-produccion-3deabril';
-const DURACION_TOKEN_HORAS = 12;
+const { DURACION_TOKEN_HORAS } = require('../../config/constantes');
 
 // ---------- Hashing de contraseñas ----------
 

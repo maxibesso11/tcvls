@@ -4,6 +4,7 @@
 // usuario autenticado (req.usuario.id_empresa), que adjunta el middleware.
 const express = require('express');
 const pool = require('../config/db');
+const { calcularPaginacion } = require('./paginacion');
 
 function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, filtrosLike, filtroFecha, ordenable, hooks = {} }) {
   const router = express.Router();
@@ -72,13 +73,8 @@ function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, fil
         : idField;
       sql += ` ORDER BY ${ordenCol} ${dir}`;
 
-      // --- Paginación: 50 por página por defecto ---
-      const porPagina = Math.min(Math.max(parseInt(req.query.por_pagina, 10) || 50, 1), 200);
-      const totalPaginas = Math.max(Math.ceil(total / porPagina), 1);
-      let pagina = parseInt(req.query.pagina, 10) || 1;
-      if (pagina < 1) pagina = 1;
-      if (pagina > totalPaginas) pagina = totalPaginas;
-      const offset = (pagina - 1) * porPagina;
+      // --- Paginación: 50 por página por defecto (ver config/constantes.js) ---
+      const { pagina, porPagina, totalPaginas, offset } = calcularPaginacion(req.query, total);
       sql += ` LIMIT ? OFFSET ?`;
 
       const [rows] = await pool.query(sql, [...params, porPagina, offset]);
