@@ -126,6 +126,17 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     assert.equal(await saldo(proveedor.id_cuenta), 2500);
   });
 
+  test('el movimiento de una carga de combustible usa los litros tal como quedan guardados', async () => {
+    const proveedor = await crearCuenta('PROVEEDOR');
+    // La columna guarda 2 decimales: 373.022 L queda en 373.02 L.
+    await ok(entorno.api('POST', '/api/consumos-combustible', {
+      proveedor: proveedor.nombre, estacion_carga: 'YPF', id_equipo: 1,
+      cantidad_litros: 373.022, precio_por_litro: 2550, km_recorridos: 900, fecha: '2026-09-03'
+    }));
+
+    assert.equal(await saldo(proveedor.id_cuenta), 951201);
+  });
+
   test('editar solo el teléfono de un chofer actualiza su cuenta sin perder el CUIL', async () => {
     secuencia += 1;
     const cuil = `20-${String(30000000 + secuencia * 104729).slice(-8)}-${secuencia % 10}`;

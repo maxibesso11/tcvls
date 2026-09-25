@@ -36,9 +36,22 @@ async function crearMovimientoDesdeConsumo(db, { origenTipo, etiqueta, idConsumo
   });
 }
 
+// Relee el consumo tal como quedó guardado: los importes del movimiento se
+// calculan con los valores de la base (redondeados por sus columnas DECIMAL),
+// no con lo que llegó en el pedido. Así la cuenta corriente coincide con el
+// consumo registrado.
+async function consumoGuardado(db, tabla, campoId, id, idEmpresa) {
+  const [[fila]] = await db.query(
+    `SELECT * FROM ${tabla} WHERE ${campoId} = ? AND id_empresa = ?`, [id, idEmpresa]);
+  return fila;
+}
+
 // ---------- CONSUMOS_COMBUSTIBLE ----------
 
-async function alCrearConsumoCombustible(consumo, req) {
+async function alCrearConsumoCombustible(registro, req) {
+  const consumo = await consumoGuardado(req.db, 'CONSUMOS_COMBUSTIBLE', 'id_consumo_combustible',
+    registro.id_consumo_combustible, req.usuario.id_empresa);
+  if (!consumo) return;
   const monto = Number(consumo.cantidad_litros) * Number(consumo.precio_por_litro);
   await crearMovimientoDesdeConsumo(req.db, {
     origenTipo: ORIGEN.CONSUMO_COMBUSTIBLE,
@@ -47,7 +60,7 @@ async function alCrearConsumoCombustible(consumo, req) {
     proveedor: consumo.proveedor,
     monto,
     fecha: consumo.fecha,
-    descripcion: `${consumo.cantidad_litros} L en ${consumo.estacion_carga}`,
+    descripcion: `${Number(consumo.cantidad_litros)} L en ${consumo.estacion_carga}`,
     idEmpresa: req.usuario.id_empresa
   });
 }
@@ -63,7 +76,10 @@ async function alEliminarConsumoCombustible(consumo, req) {
 
 // ---------- CONSUMOS_GENERALES ----------
 
-async function alCrearConsumoGeneral(consumo, req) {
+async function alCrearConsumoGeneral(registro, req) {
+  const consumo = await consumoGuardado(req.db, 'CONSUMOS_GENERALES', 'id_consumo_general',
+    registro.id_consumo_general, req.usuario.id_empresa);
+  if (!consumo) return;
   await crearMovimientoDesdeConsumo(req.db, {
     origenTipo: ORIGEN.CONSUMO_GENERAL,
     etiqueta: 'GENERAL',
