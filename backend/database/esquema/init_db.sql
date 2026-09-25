@@ -1,4 +1,10 @@
 -- =========================================================
+-- ⚠  ATENCIÓN: ESTE SCRIPT BORRA LA BASE DE DATOS COMPLETA
+--    (DROP DATABASE erp_3_abril). Usarlo SOLO en una instalación nueva
+--    o en un entorno de prueba. NUNCA en producción con datos reales:
+--    para actualizar producción usar las migraciones de
+--    backend/database/migraciones/ (ver docs/operacion/ACTUALIZAR_SIN_PERDER_DATOS.md).
+-- =========================================================
 -- ERP 3 DE ABRIL SAS — INSTALACIÓN COMPLETA DESDE CERO
 -- =========================================================
 -- Este script único:
@@ -8,7 +14,7 @@
 --   3. Carga un set completo de datos de prueba
 --
 -- Uso:
---   mysql -u root -p < database/init_db.sql
+--   mysql -u root -p < backend/database/esquema/init_db.sql
 --
 -- Convenciones contables en MOVIMIENTOS:
 --   monto > 0  = crédito a favor del titular (la empresa le adeuda)

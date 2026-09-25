@@ -82,7 +82,7 @@ Desde la carpeta del proyecto nuevo, corré **en orden** solo las que te falten.
 Por ejemplo, si la detección mostró que tenés hasta la 014 aplicada:
 
 ```bash
-cd carpeta-del-proyecto-nuevo/database/historico_migraciones
+cd carpeta-del-proyecto-nuevo/backend/database/migraciones
 
 mysql -u TU_USUARIO -p erp_3_abril < migracion_015_pesos_equipo.sql
 mysql -u TU_USUARIO -p erp_3_abril < migracion_016_modulos_empresa.sql

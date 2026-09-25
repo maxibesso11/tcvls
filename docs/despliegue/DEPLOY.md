@@ -189,7 +189,7 @@ pm2 restart tcv-logisuite-erp
 **Aplicar una migración de base de datos** (cuando se agrega una):
 
 ```bash
-mysql -u erp_user -p erp_3_abril < database/historico_migraciones/migracion_XXX.sql
+mysql -u erp_user -p erp_3_abril < backend/database/migraciones/migracion_XXX.sql
 ```
 
 **Respaldos de la base** (programar con cron):

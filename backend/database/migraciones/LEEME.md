@@ -2,7 +2,7 @@
 
 Estos archivos documentan los cambios incrementales que se aplicaron
 sobre la base de datos a lo largo del desarrollo. **Ya no son necesarios
-para una instalación nueva**: el archivo `../init_db.sql` contiene el
+para una instalación nueva**: el archivo `../esquema/init_db.sql` contiene el
 esquema final consolidado con todas estas modificaciones ya incorporadas.
 
 Se conservan como referencia histórica y para actualizar instancias en

@@ -26,7 +26,7 @@ FLUSH PRIVILEGES;
 SQL
 
 echo "→ Cargando el esquema y los datos iniciales…"
-sudo mysql "${DB_NAME}" < database/init_db.sql
+sudo mysql "${DB_NAME}" < backend/database/esquema/init_db.sql
 
 echo "✓ Base de datos lista. Usuario admin/admin123 y demo/demo123 creados."
 echo "  IMPORTANTE: cambiá esas contraseñas desde el panel de administración."
