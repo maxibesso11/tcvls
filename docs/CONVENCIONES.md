@@ -8,7 +8,8 @@ sistema siga funcionando en producción.
 | Si vas a… | Va en |
 |-----------|-------|
 | Agregar una tabla CRUD | Definición en `backend/src/modulos/tablas.js` + módulo en `backend/src/config/modulos.js` + vista en `frontend/js/nucleo/modulos.js` |
-| Agregar una regla al guardar/borrar un registro | Un hook en `backend/src/modulos/<dominio>/<dominio>.hooks.js` |
+| Agregar una regla al guardar/borrar un registro | Un hook en `backend/src/modulos/<dominio>/<dominio>.hooks.js` (los `after*` escriben con `req.db`) |
+| Generar un movimiento de cuenta corriente automático | `cuentas/movimientos.servicio.js` con su `origen_tipo`/`origen_id`, nunca buscando por el concepto |
 | Agregar un endpoint que no es CRUD | `backend/src/modulos/<dominio>/<dominio>.rutas.js` y montarlo en `backend/src/rutas.js` |
 | Lógica reutilizable con SQL | `<dominio>.servicio.js` |
 | Un cálculo sin base de datos | `<dominio>.calculos.js`, con su test en `backend/test/` |
@@ -45,6 +46,8 @@ sistema siga funcionando en producción.
 ```bash
 npm test
 npm run verificar
+# Circuito de cuentas contra un MySQL DESCARTABLE (recrea la base):
+TEST_DB_PERMITIR_BORRADO=1 TEST_DB_PORT=3307 TEST_DB_PASSWORD=... npm run test:integracion
 # Con el servidor apuntando a una base de PRUEBA recién restaurada:
 npm run smoke -- --guardar antes.json          # con la versión anterior
 npm run smoke -- --comparar antes.json         # con la versión nueva

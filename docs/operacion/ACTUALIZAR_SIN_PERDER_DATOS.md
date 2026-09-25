@@ -1,6 +1,7 @@
 # Actualizar producción sin perder datos
 
-Tus datos reales viven en la base **MySQL** (`erp_3_abril`), no en la carpeta
+Tus datos reales viven en la base **MySQL** (su nombre es el valor de `DB_NAME`
+en tu `.env`; en los comandos de esta guía aparece como `NOMBRE_BD`), no en la carpeta
 del código. Por eso podés reemplazar el código sin tocar los datos. Lo único
 que modifica la base son las **migraciones**, y solo hay que correr las que
 falten. Seguí estos pasos en orden.
@@ -15,7 +16,7 @@ falten. Seguí estos pasos en orden.
 Antes de tocar nada, guardá una copia completa de la base:
 
 ```bash
-mysqldump -u TU_USUARIO -p erp_3_abril > respaldo_$(date +%Y%m%d_%H%M).sql
+mysqldump -u TU_USUARIO -p NOMBRE_BD > respaldo_$(date +%Y%m%d_%H%M).sql
 ```
 
 Verificá que el archivo se creó y **no está vacío**:
@@ -28,7 +29,7 @@ Debe pesar bastante más que unos pocos KB. Guardá una copia de ese archivo en
 otro lugar (otra carpeta, un pendrive, la nube). Si algo sale mal, restaurás con:
 
 ```bash
-mysql -u TU_USUARIO -p erp_3_abril < respaldo_AAAAMMDD_HHMM.sql
+mysql -u TU_USUARIO -p NOMBRE_BD < respaldo_AAAAMMDD_HHMM.sql
 ```
 
 ---
@@ -39,7 +40,7 @@ No hace falta adivinar: preguntémosle a la base qué columnas y tablas ya tiene
 Entrá al cliente MySQL:
 
 ```bash
-mysql -u TU_USUARIO -p erp_3_abril
+mysql -u TU_USUARIO -p NOMBRE_BD
 ```
 
 Y pegá esta consulta. Devuelve, para cada migración, si YA está aplicada:
@@ -47,21 +48,29 @@ Y pegá esta consulta. Devuelve, para cada migración, si YA está aplicada:
 ```sql
 SELECT
   (SELECT COUNT(*) FROM information_schema.columns
-     WHERE table_schema='erp_3_abril' AND table_name='USUARIOS' AND column_name='tema')            AS mig_013_tema,
+     WHERE table_schema=DATABASE() AND table_name='USUARIOS' AND column_name='tema')            AS mig_013_tema,
   (SELECT COUNT(*) FROM information_schema.columns
-     WHERE table_schema='erp_3_abril' AND table_name='EMPRESAS' AND column_name='iniciales')        AS mig_014_iniciales,
+     WHERE table_schema=DATABASE() AND table_name='EMPRESAS' AND column_name='iniciales')        AS mig_014_iniciales,
   (SELECT COUNT(*) FROM information_schema.columns
-     WHERE table_schema='erp_3_abril' AND table_name='EQUIPO' AND column_name='peso_tara')          AS mig_015_pesos,
+     WHERE table_schema=DATABASE() AND table_name='EQUIPO' AND column_name='peso_tara')          AS mig_015_pesos,
   (SELECT COUNT(*) FROM information_schema.tables
-     WHERE table_schema='erp_3_abril' AND table_name='MODULOS_EMPRESA')                             AS mig_016_modulos,
+     WHERE table_schema=DATABASE() AND table_name='MODULOS_EMPRESA')                             AS mig_016_modulos,
   (SELECT COUNT(*) FROM information_schema.tables
-     WHERE table_schema='erp_3_abril' AND table_name='FACTURAS')                                    AS mig_017_facturas,
+     WHERE table_schema=DATABASE() AND table_name='FACTURAS')                                    AS mig_017_facturas,
   (SELECT COUNT(*) FROM information_schema.columns
-     WHERE table_schema='erp_3_abril' AND table_name='FACTURAS' AND column_name='clase')            AS mig_017b_notas_credito,
+     WHERE table_schema=DATABASE() AND table_name='FACTURAS' AND column_name='clase')            AS mig_017b_notas_credito,
   (SELECT COUNT(*) FROM information_schema.columns
-     WHERE table_schema='erp_3_abril' AND table_name='FACTURA_ITEMS' AND column_name='unidad')      AS mig_017c_unidad,
+     WHERE table_schema=DATABASE() AND table_name='FACTURA_ITEMS' AND column_name='unidad')      AS mig_017c_unidad,
   (SELECT COUNT(*) FROM information_schema.columns
-     WHERE table_schema='erp_3_abril' AND table_name='VIAJES' AND column_name='id_chofer')          AS mig_018_chofer_viaje;
+     WHERE table_schema=DATABASE() AND table_name='VIAJES' AND column_name='id_chofer')          AS mig_018_chofer_viaje,
+  (SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_schema=DATABASE() AND table_name='CUENTA' AND column_name='plazo_pago_dias')   AS mig_019_plazo_pago,
+  (SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_schema=DATABASE() AND table_name='VIAJES' AND column_name='modo_facturacion')  AS mig_020_modo_facturacion,
+  (SELECT COUNT(*) FROM information_schema.tables
+     WHERE table_schema=DATABASE() AND table_name='CERTIFICADOS_ARCA')                          AS mig_021_certificados,
+  (SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_schema=DATABASE() AND table_name='MOVIMIENTOS' AND column_name='origen_tipo')  AS mig_023_origen_movimientos;
 ```
 
 **Cómo leer el resultado:** cada columna da `1` (ya aplicada) o `0` (falta).
@@ -84,10 +93,10 @@ Por ejemplo, si la detección mostró que tenés hasta la 014 aplicada:
 ```bash
 cd carpeta-del-proyecto-nuevo/backend/database/migraciones
 
-mysql -u TU_USUARIO -p erp_3_abril < migracion_015_pesos_equipo.sql
-mysql -u TU_USUARIO -p erp_3_abril < migracion_016_modulos_empresa.sql
-mysql -u TU_USUARIO -p erp_3_abril < migracion_017_facturacion.sql
-mysql -u TU_USUARIO -p erp_3_abril < migracion_018_chofer_viaje.sql
+mysql -u TU_USUARIO -p NOMBRE_BD < migracion_015_pesos_equipo.sql
+mysql -u TU_USUARIO -p NOMBRE_BD < migracion_016_modulos_empresa.sql
+mysql -u TU_USUARIO -p NOMBRE_BD < migracion_017_facturacion.sql
+mysql -u TU_USUARIO -p NOMBRE_BD < migracion_018_chofer_viaje.sql
 ```
 
 Aplicá únicamente las posteriores a tu versión. Si te falta desde la 016, arrancás
@@ -105,7 +114,7 @@ facturar te daba el error "factura_items doesn't exist"), en lugar de la 017
 corré el script de reparación, que es seguro y solo agrega lo que falta:
 
 ```bash
-mysql -u TU_USUARIO -p erp_3_abril < reparar_facturacion.sql
+mysql -u TU_USUARIO -p NOMBRE_BD < reparar_facturacion.sql
 ```
 
 Puede mostrar algún error de "columna duplicada" en las líneas de columnas que ya
@@ -138,7 +147,7 @@ pm2 start server.js --name tcv-logisuite
 pm2 save
 ```
 
-> Tu archivo `.env` apunta a la misma base `erp_3_abril`, así que el sistema
+> Tu archivo `.env` apunta a la misma base (`DB_NAME`), así que el sistema
 > nuevo abre exactamente los mismos datos que ya tenías.
 
 ---
@@ -161,7 +170,7 @@ días por las dudas). El respaldo del Paso 0 conservalo igual.
 Restaurá la base desde el respaldo y volvé a arrancar el código viejo:
 
 ```bash
-mysql -u TU_USUARIO -p erp_3_abril < respaldo_AAAAMMDD_HHMM.sql
+mysql -u TU_USUARIO -p NOMBRE_BD < respaldo_AAAAMMDD_HHMM.sql
 pm2 start carpeta-vieja/server.js --name tcv-logisuite
 ```
 
