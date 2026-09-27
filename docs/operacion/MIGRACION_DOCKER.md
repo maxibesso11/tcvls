@@ -279,26 +279,31 @@ rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlLmZpbGUifQ"
 
 Se abre el navegador: entrá con **la cuenta de Google del sistema** y
 aceptá. El permiso es `drive.file`: rclone solo ve los archivos que crea él, no
-el resto del Drive. La terminal imprime un JSON entre `Paste the following
-into your remote machine --->` y `<---End paste`. Copialo entero (empieza con
-`{"access_token":`).
+el resto del Drive. La terminal imprime un código entre `Paste the following
+into your remote machine --->` y `<---End paste`. Las versiones actuales de
+rclone lo imprimen en base64 (empieza con `eyJ`); las viejas, como JSON
+(empieza con `{`). Copialo entero. **Es la llave de acceso al Drive: no lo
+pegues en chats ni lo guardes en archivos.**
 
-En el VPS:
+En el VPS, esto arma `/etc/tcv-rclone.conf` con ese código. El rclone 1.60 del
+servidor necesita el JSON, así que si viene en base64 se decodifica. Al pegarlo
+no se muestra:
 
 ```bash
-sudo install -m 600 -o root -g root /dev/null /etc/tcv-rclone.conf
-sudo nano /etc/tcv-rclone.conf
+read -rsp 'Pegá el código de rclone authorize y Enter: ' CODIGO; echo
+CODIGO=$(printf '%s' "$CODIGO" | tr -d ' \r\n')
+case "$CODIGO" in
+  '{'*) TOKEN="$CODIGO" ;;
+  *)    TOKEN=$(printf '%s' "$CODIGO" | base64 -d | python3 -c 'import sys, json; print(json.load(sys.stdin).get("token", ""))') ;;
+esac
+unset CODIGO
+[ -n "$TOKEN" ] && printf '[gdrive]\ntype = drive\nscope = drive.file\ntoken = %s\n' "$TOKEN" | sudo tee /etc/tcv-rclone.conf > /dev/null && echo "✓ configuración guardada"
+unset TOKEN
+sudo chmod 600 /etc/tcv-rclone.conf
+sudo grep -c access_token /etc/tcv-rclone.conf
 ```
 
-Pegá esto, reemplazando `PEGAR_EL_JSON` por el JSON completo, en una sola
-línea. Guardá con Ctrl+O y Enter, y salí con Ctrl+X.
-
-```ini
-[gdrive]
-type = drive
-scope = drive.file
-token = PEGAR_EL_JSON
-```
+✔ Esperado: `✓ configuración guardada` y `1`.
 
 ```bash
 sudo rclone --config /etc/tcv-rclone.conf mkdir gdrive:TCV-LogiSuite-respaldos
