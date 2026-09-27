@@ -269,69 +269,45 @@ servidor.
 
 ### B2. Enlazar Google Drive
 
-rclone trae una aplicación de Google compartida por todos sus usuarios, que
-suele tener la cuota agotada (`RATE_LIMIT_EXCEEDED`: el comando parece
-colgado). Por eso la cuenta del sistema usa **su propia aplicación OAuth**.
-Se crea una sola vez y es gratis.
+**[PC]** En PowerShell:
 
-**B2.1 — Aplicación en Google Cloud** (en el navegador, con **la cuenta de
-Google del sistema**):
-
-1. Entrá a <https://console.cloud.google.com/> y creá un proyecto: *Seleccionar
-   proyecto → Proyecto nuevo* → nombre `TCV LogiSuite respaldos`.
-2. *APIs y servicios → Biblioteca* → buscá **Google Drive API** → **Habilitar**.
-3. *APIs y servicios → Pantalla de consentimiento de OAuth* (o *Google Auth
-   Platform*):
-   - Tipo de usuario **Externo**, nombre de la app `TCV LogiSuite respaldos` y
-     el correo del sistema como soporte y desarrollador.
-   - En **Acceso a datos / Permisos**, agregá solo
-     `.../auth/drive.file` («ver, editar, crear y borrar solo los archivos de
-     Google Drive que uses con esta app»). Es un permiso no sensible: no
-     requiere verificación de Google.
-   - En **Público**, tocá **Publicar app** (estado *En producción*). En
-     *Prueba*, Google vence la autorización a los 7 días y los respaldos
-     dejarían de subirse.
-4. *Credenciales → Crear credenciales → ID de cliente de OAuth* → tipo
-   **App de escritorio** → nombre `rclone servidor`. Anotá el **ID de cliente**
-   y el **secreto del cliente**. Guardalos en el gestor de contraseñas.
-
-**B2.2 — Autorizar** **[PC]** en Git Bash (con rclone instalado:
-`winget install Rclone.Rclone` desde PowerShell y abrí una terminal nueva):
-
-```bash
-read -rp 'ID de cliente: ' CID
-read -rsp 'Secreto del cliente: ' CSEC; echo
-rclone authorize drive "$(printf '{"client_id":"%s","client_secret":"%s","scope":"drive.file"}' "$CID" "$CSEC" | base64 -w0)"
-unset CSEC
+```powershell
+winget install Rclone.Rclone
+# Cerrá y abrí la terminal, y después:
+rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlLmZpbGUifQ"
 ```
 
-Se abre el navegador: entrá con **la cuenta de Google del sistema** y aceptá.
-Google puede avisar que la app no está verificada: *Configuración avanzada →
-Ir a TCV LogiSuite respaldos*. Es tu propia app. La terminal imprime un código
-entre `Paste the following into your remote machine --->` y `<---End paste`
-(empieza con `eyJ` o con `{`). Copialo entero. **Es la llave de acceso al
-Drive: no lo pegues en chats ni lo guardes en archivos.**
+Se abre el navegador: entrá con **la cuenta de Google del sistema** y
+aceptá. El permiso es `drive.file`: rclone solo ve los archivos que crea él, no
+el resto del Drive. La terminal imprime un código entre `Paste the following
+into your remote machine --->` y `<---End paste`. Las versiones actuales lo
+imprimen en base64 (empieza con `eyJ`); las viejas, como JSON (empieza con
+`{`). Copialo entero. **Es la llave de acceso al Drive: no lo pegues en chats
+ni lo guardes en archivos.**
 
-**B2.3 — Configurar el servidor.** En el VPS, esto arma
-`/etc/tcv-rclone.conf`. Nada de lo que pegás se muestra:
+En el VPS, esto arma `/etc/tcv-rclone.conf` (lo que pegás no se muestra):
 
 ```bash
-read -rp 'ID de cliente: ' CID
-read -rsp 'Secreto del cliente: ' CSEC; echo
 read -rsp 'Código de rclone authorize: ' CODIGO; echo
 CODIGO=$(printf '%s' "$CODIGO" | tr -d ' \r\n')
 case "$CODIGO" in
   '{'*) TOKEN="$CODIGO" ;;
   *)    TOKEN=$(printf '%s' "$CODIGO" | base64 -d | python3 -c 'import sys, json; print(json.load(sys.stdin).get("token", ""))') ;;
 esac
-[ -n "$TOKEN" ] && printf '[gdrive]\ntype = drive\nclient_id = %s\nclient_secret = %s\nscope = drive.file\ntoken = %s\n' "$CID" "$CSEC" "$TOKEN" \
+[ -n "$TOKEN" ] && printf '[gdrive]\ntype = drive\nscope = drive.file\ntoken = %s\n' "$TOKEN" \
   | sudo tee /etc/tcv-rclone.conf > /dev/null && echo "✓ configuración guardada"
-unset CID CSEC CODIGO TOKEN
+unset CODIGO TOKEN
 sudo chmod 600 /etc/tcv-rclone.conf
-sudo grep -c -E '^(client_id|client_secret|token) = .+' /etc/tcv-rclone.conf
+sudo grep -c access_token /etc/tcv-rclone.conf
 ```
 
-✔ Esperado: `✓ configuración guardada` y `3`.
+✔ Esperado: `✓ configuración guardada` y `1`.
+
+> **Cuota de Google.** Sin configuración extra, rclone usa una aplicación de
+> Google compartida por todos sus usuarios, que a veces tiene la cuota agotada
+> (`RATE_LIMIT_EXCEEDED`): los comandos tardan minutos o fallan. Los respaldos
+> lo toleran (se reintenta la subida cada 3 horas, ver B3), pero para que sea
+> confiable conviene hacer después el paso **B2-bis**.
 
 ```bash
 sudo rclone --config /etc/tcv-rclone.conf mkdir gdrive:TCV-LogiSuite-respaldos
@@ -340,6 +316,53 @@ sudo rclone --config /etc/tcv-rclone.conf lsd gdrive:
 
 ✔ Esperado: aparece `TCV-LogiSuite-respaldos`, y la carpeta se ve en el Drive
 de esa cuenta.
+
+### B2-bis (recomendado, cuando se pueda). Aplicación de Google propia
+
+Se hace una sola vez con la cuenta del sistema (Google puede pedir el
+teléfono asociado a la cuenta). Evita la cuota compartida de rclone.
+
+1. En <https://console.cloud.google.com/>: *Proyecto nuevo* →
+   `TCV LogiSuite respaldos`.
+2. *APIs y servicios → Biblioteca* → **Google Drive API** → **Habilitar**.
+3. *Pantalla de consentimiento de OAuth* (o *Google Auth Platform*):
+   - tipo **Externo**, con el correo del sistema como soporte y desarrollador;
+   - solo el permiso `.../auth/drive.file`, que no es sensible y no requiere
+     verificación;
+   - en *Público*, **Publicar app** para que quede *En producción*. En
+     *Prueba*, la autorización vence a los 7 días.
+4. *Credenciales → ID de cliente de OAuth* → **App de escritorio**. Guardá el
+   ID y el secreto en el gestor de contraseñas.
+5. **[PC]** En Git Bash:
+
+   ```bash
+   read -rp 'ID de cliente: ' CID
+   read -rsp 'Secreto del cliente: ' CSEC; echo
+   rclone authorize drive "$(printf '{"client_id":"%s","client_secret":"%s","scope":"drive.file"}' "$CID" "$CSEC" | base64 -w0)"
+   unset CSEC
+   ```
+
+   Si Google avisa que la app no está verificada: *Configuración avanzada → Ir
+   a TCV LogiSuite respaldos*.
+6. En el VPS, el mismo bloque de B2, pero con el ID y el secreto:
+
+   ```bash
+   read -rp 'ID de cliente: ' CID
+   read -rsp 'Secreto del cliente: ' CSEC; echo
+   read -rsp 'Código de rclone authorize: ' CODIGO; echo
+   CODIGO=$(printf '%s' "$CODIGO" | tr -d ' \r\n')
+   case "$CODIGO" in
+     '{'*) TOKEN="$CODIGO" ;;
+     *)    TOKEN=$(printf '%s' "$CODIGO" | base64 -d | python3 -c 'import sys, json; print(json.load(sys.stdin).get("token", ""))') ;;
+   esac
+   [ -n "$TOKEN" ] && printf '[gdrive]\ntype = drive\nclient_id = %s\nclient_secret = %s\nscope = drive.file\ntoken = %s\n' "$CID" "$CSEC" "$TOKEN" \
+     | sudo tee /etc/tcv-rclone.conf > /dev/null && echo "✓ configuración guardada"
+   unset CID CSEC CODIGO TOKEN
+   sudo chmod 600 /etc/tcv-rclone.conf
+   sudo rclone --config /etc/tcv-rclone.conf lsd gdrive:
+   ```
+
+   ✔ Esperado: responde en segundos y muestra `TCV-LogiSuite-respaldos`.
 
 ### B3. Programar los respaldos
 
@@ -366,6 +389,8 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 30 6 * * * root /usr/local/sbin/tcv-respaldo-bd >> /var/log/tcv-respaldo-bd.log 2>&1
 0 7 * * 0 root /usr/local/sbin/tcv-verificar-respaldo >> /var/log/tcv-respaldo-bd.log 2>&1
+# Si la subida a Drive falló (cuota de Google), reintenta cada 3 horas.
+15 */3 * * * root /usr/local/sbin/tcv-respaldo-bd --reintentar-subida >> /var/log/tcv-respaldo-bd.log 2>&1
 EOF
 sudo chmod 644 /etc/cron.d/tcv-respaldo-bd
 
@@ -388,6 +413,10 @@ sudo tcv-respaldo-bd
 sudo tcv-verificar-respaldo
 sudo rclone --config /etc/tcv-rclone.conf ls gdrive:TCV-LogiSuite-respaldos
 ```
+
+Si la subida tarda o falla por la cuota de Google, se ve `⚠ Respaldo local
+OK, pero falló la subida a Drive`: el respaldo local está hecho y el cron
+reintenta la subida. Para forzar el reintento: `sudo tcv-respaldo-bd --reintentar-subida`.
 
 ✔ Esperado: `✓ Respaldo local …`, `✓ Copia cifrada subida …`,
 `✓ Restauración verificada … 21 tablas con todas sus filas`, y en Drive un

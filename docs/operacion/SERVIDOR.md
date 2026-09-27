@@ -67,6 +67,7 @@ sudo docker compose exec db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot
 | Qué | Cuándo |
 |-----|--------|
 | Respaldo, cifrado y subida a Drive | Todos los días, 03:30 de Argentina, y antes de cada despliegue |
+| Reintento de la subida si falló (cuota de Google) | Cada 3 horas, solo si el último respaldo no está en Drive |
 | Verificación: se restaura en una base temporal y se comparan las filas de cada tabla | Domingos, 04:00 de Argentina |
 | Retención local | 14 días + el primero de cada mes por 6 meses |
 | Retención en Drive | `diarios/` 30 días, `mensuales/` 400 días |
@@ -78,9 +79,12 @@ sudo tcv-respaldo-bd                                 # respaldo manual
 sudo tcv-verificar-respaldo                          # verificar el último ahora
 ```
 
-Si `ULTIMO_SUBIDO` es más viejo que `ULTIMO_OK`, el respaldo local está bien
-pero falló la subida a Drive: mirá el log. Lo más común es que se revocó el
-acceso de rclone. Para rehacerlo, ver MIGRACION_DOCKER.md, paso B2.
+`ULTIMO_SUBIDO` dice cuándo se subió y qué archivo. Si no es el último
+respaldo local, la subida está pendiente: el cron la reintenta cada 3 horas, o
+se fuerza con `sudo tcv-respaldo-bd --reintentar-subida`. Si falla varios días
+seguidos, mirá el log. Puede ser la cuota compartida de rclone (solución:
+MIGRACION_DOCKER.md, paso B2-bis) o que se haya revocado el acceso (se rehace
+con el paso B2).
 
 ### Restaurar sobre la base del sistema
 
