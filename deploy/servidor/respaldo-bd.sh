@@ -1,46 +1,59 @@
 #!/usr/bin/env bash
 # ============================================================
-# Respaldo de la base de datos del ERP (lo instala 03-configurar-respaldos.sh
-# como /usr/local/sbin/tcv-respaldo-bd y lo corre cron todos los días).
+# Respaldo diario de la base del ERP (MySQL en Docker).
+# Se instala como /usr/local/sbin/tcv-respaldo-bd y lo corre cron como root
+# (ver docs/operacion/SERVIDOR.md → Respaldos).
 # ============================================================
-# - Volcado consistente sin frenar el sistema (--single-transaction).
-# - Comprimido; se verifica que el archivo esté completo antes de conservarlo.
-# - Junto a cada respaldo guarda la cantidad de filas de cada tabla
-#   (<archivo>.conteos) para poder verificarlo después al restaurarlo.
-# - Retención: los diarios de los últimos DIAS_DIARIOS días, y el primero de
-#   cada mes durante DIAS_MENSUALES días.
-# Configuración: /etc/tcv-respaldo.conf · credenciales: /etc/tcv-respaldo.cnf
+# 1. Registra la cantidad de filas de cada tabla (<archivo>.conteos), para
+#    poder verificar después que la restauración está completa.
+# 2. Vuelca la base sin frenar el sistema (--single-transaction), comprimido,
+#    y comprueba que el archivo esté sano y completo antes de conservarlo.
+# 3. Lo cifra con la clave PÚBLICA de age (el servidor no puede descifrarlo)
+#    y sube la copia cifrada a Google Drive con rclone.
+# 4. Retención local (DIAS_DIARIOS + el primero de cada mes por
+#    DIAS_MENSUALES) y en Drive (diarios/ y mensuales/).
+#
+# Configuración: /etc/tcv-respaldo.conf
+# Si la subida a Drive falla, el respaldo local queda igual y el script
+# termina con error (queda en /var/log/tcv-respaldo-bd.log).
 # ============================================================
 set -euo pipefail
 
-CONF=/etc/tcv-respaldo.conf
-CNF=/etc/tcv-respaldo.cnf
 # shellcheck source=/dev/null
-source "$CONF"   # BD, DIR_RESPALDOS, DIAS_DIARIOS, DIAS_MENSUALES
+source "${TCV_RESPALDO_CONF:-/etc/tcv-respaldo.conf}"
+# DIR_PROYECTO, DIR_RESPALDOS, DIAS_DIARIOS, DIAS_MENSUALES,
+# CLAVE_PUBLICA_AGE, RCLONE_CONFIG, RCLONE_DESTINO, DIAS_DRIVE_DIARIOS, DIAS_DRIVE_MENSUALES
 
 log() { echo "[$(date '+%F %T')] $*"; }
 umask 027
 
+compose() { docker compose --project-directory "$DIR_PROYECTO" "$@"; }
+# Ejecuta un comando de MySQL dentro del contenedor, como root de MySQL
+# (la contraseña se toma del entorno del propio contenedor).
+en_bd() { compose exec -T db sh -c "MYSQL_PWD=\"\$MYSQL_ROOT_PASSWORD\" $1"; }
+
+BD="$(en_bd 'printf %s "$MYSQL_DATABASE"')"
+[[ "$BD" =~ ^[A-Za-z0-9_]+$ ]] || { log "✗ No se pudo leer el nombre de la base del contenedor db."; exit 1; }
+
 FECHA="$(date +%Y%m%d_%H%M%S)"
 DESTINO="$DIR_RESPALDOS/${BD}_${FECHA}.sql.gz"
 PARCIAL="$DESTINO.parcial"
-trap 'rm -f "$PARCIAL" "$PARCIAL.conteos"' EXIT
-trap 'log "✗ Falló el respaldo de $BD (ver el error anterior). No se generó archivo."' ERR
+trap 'rm -f "$PARCIAL" "$PARCIAL.conteos" "$DESTINO.age"' EXIT
+trap 'log "✗ Falló el respaldo de $BD (ver el error anterior)."' ERR
 
-sql() { mysql --defaults-extra-file="$CNF" -N -B -e "$1" </dev/null; }
-
-# 1. Filas por tabla, justo antes del volcado (para verificar la restauración)
-sql "SELECT table_name FROM information_schema.tables
-      WHERE table_schema = '$BD' AND table_type = 'BASE TABLE' ORDER BY table_name" |
-while read -r tabla; do
-  echo "$tabla $(sql "SELECT COUNT(*) FROM \`$BD\`.\`$tabla\`")"
-done > "$PARCIAL.conteos"
+# 1. Filas por tabla, justo antes del volcado
+compose exec -T db sh -s "$BD" > "$PARCIAL.conteos" <<'CONTAR'
+export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
+for t in $(mysql -uroot -N -B -e "SELECT table_name FROM information_schema.tables
+            WHERE table_schema = '$1' AND table_type = 'BASE TABLE' ORDER BY table_name"); do
+  echo "$t $(mysql -uroot -N -B -e "SELECT COUNT(*) FROM \`$1\`.\`$t\`")"
+done
+CONTAR
+[[ -s "$PARCIAL.conteos" ]] || { log "✗ No se pudieron contar las filas de $BD."; exit 1; }
 
 # 2. Volcado comprimido (pipefail: si mysqldump falla, falla todo)
-mysqldump --defaults-extra-file="$CNF" --single-transaction --quick --no-tablespaces \
-  --triggers --default-character-set=utf8mb4 "$BD" | gzip -9 > "$PARCIAL"
-
-# 3. Verificar que el archivo esté sano y completo
+en_bd "mysqldump -uroot --single-transaction --quick --no-tablespaces --triggers --routines \
+        --default-character-set=utf8mb4 '$BD'" | gzip -9 > "$PARCIAL"
 gzip -t "$PARCIAL"
 zcat "$PARCIAL" | tail -n 1 | grep -q 'Dump completed' \
   || { log "✗ El volcado quedó incompleto; no se conserva."; exit 1; }
@@ -49,9 +62,9 @@ mv "$PARCIAL" "$DESTINO"
 mv "$PARCIAL.conteos" "$DESTINO.conteos"
 chgrp sudo "$DESTINO" "$DESTINO.conteos" 2>/dev/null || true
 date '+%F %T' > "$DIR_RESPALDOS/ULTIMO_OK"
-log "✓ Respaldo $(basename "$DESTINO") ($(du -h "$DESTINO" | cut -f1), $(wc -l < "$DESTINO.conteos") tablas)"
+log "✓ Respaldo local $(basename "$DESTINO") ($(du -h "$DESTINO" | cut -f1), $(wc -l < "$DESTINO.conteos") tablas)"
 
-# 4. Retención
+# 3. Retención local
 find "$DIR_RESPALDOS" -maxdepth 1 -name "${BD}_*.sql.gz" -mtime +"$DIAS_DIARIOS" | while read -r viejo; do
   dia="$(basename "$viejo" | sed -E "s/^${BD}_[0-9]{6}([0-9]{2})_.*/\1/")"
   if [[ "$dia" == "01" && -n "$(find "$viejo" -mtime -"$DIAS_MENSUALES")" ]]; then
@@ -60,3 +73,17 @@ find "$DIR_RESPALDOS" -maxdepth 1 -name "${BD}_*.sql.gz" -mtime +"$DIAS_DIARIOS"
   rm -f "$viejo" "$viejo.conteos"
   log "• Eliminado por antigüedad: $(basename "$viejo")"
 done
+
+# 4. Copia cifrada en Google Drive
+age -R "$CLAVE_PUBLICA_AGE" -o "$DESTINO.age" "$DESTINO"
+RC=(rclone --config "$RCLONE_CONFIG" --retries 5 --low-level-retries 10)
+"${RC[@]}" copy "$DESTINO.age" "$RCLONE_DESTINO/diarios/"
+"${RC[@]}" copy "$DESTINO.conteos" "$RCLONE_DESTINO/diarios/"
+if [[ "$(date +%d)" == "01" ]]; then
+  "${RC[@]}" copy "$DESTINO.age" "$RCLONE_DESTINO/mensuales/"
+  "${RC[@]}" copy "$DESTINO.conteos" "$RCLONE_DESTINO/mensuales/"
+fi
+"${RC[@]}" delete --min-age "${DIAS_DRIVE_DIARIOS}d" "$RCLONE_DESTINO/diarios/"
+"${RC[@]}" delete --min-age "${DIAS_DRIVE_MENSUALES}d" "$RCLONE_DESTINO/mensuales/"
+date '+%F %T' > "$DIR_RESPALDOS/ULTIMO_SUBIDO"
+log "✓ Copia cifrada subida a $RCLONE_DESTINO/diarios/$(basename "$DESTINO.age")"

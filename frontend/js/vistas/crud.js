@@ -275,6 +275,10 @@ function formatearCelda(valor, campo, diccionarioFk, fila) {
   if (!campo) return esc(valor);
   if (campo.tipo === 'fk' && diccionarioFk) {
     const reg = diccionarioFk[valor];
+    if (campo.mostrarEnTabla) {
+      const texto = campo.mostrarEnTabla(fila || {}, reg);
+      if (texto) return esc(texto);
+    }
     return reg ? esc(campo.mostrar(reg)) : `#${esc(valor)}`;
   }
   if (campo.tipo === 'date' || campo.tipo === 'datetime-local') return fmtFecha(valor);

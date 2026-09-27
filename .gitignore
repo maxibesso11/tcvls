@@ -20,3 +20,13 @@ Thumbs.db
 # Temporales
 *.tmp
 *.bak
+
+# Documentación
+*.pdf
+
+# Respaldos de la base (datos reales: nunca al repositorio)
+*.sql.gz
+erp_*.sql
+
+# Versión desplegada (la escribe deploy/desplegar.sh)
+.version-desplegada

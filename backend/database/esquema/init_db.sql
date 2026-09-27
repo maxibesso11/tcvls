@@ -171,6 +171,8 @@ CREATE TABLE VIAJES (
     destino VARCHAR(100) NOT NULL,
     id_equipo INT NOT NULL,
     id_chofer INT,
+    id_unidad_principal INT,
+    id_unidad_secundaria INT,
     tarifa DECIMAL(10, 2) NOT NULL,
     tipo_tarifa ENUM('POR KM', 'POR TONELADA', 'UNICA') NOT NULL,
     cantidad_cargada DECIMAL(10, 2),
@@ -185,6 +187,8 @@ CREATE TABLE VIAJES (
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
     FOREIGN KEY (id_equipo) REFERENCES EQUIPO(id_equipo) ON DELETE RESTRICT,
     FOREIGN KEY (id_chofer) REFERENCES CHOFERES(id_chofer) ON DELETE SET NULL,
+    FOREIGN KEY (id_unidad_principal) REFERENCES UNIDADES(id_unidad) ON DELETE SET NULL,
+    FOREIGN KEY (id_unidad_secundaria) REFERENCES UNIDADES(id_unidad) ON DELETE SET NULL,
     INDEX idx_equipo (id_equipo),
     INDEX idx_estado (estado),
     INDEX idx_fecha_origen (fecha_origen),
@@ -195,6 +199,8 @@ CREATE TABLE VIAJES (
 -- equipo al momento de crear el viaje (o al cambiarle el equipo). La
 -- liquidación al chofer usa esta foto, no el chofer actual del equipo,
 -- para que las rotaciones de choferes no alteren viajes históricos.
+-- id_unidad_principal / id_unidad_secundaria son la misma "foto" para el
+-- camión y el acoplado: editar un equipo no reescribe sus viajes pasados.
 
 -- 5. CONSUMOS COMBUSTIBLE
 CREATE TABLE CONSUMOS_COMBUSTIBLE (
@@ -510,9 +516,12 @@ INSERT INTO VIAJES (id_empresa, fecha_origen, tipo_carga, origen, destino, id_eq
 -- #9 FINALIZADO POR KM (chofer 5 POR KM 205/km)
 (1, DATE_SUB(NOW(), INTERVAL 15 DAY), 'Cemento',      'Córdoba',       'San Juan',     5, 1980,    'POR KM',       NULL,  540,  0,  'FINALIZADO', DATE_SUB(NOW(), INTERVAL 14 DAY),'Molinos Unidos',     'R-0001-00012620');
 
--- Foto del chofer en los viajes de ejemplo (el chofer del equipo al crearse)
+-- Foto del chofer y las unidades en los viajes de ejemplo (el equipo al crearse)
 UPDATE VIAJES v JOIN EQUIPO e ON e.id_equipo = v.id_equipo
-SET v.id_chofer = e.id_chofer WHERE v.id_chofer IS NULL;
+SET v.id_chofer = e.id_chofer,
+    v.id_unidad_principal = e.id_unidad_principal,
+    v.id_unidad_secundaria = e.id_unidad_secundaria
+WHERE v.id_chofer IS NULL;
 
 -- ---------- CONSUMOS COMBUSTIBLE ----------
 INSERT INTO CONSUMOS_COMBUSTIBLE (id_empresa, estacion_carga, proveedor, id_equipo, cantidad_litros, km_recorridos, precio_por_litro, fecha) VALUES
@@ -677,6 +686,44 @@ UPDATE MOVIMIENTOS m
    AND m.concepto LIKE CONCAT('NOTA DE CREDITO A ', LPAD(f.punto_venta, 4, '0'), '-', LPAD(f.numero, 8, '0'), '%')
    SET m.origen_tipo = 'NOTA_CREDITO', m.origen_id = f.id_factura
  WHERE m.origen_tipo IS NULL;
+
+-- =========================================================
+-- REGISTRO DE MIGRACIONES
+-- Este esquema ya incluye todas las migraciones: se registran como aplicadas
+-- para que backend/database/migrar.js solo corra las que se agreguen después.
+-- Al crear una migración nueva, agregarla también a esta lista.
+-- =========================================================
+CREATE TABLE MIGRACIONES (
+    nombre VARCHAR(100) NOT NULL PRIMARY KEY,
+    aplicada_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO MIGRACIONES (nombre) VALUES
+('migracion_001_numero_remito.sql'),
+('migracion_002_sincronizar_choferes.sql'),
+('migracion_003_movimientos_consumos.sql'),
+('migracion_004_remuneracion_choferes.sql'),
+('migracion_005_movimientos_viajes.sql'),
+('migracion_006_liquidacion_choferes.sql'),
+('migracion_007_cubiertas_identificador.sql'),
+('migracion_008_eliminar_campos_pago_viajes.sql'),
+('migracion_009_ampliar_concepto_movimientos.sql'),
+('migracion_010_comision_viajes.sql'),
+('migracion_011_gastos_administrativos.sql'),
+('migracion_012_multiempresa_usuarios.sql'),
+('migracion_013_tema_usuario.sql'),
+('migracion_014_iniciales_empresa.sql'),
+('migracion_015_pesos_equipo.sql'),
+('migracion_016_modulos_empresa.sql'),
+('migracion_017_facturacion.sql'),
+('migracion_018_chofer_viaje.sql'),
+('migracion_019_plazo_pago_cuenta.sql'),
+('migracion_020_modo_facturacion_viaje.sql'),
+('migracion_021_certificados_arca.sql'),
+('migracion_022_facturacion_requisito_viajes.sql'),
+('migracion_023_origen_movimientos.sql'),
+('migracion_024_seguridad_usuarios.sql'),
+('migracion_025_unidades_viaje.sql');
 
 -- =========================================================
 -- FIN DE LA INSTALACIÓN

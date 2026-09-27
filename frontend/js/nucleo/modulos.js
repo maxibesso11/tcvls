@@ -63,7 +63,12 @@ const MODULOS = {
     id: 'id_viaje',
     campos: [
       { nombre: 'fecha_origen', etiqueta: 'Fecha de origen', tipo: 'datetime-local', requerido: true },
-      { nombre: 'id_equipo', etiqueta: 'Equipo', tipo: 'fk', recurso: 'equipos', mostrar: r => `${r.patente_principal || '?'} / ${r.patente_secundaria || '?'}`, requerido: true },
+      { nombre: 'id_equipo', etiqueta: 'Equipo', tipo: 'fk', recurso: 'equipos', mostrar: r => `${r.patente_principal || '?'} / ${r.patente_secundaria || '?'}`, requerido: true,
+        // En la tabla: el camión y el acoplado que HICIERON el viaje (foto del
+        // viaje), aunque el equipo se haya editado después.
+        mostrarEnTabla: (fila, equipo) => fila.id_unidad_principal
+          ? `${patenteDeUnidad(fila.id_unidad_principal)} / ${patenteDeUnidad(fila.id_unidad_secundaria)}`
+          : (equipo ? `${equipo.patente_principal || '?'} / ${equipo.patente_secundaria || '?'}` : null) },
       { nombre: 'tipo_carga', etiqueta: 'Tipo de carga', tipo: 'text', requerido: true },
       { nombre: 'origen', etiqueta: 'Origen', tipo: 'text', requerido: true },
       { nombre: 'destino', etiqueta: 'Destino', tipo: 'text', requerido: true },

@@ -112,6 +112,47 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     assert.equal(detalle.resumen.saldo_final, -242000);
   });
 
+  // ---------- Historia del equipo (bug reportado en producción) ----------
+
+  test('editar las unidades y el chofer de un equipo no reescribe sus viajes pasados', async () => {
+    const cliente = await crearCuenta('CLIENTE');
+    const equipo = await ok(entorno.api('POST', '/api/equipos', {
+      id_unidad_principal: 3, id_unidad_secundaria: 8, id_chofer: 3
+    }));
+    const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, { id_equipo: equipo.id_equipo })));
+
+    // El equipo cambia de camión, acoplado y chofer (como pasó en producción).
+    await ok(entorno.api('PUT', `/api/equipos/${equipo.id_equipo}`, {
+      id_unidad_principal: 4, id_unidad_secundaria: 9, id_chofer: 4
+    }));
+    // Una edición posterior del viaje tampoco debe tomar la composición nueva.
+    await ok(entorno.api('PUT', `/api/viajes/${viaje.id_viaje}`, { estado: 'FINALIZADO' }));
+
+    const guardado = await ok(entorno.api('GET', `/api/viajes/${viaje.id_viaje}`));
+    assert.equal(guardado.id_unidad_principal, 3);
+    assert.equal(guardado.id_unidad_secundaria, 8);
+    assert.equal(guardado.id_chofer, 3);
+
+    // La liquidación va al chofer que hizo el viaje (Roberto Díaz, 18 %).
+    const [[liq]] = await entorno.pool.query(
+      `SELECT c.nombre, m.monto FROM MOVIMIENTOS m JOIN CUENTA c ON c.id_cuenta = m.id_cuenta
+        WHERE m.origen_tipo = 'VIAJE_LIQUIDACION' AND m.origen_id = ?`, [viaje.id_viaje]);
+    assert.equal(liq.nombre, 'Roberto Díaz');
+    assert.equal(Number(liq.monto), 18000);
+  });
+
+  test('un viaje POR TONELADA no se puede facturar con resultado 0', async () => {
+    const cliente = await crearCuenta('CLIENTE');
+    const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, {
+      tipo_tarifa: 'POR TONELADA', tarifa: 60000, cantidad_cargada: 30
+    })));
+    const r = await entorno.api('PUT', `/api/viajes/${viaje.id_viaje}`, {
+      estado: 'FACTURADO', modo_facturacion: 'LIQUIDO_PRODUCTO', resultado: 0
+    });
+    assert.equal(r.estado, 400);
+    assert.equal(await saldo(cliente.id_cuenta), 0);
+  });
+
   // ---------- Ediciones parciales ----------
 
   test('editar un consumo sin reenviar el proveedor conserva y actualiza su movimiento', async () => {

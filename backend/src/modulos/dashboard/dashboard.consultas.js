@@ -19,6 +19,12 @@ const SQL_IVA_VIAJE = `(CASE WHEN v.estado = 'FACTURADO'
         AND COALESCE(v.modo_facturacion, 'LIQUIDO_PRODUCTO') <> 'SIN_FACTURAR'
       THEN ${SQL_NETO_VIAJE} * ${IVA_ALICUOTA} ELSE 0 END)`;
 
+// Camión (up) y acoplado (us) que hicieron el viaje: la foto guardada en el
+// viaje (migración 025) o, si falta, los que tiene hoy su equipo (alias "e").
+const SQL_UNIDADES_DEL_VIAJE = `
+        LEFT JOIN UNIDADES up ON up.id_unidad = COALESCE(v.id_unidad_principal, e.id_unidad_principal)
+        LEFT JOIN UNIDADES us ON us.id_unidad = COALESCE(v.id_unidad_secundaria, e.id_unidad_secundaria)`;
+
 // Construye condiciones WHERE incluyendo SIEMPRE el filtro de empresa,
 // más rango de fechas y equipo opcionales. La columna de empresa puede
 // llevar alias (ej. 'v.id_empresa').
@@ -35,4 +41,4 @@ function filtros(req, { colFecha = null, colEquipo = null, aliasEmpresa = 'id_em
   };
 }
 
-module.exports = { SQL_BASE_VIAJE, SQL_NETO_VIAJE, SQL_IVA_VIAJE, filtros };
+module.exports = { SQL_BASE_VIAJE, SQL_NETO_VIAJE, SQL_IVA_VIAJE, SQL_UNIDADES_DEL_VIAJE, filtros };

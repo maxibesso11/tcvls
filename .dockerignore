@@ -1,0 +1,20 @@
+# Lo que NO entra en la imagen de la app
+.git
+.gitignore
+.gitattributes
+.editorconfig
+node_modules
+.env
+.env.*
+logs
+docs
+deploy
+*.md
+*.pdf
+*.sql.gz
+erp_*.sql
+backend/test
+backend/database/datos_prueba
+Dockerfile
+docker-compose*.yml
+.dockerignore

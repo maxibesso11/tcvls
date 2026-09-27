@@ -9,7 +9,7 @@
 const pool = require('../../config/db');
 const {
   buscarCuentaPagador,
-  fotografiarChofer,
+  fotografiarEquipo,
   eliminarMovimientosDelViaje,
   reconciliarMovimientos
 } = require('./viajes.servicio');
@@ -42,9 +42,11 @@ function validarEstado(data, anterior) {
     const tipoTarifa = data.tipo_tarifa ?? anterior?.tipo_tarifa;
     const resultado = data.resultado !== undefined ? data.resultado : anterior?.resultado;
     const necesitaResultado = tipoTarifa === 'POR TONELADA' || tipoTarifa === 'POR KM';
-    const sinResultado = resultado === null || resultado === undefined || resultado === '';
+    // Un resultado 0 también cuenta como no cargado: facturaría $0 al cliente
+    // (pasó en producción con un viaje POR TONELADA facturado con 0 t).
+    const sinResultado = resultado === null || resultado === undefined || resultado === '' || !(Number(resultado) > 0);
     if (necesitaResultado && sinResultado) {
-      return `Para marcar el viaje como ${estadoFuturo} con tarifa "${tipoTarifa}" debe cargarse el resultado (toneladas descargadas o kilómetros recorridos).`;
+      return `Para marcar el viaje como ${estadoFuturo} con tarifa "${tipoTarifa}" debe cargarse el resultado (toneladas descargadas o kilómetros recorridos), mayor a cero.`;
     }
   }
 
@@ -88,23 +90,23 @@ function antesDeEliminarViaje(viaje) {
 
 async function alCrearViaje(viaje, req) {
   const idEmpresa = req.usuario.id_empresa;
-  // Fijar la foto del chofer que hace el viaje (el asignado al equipo hoy)
-  await fotografiarChofer(req.db, viaje.id_viaje, viaje.id_equipo, idEmpresa);
+  // Fijar la foto del equipo que hace el viaje (chofer y unidades de hoy)
+  await fotografiarEquipo(req.db, viaje.id_viaje, viaje.id_equipo, idEmpresa);
   await reconciliarMovimientos(req.db, viaje.id_viaje, idEmpresa);
 }
 
 async function alActualizarViaje(viaje, anterior, req) {
   const idEmpresa = req.usuario.id_empresa;
-  // Si se cambió el equipo del viaje, el chofer real también cambió:
-  // actualizar la foto. Cualquier otra edición conserva el chofer original.
+  // Si se cambió el equipo del viaje, el chofer y las unidades reales también
+  // cambiaron: actualizar la foto. Cualquier otra edición conserva la original.
   // Nota: el formulario envía id_equipo como string y la base lo devuelve
   // como número, así que la comparación debe normalizar ambos lados; de lo
-  // contrario cualquier edición re-fotografiaría y pisaría al chofer
-  // histórico con el actual del equipo.
+  // contrario cualquier edición re-fotografiaría y pisaría la composición
+  // histórica con la actual del equipo.
   const equipoNuevo = viaje.id_equipo !== undefined ? Number(viaje.id_equipo) : null;
   const equipoAnterior = anterior ? Number(anterior.id_equipo) : null;
   if (equipoNuevo !== null && equipoAnterior !== null && equipoNuevo !== equipoAnterior) {
-    await fotografiarChofer(req.db, viaje.id_viaje, viaje.id_equipo, idEmpresa);
+    await fotografiarEquipo(req.db, viaje.id_viaje, viaje.id_equipo, idEmpresa);
   }
   await reconciliarMovimientos(req.db, viaje.id_viaje, idEmpresa);
 }

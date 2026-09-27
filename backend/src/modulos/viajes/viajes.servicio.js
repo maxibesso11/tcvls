@@ -51,13 +51,17 @@ async function obtenerChoferDelViaje(db, viaje, idEmpresa) {
   return chofer || null;
 }
 
-// Guarda en el viaje la foto del chofer que tiene el equipo en este momento.
-async function fotografiarChofer(db, idViaje, idEquipo, idEmpresa) {
+// Guarda en el viaje la foto de la composición que tiene el equipo en este
+// momento: chofer, camión (unidad principal) y acoplado (unidad secundaria).
+// Así editar el equipo después no reescribe la historia de sus viajes.
+async function fotografiarEquipo(db, idViaje, idEquipo, idEmpresa) {
   if (!idEquipo) return;
   await db.query(`
     UPDATE VIAJES v
     JOIN EQUIPO e ON e.id_equipo = ? AND e.id_empresa = ?
-    SET v.id_chofer = e.id_chofer
+    SET v.id_chofer = e.id_chofer,
+        v.id_unidad_principal = e.id_unidad_principal,
+        v.id_unidad_secundaria = e.id_unidad_secundaria
     WHERE v.id_viaje = ? AND v.id_empresa = ?
   `, [idEquipo, idEmpresa, idViaje, idEmpresa]);
 }
@@ -171,7 +175,8 @@ async function reconciliarMovimientos(db, idViaje, idEmpresa) {
 
 module.exports = {
   buscarCuentaPagador,
-  fotografiarChofer,
+  obtenerChoferDelViaje,
+  fotografiarEquipo,
   eliminarMovimientosDelViaje,
   reconciliarMovimientos
 };

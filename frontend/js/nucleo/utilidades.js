@@ -154,6 +154,13 @@ async function obtenerCacheUnidades(forzar = false) {
   return _cacheUnidades;
 }
 
+// Patente de una unidad desde la caché (ya cargada al listar los equipos).
+function patenteDeUnidad(idUnidad) {
+  if (idUnidad == null) return '?';
+  const unidad = _cacheUnidades && _cacheUnidades[idUnidad];
+  return unidad ? unidad.patente : `#${idUnidad}`;
+}
+
 // Carga equipos enriquecidos con patente_principal y patente_secundaria
 // resueltas desde el diccionario de unidades.
 async function listarEquiposEnriquecidos() {

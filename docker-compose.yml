@@ -1,0 +1,76 @@
+# TCV LogiSuite ERP en Docker: la app (Node) y su base (MySQL 8.0).
+#
+# Toda la configuración sale del .env de la raíz (ver .env.example):
+#   DB_NAME, DB_USER, DB_PASSWORD  → base y usuario de la app (se crean solos
+#                                    la primera vez que arranca el volumen)
+#   MYSQL_ROOT_PASSWORD            → root de MySQL (solo dentro del contenedor)
+#   TCV_UID, TCV_GID               → usuario del servidor con el que corre la app
+#   APP_PUERTO                     → puerto local donde Nginx encuentra la app
+#
+# Comandos habituales (desde la raíz del proyecto):
+#   docker compose up -d                         levantar todo
+#   docker compose ps                            estado y salud
+#   docker compose logs -f app                   logs de la app
+#   docker compose run --rm app node backend/database/migrar.js   migraciones
+#   deploy/desplegar.sh                          actualizar a la última versión
+name: tcvls
+
+services:
+  db:
+    # Misma versión que tenía el servidor antes de Docker (8.0.46).
+    image: mysql:8.0.46
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Falta MYSQL_ROOT_PASSWORD en el .env}
+      MYSQL_DATABASE: ${DB_NAME:?Falta DB_NAME en el .env}
+      MYSQL_USER: ${DB_USER:?Falta DB_USER en el .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD en el .env}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - datos-mysql:/var/lib/mysql
+    # Sin puertos publicados: solo la app la ve, por la red interna de Docker.
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: &logs
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  app:
+    build: .
+    image: tcvls-app:${TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Dentro de Docker la base es el servicio "db" y la app escucha en todas
+      # sus interfaces; hacia afuera solo se publica en 127.0.0.1 (Nginx).
+      DB_HOST: db
+      DB_PORT: "3306"
+      HOST: 0.0.0.0
+      PORT: "3000"
+      TZ: ${TZ:-UTC}
+    user: "${TCV_UID:-1000}:${TCV_GID:-1000}"
+    ports:
+      - "127.0.0.1:${APP_PUERTO:-3001}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *logs
+
+volumes:
+  datos-mysql:

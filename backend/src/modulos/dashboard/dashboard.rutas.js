@@ -3,7 +3,7 @@
 // del usuario autenticado (req.usuario.id_empresa).
 const express = require('express');
 const pool = require('../../config/db');
-const { SQL_BASE_VIAJE, SQL_IVA_VIAJE, filtros } = require('./dashboard.consultas');
+const { SQL_BASE_VIAJE, SQL_IVA_VIAJE, SQL_UNIDADES_DEL_VIAJE, filtros } = require('./dashboard.consultas');
 const { responderError } = require('../../lib/errores');
 const router = express.Router();
 
@@ -244,6 +244,8 @@ router.get('/rendimiento-equipos', async (req, res) => {
 });
 
 // ==================== RENDIMIENTO POR CHOFER ====================
+// Por el chofer que HIZO cada viaje (foto VIAJES.id_chofer), no por el que
+// tiene hoy el equipo: si los choferes rotan, cada uno conserva sus viajes.
 router.get('/rendimiento-choferes', async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -252,8 +254,7 @@ router.get('/rendimiento-choferes', async (req, res) => {
         COALESCE(SUM(CASE WHEN v.tipo_tarifa='UNICA' THEN v.tarifa
                  ELSE v.tarifa * COALESCE(v.resultado, v.cantidad_cargada, 0) END), 0) AS ingresos
       FROM CHOFERES ch
-      LEFT JOIN EQUIPO e ON e.id_chofer = ch.id_chofer
-      LEFT JOIN VIAJES v ON v.id_equipo = e.id_equipo
+      LEFT JOIN VIAJES v ON v.id_chofer = ch.id_chofer AND v.id_empresa = ch.id_empresa
       WHERE ch.id_empresa = ?
       GROUP BY ch.id_chofer, ch.nombre
       ORDER BY ingresos DESC LIMIT 50
@@ -362,8 +363,7 @@ router.get('/ingresos-por-viaje', async (req, res) => {
           (${SQL_BASE_VIAJE} + ${SQL_IVA_VIAJE}) AS ingreso_con_iva
         FROM VIAJES v
         JOIN EQUIPO e ON e.id_equipo = v.id_equipo
-        JOIN UNIDADES up ON up.id_unidad = e.id_unidad_principal
-        JOIN UNIDADES us ON us.id_unidad = e.id_unidad_secundaria
+        ${SQL_UNIDADES_DEL_VIAJE}
         ${f.clausula}
         ORDER BY ingreso DESC LIMIT 200
       `, f.params);
@@ -398,7 +398,7 @@ router.get('/ingresos-por-viaje', async (req, res) => {
         (${SQL_BASE_VIAJE} + ${SQL_IVA_VIAJE}) AS ingreso_con_iva
       FROM VIAJES v
       JOIN EQUIPO e ON e.id_equipo = v.id_equipo
-      JOIN UNIDADES up ON up.id_unidad = e.id_unidad_principal
+      ${SQL_UNIDADES_DEL_VIAJE}
       ${f.clausula}
       ORDER BY ingreso DESC LIMIT 7
     `, f.params);
@@ -483,25 +483,21 @@ router.get('/rentabilidad-equipos', async (req, res) => {
         WHERE cg.id_empresa = ? AND cg.id_unidad IN (?, ?)${wGe}
       `, [e, eq.id_unidad_principal, eq.id_unidad_secundaria, ...pGe]);
 
-      let sueldo = 0;
+      // Sueldo variable: lo efectivamente liquidado a cada chofer por los
+      // viajes del equipo (movimientos VIAJE_LIQUIDACION), con la
+      // remuneración y el chofer de cada viaje. Así una rotación de choferes o
+      // un cambio de remuneración no reescribe la rentabilidad pasada.
+      const [[liq]] = await pool.query(`
+        SELECT COALESCE(SUM(m.monto), 0) AS sueldo
+        FROM MOVIMIENTOS m
+        JOIN VIAJES v ON v.id_viaje = m.origen_id AND v.id_empresa = m.id_empresa
+        WHERE m.id_empresa = ? AND m.origen_tipo = 'VIAJE_LIQUIDACION' AND v.id_equipo = ?${wVi}
+      `, [e, eq.id_equipo, ...pVi]);
+      let sueldo = Number(liq.sueldo);
+      // Sueldo fijo del chofer actual, prorrateado por los días del período.
       const remu = Number(eq.remuneracion) || 0;
-      if (eq.tipo_remuneracion === 'PORCENTAJE') {
-        const [[liq]] = await pool.query(`
-          SELECT COALESCE(SUM((CASE WHEN v.tipo_tarifa='UNICA' THEN v.tarifa
-                   ELSE v.tarifa * COALESCE(v.resultado, v.cantidad_cargada, 0) END) * ? / 100), 0) AS sueldo
-          FROM VIAJES v WHERE v.id_empresa = ? AND v.id_equipo = ?
-            AND v.estado IN ('FINALIZADO','FACTURADO')${wVi}
-        `, [remu, e, eq.id_equipo, ...pVi]);
-        sueldo = Number(liq.sueldo);
-      } else if (eq.tipo_remuneracion === 'POR KM') {
-        const [[liq]] = await pool.query(`
-          SELECT COALESCE(SUM(COALESCE(v.resultado, 0) * ?), 0) AS sueldo
-          FROM VIAJES v WHERE v.id_empresa = ? AND v.id_equipo = ? AND v.tipo_tarifa='POR KM'
-            AND v.estado IN ('FINALIZADO','FACTURADO')${wVi}
-        `, [remu, e, eq.id_equipo, ...pVi]);
-        sueldo = Number(liq.sueldo);
-      } else if (eq.tipo_remuneracion === 'FIJA') {
-        sueldo = (remu / 30) * diasPeriodo;
+      if (eq.tipo_remuneracion === 'FIJA') {
+        sueldo += (remu / 30) * diasPeriodo;
       }
 
       const ingresos = Number(ing.ingresos);
