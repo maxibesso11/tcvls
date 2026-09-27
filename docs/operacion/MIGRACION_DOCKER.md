@@ -78,7 +78,7 @@ En el servidor queda solo la configuración. La app viene en la imagen de Docker
 sudo install -d -o tcvls -g tcvls -m 750 /opt/tcvls /opt/tcvls/deploy /opt/tcvls/deploy/servidor
 ```
 
-**[PC]** Desde la raíz del repositorio (rama `dev` actualizada):
+**[PC]** En Git Bash, desde la carpeta del repositorio en tu computadora (rama `dev` actualizada). El VPS no necesita git: estos archivos se copian una sola vez:
 
 ```bash
 scp docker-compose.yml tcvls@<IP>:/opt/tcvls/
@@ -152,13 +152,27 @@ sudo grep '^CERT_SECRET=' /opt/tcvls/.env
    tokens*, creá dos tokens:
    - `pc-<tu nombre>`, permiso **Read & Write**, para publicar.
    - `servidor`, permiso **Read-only**, para el VPS (se usa en A6).
-2. En Git Bash:
+2. **En tu PC, no en el VPS.** Se usa la copia del repositorio con la que
+   trabajás (en el VPS no hay código ni git: recibe la imagen ya armada).
+   En Git Bash, guardá el token Read & Write que acabás de crear. Es la
+   única vez que se carga; el script lo lee de ese archivo en cada
+   publicación, sin tocar tu sesión de Docker Desktop:
 
 ```bash
 mkdir -p ~/.docker-tcvls
-printf 'tcvls\n<TOKEN READ & WRITE>\n' > ~/.docker-tcvls/credenciales
+read -rsp 'Pegá el token Read & Write y Enter: ' TOKEN; echo
+printf 'tcvls\n%s\n' "$TOKEN" > ~/.docker-tcvls/credenciales; unset TOKEN
 chmod 600 ~/.docker-tcvls/credenciales
-cd <carpeta del repo> && git checkout dev && git pull
+```
+
+   (`read -s` no muestra el token ni lo deja en el historial de la terminal.)
+
+3. Publicá la imagen desde la carpeta del repositorio en tu PC (Docker
+   Desktop tiene que estar abierto):
+
+```bash
+cd ~/VSC-Proyectos/tcvls        # o donde tengas el repo
+git checkout dev && git pull
 deploy/publicar-imagen.sh
 ```
 
