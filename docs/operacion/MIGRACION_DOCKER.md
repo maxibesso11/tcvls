@@ -269,41 +269,69 @@ servidor.
 
 ### B2. Enlazar Google Drive
 
-**[PC]** En PowerShell:
+rclone trae una aplicación de Google compartida por todos sus usuarios, que
+suele tener la cuota agotada (`RATE_LIMIT_EXCEEDED`: el comando parece
+colgado). Por eso la cuenta del sistema usa **su propia aplicación OAuth**.
+Se crea una sola vez y es gratis.
 
-```powershell
-winget install Rclone.Rclone
-# Cerrá y abrí la terminal, y después:
-rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlLmZpbGUifQ"
-```
+**B2.1 — Aplicación en Google Cloud** (en el navegador, con **la cuenta de
+Google del sistema**):
 
-Se abre el navegador: entrá con **la cuenta de Google del sistema** y
-aceptá. El permiso es `drive.file`: rclone solo ve los archivos que crea él, no
-el resto del Drive. La terminal imprime un código entre `Paste the following
-into your remote machine --->` y `<---End paste`. Las versiones actuales de
-rclone lo imprimen en base64 (empieza con `eyJ`); las viejas, como JSON
-(empieza con `{`). Copialo entero. **Es la llave de acceso al Drive: no lo
-pegues en chats ni lo guardes en archivos.**
+1. Entrá a <https://console.cloud.google.com/> y creá un proyecto: *Seleccionar
+   proyecto → Proyecto nuevo* → nombre `TCV LogiSuite respaldos`.
+2. *APIs y servicios → Biblioteca* → buscá **Google Drive API** → **Habilitar**.
+3. *APIs y servicios → Pantalla de consentimiento de OAuth* (o *Google Auth
+   Platform*):
+   - Tipo de usuario **Externo**, nombre de la app `TCV LogiSuite respaldos` y
+     el correo del sistema como soporte y desarrollador.
+   - En **Acceso a datos / Permisos**, agregá solo
+     `.../auth/drive.file` («ver, editar, crear y borrar solo los archivos de
+     Google Drive que uses con esta app»). Es un permiso no sensible: no
+     requiere verificación de Google.
+   - En **Público**, tocá **Publicar app** (estado *En producción*). En
+     *Prueba*, Google vence la autorización a los 7 días y los respaldos
+     dejarían de subirse.
+4. *Credenciales → Crear credenciales → ID de cliente de OAuth* → tipo
+   **App de escritorio** → nombre `rclone servidor`. Anotá el **ID de cliente**
+   y el **secreto del cliente**. Guardalos en el gestor de contraseñas.
 
-En el VPS, esto arma `/etc/tcv-rclone.conf` con ese código. El rclone 1.60 del
-servidor necesita el JSON, así que si viene en base64 se decodifica. Al pegarlo
-no se muestra:
+**B2.2 — Autorizar** **[PC]** en Git Bash (con rclone instalado:
+`winget install Rclone.Rclone` desde PowerShell y abrí una terminal nueva):
 
 ```bash
-read -rsp 'Pegá el código de rclone authorize y Enter: ' CODIGO; echo
+read -rp 'ID de cliente: ' CID
+read -rsp 'Secreto del cliente: ' CSEC; echo
+rclone authorize drive "$(printf '{"client_id":"%s","client_secret":"%s","scope":"drive.file"}' "$CID" "$CSEC" | base64 -w0)"
+unset CSEC
+```
+
+Se abre el navegador: entrá con **la cuenta de Google del sistema** y aceptá.
+Google puede avisar que la app no está verificada: *Configuración avanzada →
+Ir a TCV LogiSuite respaldos*. Es tu propia app. La terminal imprime un código
+entre `Paste the following into your remote machine --->` y `<---End paste`
+(empieza con `eyJ` o con `{`). Copialo entero. **Es la llave de acceso al
+Drive: no lo pegues en chats ni lo guardes en archivos.**
+
+**B2.3 — Configurar el servidor.** En el VPS, esto arma
+`/etc/tcv-rclone.conf`. Nada de lo que pegás se muestra:
+
+```bash
+read -rp 'ID de cliente: ' CID
+read -rsp 'Secreto del cliente: ' CSEC; echo
+read -rsp 'Código de rclone authorize: ' CODIGO; echo
 CODIGO=$(printf '%s' "$CODIGO" | tr -d ' \r\n')
 case "$CODIGO" in
   '{'*) TOKEN="$CODIGO" ;;
   *)    TOKEN=$(printf '%s' "$CODIGO" | base64 -d | python3 -c 'import sys, json; print(json.load(sys.stdin).get("token", ""))') ;;
 esac
-unset CODIGO
-[ -n "$TOKEN" ] && printf '[gdrive]\ntype = drive\nscope = drive.file\ntoken = %s\n' "$TOKEN" | sudo tee /etc/tcv-rclone.conf > /dev/null && echo "✓ configuración guardada"
-unset TOKEN
+[ -n "$TOKEN" ] && printf '[gdrive]\ntype = drive\nclient_id = %s\nclient_secret = %s\nscope = drive.file\ntoken = %s\n' "$CID" "$CSEC" "$TOKEN" \
+  | sudo tee /etc/tcv-rclone.conf > /dev/null && echo "✓ configuración guardada"
+unset CID CSEC CODIGO TOKEN
 sudo chmod 600 /etc/tcv-rclone.conf
-sudo grep -c access_token /etc/tcv-rclone.conf
+sudo grep -c -E '^(client_id|client_secret|token) = .+' /etc/tcv-rclone.conf
 ```
 
-✔ Esperado: `✓ configuración guardada` y `1`.
+✔ Esperado: `✓ configuración guardada` y `3`.
 
 ```bash
 sudo rclone --config /etc/tcv-rclone.conf mkdir gdrive:TCV-LogiSuite-respaldos
