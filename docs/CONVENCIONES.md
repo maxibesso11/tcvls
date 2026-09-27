@@ -36,8 +36,10 @@ sistema siga funcionando en producción.
    No renombrar una función sin buscar sus usos en los templates. Al cambiar un
    `.js` o `.css`, subir el `?v=` en `index.html`.
 4. **Base de datos:** todo cambio de esquema es una migración nueva y numerada en
-   `backend/database/migraciones/` y además se incorpora a `esquema/init_db.sql`.
-   Nunca correr `init_db.sql` en producción.
+   `backend/database/migraciones/`, se incorpora a `esquema/init_db.sql` y su
+   nombre se agrega al `INSERT INTO MIGRACIONES` del final de ese archivo.
+   Las aplica `migrar.js` en cada despliegue. Nunca correr `init_db.sql` en
+   producción.
 5. **`server.js` de la raíz no se mueve**: lo usan PM2, systemd y las guías.
 6. **`CERT_SECRET` no se cambia** una vez guardados certificados.
 7. **Errores:** en las rutas, `catch (err) { responderError(res, err, req); }`.
@@ -45,6 +47,11 @@ sistema siga funcionando en producción.
    devolver `err.message` crudo al navegador.
 8. **Frontend:** todo dato cargado por usuarios que se inserte con `innerHTML`
    pasa por `esc()`. Las descargas protegidas usan `API.descargarArchivo`.
+9. **La historia no se pisa:** lo que describe cómo era algo en el pasado
+   (composición de un equipo, chofer y unidades de un viaje) se guarda con
+   fecha y no se sobrescribe al editar el registro actual.
+10. **Datos del cliente fuera del repositorio** (es público): respaldos,
+    informes y notas van en carpetas ignoradas (`informes/`, `*.sql.gz`).
 
 ## Antes de subir un cambio
 

@@ -31,3 +31,5 @@ erp_*.sql
 
 # Informes para el cliente (contienen datos reales: nunca al repositorio)
 informes/
+# Notas y transcripciones de reuniones con el cliente
+*Notas de Gemini*.md

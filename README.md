@@ -47,6 +47,10 @@ Para desarrollo con recarga automática: `npm run dev`
 | `npm test` | Tests de las reglas de cálculo (viajes y facturación) |
 | `npm run verificar` | Revisa la sintaxis de todos los `.js` y que los `require` del backend resuelvan |
 | `npm run smoke -- --guardar foto.json` / `--comparar foto.json` | Prueba de humo de la API: guarda o compara las respuestas de todos los endpoints (ver `scripts/smoke-test.js`) |
+| `node backend/database/migrar.js [--estado]` | Aplica (o lista) las migraciones pendientes de la base del `.env` |
+| `node scripts/auditar-cuentas.js` | Auditoría de solo lectura de los movimientos automáticos de cuentas corrientes |
+| `docker compose up -d` | App y MySQL en Docker con el `.env` (ver `docker-compose.yml`) |
+| `deploy/publicar-imagen.sh` | Publica la imagen en Docker Hub para desplegarla en el servidor |
 
 ---
 
@@ -73,7 +77,7 @@ tcv-logisuite-erp/
 │   │       └── dashboard/    # rutas y piezas de SQL
 │   ├── database/
 │   │   ├── esquema/          # init_db.sql (instalación NUEVA, destructivo)
-│   │   ├── migraciones/      # 001…022 para actualizar producción sin perder datos
+│   │   ├── migraciones/      # 001…026; se aplican con migrar.js (registro en MIGRACIONES)
 │   │   └── datos_prueba/     # datos masivos y su generador
 │   └── test/                 # Tests (node:test)
 ├── frontend/                 # Se sirve tal cual: /css, /js, /img
@@ -85,9 +89,10 @@ tcv-logisuite-erp/
 │       ├── nucleo/           # módulos, utilidades, navegación, sesión
 │       ├── vistas/           # dashboard, métricas, facturación, cuentas, CRUD, admin…
 │       └── app.js            # Arranque
-├── deploy/                   # nginx.conf, erp.service, setup-db.sh
+├── deploy/                   # publicar-imagen.sh, desplegar.sh, nginx, respaldos (servidor/)
 ├── docs/                     # Arquitectura, convenciones y guías de operación
-├── scripts/                  # smoke-test.js, verificar-requires.js
+├── scripts/                  # smoke, verificar-requires, auditar-cuentas, reemplazar-historial-equipo
+├── Dockerfile · docker-compose.yml
 ├── server.js                 # Lanzador (compatibilidad con PM2/systemd)
 ├── ecosystem.config.js       # PM2
 └── .env.example              # Plantilla de configuración
@@ -190,8 +195,9 @@ Recursos: `choferes`, `unidades`, `equipos`, `viajes`, `consumos-combustible`,
 
 - Guía general: **[docs/despliegue/DEPLOY.md](docs/despliegue/DEPLOY.md)**
 - Hostinger con dominio y HTTPS: **[docs/despliegue/DEPLOY_HOSTINGER.md](docs/despliegue/DEPLOY_HOSTINGER.md)**
-- Actualizar una instalación existente sin perder datos: **[docs/operacion/ACTUALIZAR_SIN_PERDER_DATOS.md](docs/operacion/ACTUALIZAR_SIN_PERDER_DATOS.md)**
-- Seguridad del servidor y respaldos automáticos: **[docs/operacion/SERVIDOR.md](docs/operacion/SERVIDOR.md)**
+- **Servidor actual (Docker): publicar, desplegar, respaldos y restauración: [docs/operacion/SERVIDOR.md](docs/operacion/SERVIDOR.md)**
+- Paso a Docker, HTTPS, respaldos en Drive y SSH (una sola vez): [docs/operacion/MIGRACION_DOCKER.md](docs/operacion/MIGRACION_DOCKER.md)
+- Instalación vieja sin Docker, migraciones a mano: [docs/operacion/ACTUALIZAR_SIN_PERDER_DATOS.md](docs/operacion/ACTUALIZAR_SIN_PERDER_DATOS.md)
 - Factura electrónica ARCA: **[docs/facturacion/HABILITAR_FACTURACION_ARCA.md](docs/facturacion/HABILITAR_FACTURACION_ARCA.md)**
 
 Archivos de apoyo para el deploy:

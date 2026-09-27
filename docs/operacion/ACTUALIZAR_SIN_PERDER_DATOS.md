@@ -1,5 +1,10 @@
 # Actualizar producción sin perder datos
 
+> **Guía histórica** (instalación sin Docker, migraciones a mano). El servidor
+> actual se actualiza con `deploy/desplegar.sh`, que hace el respaldo y aplica
+> solo las migraciones pendientes: ver [SERVIDOR.md](SERVIDOR.md). Esta guía
+> sirve para una instalación vieja que todavía no pasó a Docker.
+
 Tus datos reales viven en la base **MySQL** (su nombre es el valor de `DB_NAME`
 en tu `.env`; en los comandos de esta guía aparece como `NOMBRE_BD`), no en la carpeta
 del código. Por eso podés reemplazar el código sin tocar los datos. Lo único
@@ -122,10 +127,9 @@ tenías: es esperable, ignoralo, el resto se aplica igual.
 
 ---
 
-> **Desde la migración 023 en adelante** revisá también la guía
-> `docs/operacion/SERVIDOR.md` → *Checklist del próximo deploy*: la versión
-> nueva exige `CERT_SECRET` y un `AUTH_SECRET` de al menos 32 caracteres en el
-> `.env`, y no arranca sin ellos.
+> **Desde la migración 023 en adelante**, la versión nueva exige
+> `CERT_SECRET` y un `AUTH_SECRET` de al menos 32 caracteres en el `.env`, y no
+> arranca sin ellos.
 
 ## Paso 3 — Actualizar el código
 

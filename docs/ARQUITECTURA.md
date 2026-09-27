@@ -44,7 +44,8 @@ Navegador (frontend/js)  →  Nginx  →  server.js  →  backend/server.js
 | `auth/` | `auth.rutas.js` | Login, datos de la sesión, tema |
 | `admin/` | `admin.rutas.js`, `certificados.rutas.js` | Empresas, usuarios, módulos por empresa, certificados ARCA |
 | `cuentas/` | `cuentas.hooks.js`, `cuentas.servicio.js`, `movimientos.servicio.js`, `cuentasCorrientes.rutas.js`, `cuentasCorrientes.pdf.js` | Cuenta del chofer sincronizada, validación de proveedores, movimientos automáticos con origen, saldos y resumen PDF |
-| `viajes/` | `viajes.hooks.js`, `viajes.servicio.js`, `viajes.calculos.js` | Liquidación al chofer (FINALIZADO) y débito al pagador (FACTURADO), por un único camino |
+| `viajes/` | `viajes.hooks.js`, `viajes.servicio.js`, `viajes.calculos.js` | Liquidación al chofer (FINALIZADO) y débito al pagador (FACTURADO), por un único camino; foto del equipo en cada viaje |
+| `equipos/` | `equipos.historial.js`, `equipos.hooks.js`, `equipos.rutas.js` | Historial de composición (camión, acoplado y chofer por período) y su consulta y corrección |
 | `gastos/` | `consumos.hooks.js`, `gastosAdministrativos.hooks.js` | Crédito al proveedor por cada consumo o gasto |
 | `facturacion/` | `facturacion.rutas.js`, `facturacion.servicio.js`, `facturacion.pdf.js` | Factura A, nota de crédito, numeración, CAE, PDF |
 | `dashboard/` | `dashboard.rutas.js`, `dashboard.consultas.js` | KPIs, alertas y métricas |
@@ -91,6 +92,14 @@ después reconcilia los movimientos de la cuenta del chofer y del cliente
 - **IVA 21 %**, paginación (50 por página, máx. 200) y duración de la sesión
   (12 h) están en `config/constantes.js`.
 - **Importes de un viaje** en `viajes/viajes.calculos.js` (funciones puras con tests).
+- **Historial de equipos** (`EQUIPO_HISTORIAL`): cada período dice qué camión,
+  acoplado y chofer tuvo un equipo, desde y hasta cuándo. Editar un equipo cierra
+  el período vigente y abre otro (con la fecha real del cambio si se indica).
+  La **foto** de cada viaje (`VIAJES.id_chofer`, `id_unidad_principal`,
+  `id_unidad_secundaria`) sale del historial según su fecha de origen:
+  corregir el historial recalcula viajes y liquidaciones
+  (`equipos.historial.js → refotografiarViajes`). La rentabilidad asigna los
+  consumos generales al equipo que tenía la unidad en la fecha del consumo.
 - **Módulos por empresa** en `config/modulos.js`: dependencias y obligatorios
   (Cuentas y Facturación siempre activos).
 
@@ -107,8 +116,8 @@ después reconcilia los movimientos de la cuenta del chofer y del cliente
 | Descargas protegidas (PDF, CSR) con `fetch` y cabecera | `frontend/js/api.js → descargarArchivo` |
 | Texto de usuarios insertado en HTML siempre con `esc()` | `frontend/js/nucleo/utilidades.js` |
 
-La puesta a punto del servidor (usuario administrador, SSH solo con clave,
-respaldos) está en `docs/operacion/SERVIDOR.md`.
+El servidor (Docker, despliegue desde Docker Hub, respaldos cifrados en Google
+Drive, HTTPS y SSH) está documentado en `docs/operacion/SERVIDOR.md`.
 
 ## Frontend (`frontend/`)
 
@@ -132,7 +141,7 @@ y **todas las funciones son globales**, porque el HTML generado usa
 | Carpeta | Uso | Cuándo |
 |---------|-----|--------|
 | `esquema/init_db.sql` | Crea la base desde cero con datos iniciales. **Ejecuta `DROP DATABASE`** | Solo instalación nueva o pruebas |
-| `migraciones/` | Cambios incrementales 001…024 | Actualizar producción sin perder datos |
+| `migraciones/` | Cambios incrementales 001…026, aplicados por `migrar.js` (tabla `MIGRACIONES`) | Actualizar producción sin perder datos |
 | `datos_prueba/` | ~5.600 filas coherentes y su generador | Pruebas y demos |
 
 ## Verificación

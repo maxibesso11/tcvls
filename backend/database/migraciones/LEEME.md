@@ -35,9 +35,31 @@ ni perder datos.
 | 022 | facturación pasa a ser requisito de viajes (activa donde falta) |
 | 023 | referencia formal de cada movimiento automático a su origen (origen_tipo, origen_id) + relleno |
 | 024 | seguridad de usuarios: cambio obligatorio de contraseña y versión de sesión |
+| 025 | foto del camión y el acoplado en cada viaje (id_unidad_principal, id_unidad_secundaria) |
+| 026 | historial de composición de los equipos (EQUIPO_HISTORIAL), armado desde las fotos de los viajes |
 | reparar_facturacion | repara instalaciones de facturación a medias (ver abajo) |
 
-## Cómo actualizar una base en producción
+## Cómo actualizar una base: `migrar.js`
+
+Desde la 025, las migraciones se aplican con `backend/database/migrar.js`, que
+registra cada una en la tabla `MIGRACIONES` y corre solo las pendientes, en
+orden. `deploy/desplegar.sh` lo hace solo en cada despliegue.
+
+```bash
+node backend/database/migrar.js --estado      # qué hay aplicado y qué falta
+node backend/database/migrar.js               # aplica las pendientes
+# Base con migraciones aplicadas a mano antes de existir el registro
+# (por ejemplo, hasta la 016): las marca como aplicadas y sigue con el resto.
+node backend/database/migrar.js --registrar-hasta 016
+```
+
+(En Docker: `sudo docker compose run --rm app node backend/database/migrar.js …`.)
+
+Una migración nueva: archivo `migracion_NNN_descripcion.sql` en esta carpeta,
+el cambio incorporado a `../esquema/init_db.sql` y su nombre agregado al
+`INSERT INTO MIGRACIONES` del final de ese archivo.
+
+## Cómo se actualizaba a mano (instalaciones anteriores al registro)
 
 Aplicá **en orden** las migraciones posteriores a tu versión instalada.
 Reemplazá `NOMBRE_BD` por el valor de `DB_NAME` en tu `.env` (en la
