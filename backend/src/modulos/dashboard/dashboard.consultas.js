@@ -25,6 +25,16 @@ const SQL_UNIDADES_DEL_VIAJE = `
         LEFT JOIN UNIDADES up ON up.id_unidad = COALESCE(v.id_unidad_principal, e.id_unidad_principal)
         LEFT JOIN UNIDADES us ON us.id_unidad = COALESCE(v.id_unidad_secundaria, e.id_unidad_secundaria)`;
 
+// Condición: el consumo general "cg" corresponde al equipo "idEquipoSql" según
+// el historial (EQUIPO_HISTORIAL): la unidad del consumo era el camión o el
+// acoplado del equipo en la fecha del consumo. idEquipoSql es una expresión
+// SQL (ej. 'e.id_equipo' o '?').
+const sqlConsumoDelEquipo = idEquipoSql => `EXISTS (
+        SELECT 1 FROM EQUIPO_HISTORIAL h
+         WHERE h.id_equipo = ${idEquipoSql} AND h.id_empresa = cg.id_empresa
+           AND cg.id_unidad IN (h.id_unidad_principal, h.id_unidad_secundaria)
+           AND (h.desde IS NULL OR h.desde <= cg.fecha) AND (h.hasta IS NULL OR h.hasta > cg.fecha))`;
+
 // Construye condiciones WHERE incluyendo SIEMPRE el filtro de empresa,
 // más rango de fechas y equipo opcionales. La columna de empresa puede
 // llevar alias (ej. 'v.id_empresa').
@@ -41,4 +51,4 @@ function filtros(req, { colFecha = null, colEquipo = null, aliasEmpresa = 'id_em
   };
 }
 
-module.exports = { SQL_BASE_VIAJE, SQL_NETO_VIAJE, SQL_IVA_VIAJE, SQL_UNIDADES_DEL_VIAJE, filtros };
+module.exports = { SQL_BASE_VIAJE, SQL_NETO_VIAJE, SQL_IVA_VIAJE, SQL_UNIDADES_DEL_VIAJE, sqlConsumoDelEquipo, filtros };

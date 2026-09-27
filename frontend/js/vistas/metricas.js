@@ -170,6 +170,7 @@ async function cargarMetrica(clave) {
       const totalCostos = filas.reduce((s, r) => s + Number(r.costos), 0);
       const rentEquipos = data.rentabilidad_equipos || 0;
       const gAdmin = data.gastos_administrativos || 0;
+      const gSinEquipo = data.gastos_unidades_sin_equipo || 0;
       const rentNeta = data.rentabilidad_neta || 0;
       const ivaTotal = data.iva_total || 0;
       const rentNetaIva = data.rentabilidad_neta_con_iva ?? rentNeta;
@@ -205,6 +206,11 @@ async function cargarMetrica(clave) {
             <td class="celda-num">${fmtDinero(gAdmin)}</td>
             <td></td>
           </tr>
+          ${gSinEquipo ? `<tr style="color:var(--peligro)" title="Consumos de unidades que en esa fecha no estaban en ningún equipo (por ejemplo, en el taller)">
+            <td colspan="6">− Gastos de unidades sin equipo (en el taller, sin asignar)</td>
+            <td class="celda-num">${fmtDinero(gSinEquipo)}</td>
+            <td></td>
+          </tr>` : ''}
           <tr style="font-weight:700;font-size:15px;border-top:1px dashed var(--borde)">
             <td colspan="6">RENTABILIDAD NETA</td>
             <td class="celda-num" style="color:${rentNeta >= 0 ? 'var(--exito)' : 'var(--peligro)'}">${fmtDinero(rentNeta)}</td>

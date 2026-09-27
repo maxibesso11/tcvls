@@ -4,6 +4,7 @@ const sync = require('./cuentas/cuentas.hooks');
 const syncConsumos = require('./gastos/consumos.hooks');
 const syncViajes = require('./viajes/viajes.hooks');
 const syncGastos = require('./gastos/gastosAdministrativos.hooks');
+const syncEquipos = require('./equipos/equipos.hooks');
 
 module.exports = [
   {
@@ -27,7 +28,12 @@ module.exports = [
     ruta: 'equipos',
     table: 'EQUIPO',
     idField: 'id_equipo',
-    fields: ['id_unidad_principal', 'id_unidad_secundaria', 'id_chofer', 'peso_tara', 'peso_bruto']
+    fields: ['id_unidad_principal', 'id_unidad_secundaria', 'id_chofer', 'peso_tara', 'peso_bruto'],
+    hooks: {
+      beforeUpdate: syncEquipos.antesDeActualizarEquipo,
+      afterCreate: syncEquipos.alCrearEquipo,
+      afterUpdate: syncEquipos.alActualizarEquipo
+    }
   },
   {
     ruta: 'viajes',

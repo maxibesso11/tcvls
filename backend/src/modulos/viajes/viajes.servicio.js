@@ -51,17 +51,21 @@ async function obtenerChoferDelViaje(db, viaje, idEmpresa) {
   return chofer || null;
 }
 
-// Guarda en el viaje la foto de la composición que tiene el equipo en este
-// momento: chofer, camión (unidad principal) y acoplado (unidad secundaria).
+// Guarda en el viaje la foto de la composición del equipo en la FECHA DE
+// ORIGEN del viaje: chofer, camión (unidad principal) y acoplado (unidad
+// secundaria), tomados del historial del equipo (EQUIPO_HISTORIAL). Si el
+// equipo no tuviera historial, usa su composición actual.
 // Así editar el equipo después no reescribe la historia de sus viajes.
 async function fotografiarEquipo(db, idViaje, idEquipo, idEmpresa) {
   if (!idEquipo) return;
   await db.query(`
     UPDATE VIAJES v
     JOIN EQUIPO e ON e.id_equipo = ? AND e.id_empresa = ?
-    SET v.id_chofer = e.id_chofer,
-        v.id_unidad_principal = e.id_unidad_principal,
-        v.id_unidad_secundaria = e.id_unidad_secundaria
+    LEFT JOIN EQUIPO_HISTORIAL h ON h.id_equipo = e.id_equipo AND h.id_empresa = e.id_empresa
+     AND (h.desde IS NULL OR h.desde <= v.fecha_origen) AND (h.hasta IS NULL OR h.hasta > v.fecha_origen)
+    SET v.id_chofer = COALESCE(h.id_chofer, e.id_chofer),
+        v.id_unidad_principal = COALESCE(h.id_unidad_principal, e.id_unidad_principal),
+        v.id_unidad_secundaria = COALESCE(h.id_unidad_secundaria, e.id_unidad_secundaria)
     WHERE v.id_viaje = ? AND v.id_empresa = ?
   `, [idEquipo, idEmpresa, idViaje, idEmpresa]);
 }

@@ -90,22 +90,21 @@ function antesDeEliminarViaje(viaje) {
 
 async function alCrearViaje(viaje, req) {
   const idEmpresa = req.usuario.id_empresa;
-  // Fijar la foto del equipo que hace el viaje (chofer y unidades de hoy)
+  // Fijar la foto del equipo que hace el viaje (su composición en la fecha de origen)
   await fotografiarEquipo(req.db, viaje.id_viaje, viaje.id_equipo, idEmpresa);
   await reconciliarMovimientos(req.db, viaje.id_viaje, idEmpresa);
 }
 
 async function alActualizarViaje(viaje, anterior, req) {
   const idEmpresa = req.usuario.id_empresa;
-  // Si se cambió el equipo del viaje, el chofer y las unidades reales también
-  // cambiaron: actualizar la foto. Cualquier otra edición conserva la original.
-  // Nota: el formulario envía id_equipo como string y la base lo devuelve
-  // como número, así que la comparación debe normalizar ambos lados; de lo
-  // contrario cualquier edición re-fotografiaría y pisaría la composición
-  // histórica con la actual del equipo.
-  const equipoNuevo = viaje.id_equipo !== undefined ? Number(viaje.id_equipo) : null;
-  const equipoAnterior = anterior ? Number(anterior.id_equipo) : null;
-  if (equipoNuevo !== null && equipoAnterior !== null && equipoNuevo !== equipoAnterior) {
+  // La foto sale del historial del equipo según la fecha de origen: si
+  // cambió el equipo o la fecha, se vuelve a tomar. Cualquier otra edición
+  // conserva la composición con que se hizo el viaje.
+  // El formulario envía id_equipo como string y la base lo devuelve como
+  // número: se normalizan ambos lados antes de comparar.
+  const cambioEquipo = Number(viaje.id_equipo) !== Number(anterior.id_equipo);
+  const cambioFecha = String(viaje.fecha_origen) !== String(anterior.fecha_origen);
+  if (cambioEquipo || cambioFecha) {
     await fotografiarEquipo(req.db, viaje.id_viaje, viaje.id_equipo, idEmpresa);
   }
   await reconciliarMovimientos(req.db, viaje.id_viaje, idEmpresa);

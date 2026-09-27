@@ -46,11 +46,16 @@ const MODULOS = {
       { nombre: 'id_unidad_secundaria', etiqueta: 'Unidad secundaria', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} — ${r.modelo}`, filtro: r => r.funcionalidad === 'SECUNDARIA', requerido: true },
       { nombre: 'id_chofer', etiqueta: 'Chofer', tipo: 'fk', recurso: 'choferes', mostrar: r => r.nombre, requerido: true },
       { nombre: 'peso_tara', etiqueta: 'Peso de tara (kg)', tipo: 'number', requerido: true },
-      { nombre: 'peso_bruto', etiqueta: 'Peso bruto (kg)', tipo: 'number', requerido: true }
+      { nombre: 'peso_bruto', etiqueta: 'Peso bruto (kg)', tipo: 'number', requerido: true },
+      // No es una columna: si cambia el camión, el acoplado o el chofer, la
+      // fecha real del cambio para el historial del equipo (vacía = ahora).
+      { nombre: 'fecha_cambio', etiqueta: 'Fecha del cambio de camión/acoplado/chofer', tipo: 'datetime-local', soloEdicion: true, soloFormulario: true, ancho: true,
+        ayuda: 'Solo si cambiás el camión, el acoplado o el chofer. Vacía = ahora. Los viajes desde esa fecha quedan con la composición nueva; los anteriores no cambian.' }
     ],
     accionesPersonalizadas: (fila) => {
       const id = fila.id_equipo;
-      return `<button class="btn btn-secundario btn-mini" onclick="copiarEquipo(${id})">Copiar 📋</button>
+      return `<button class="btn btn-secundario btn-mini" onclick="verHistorialEquipo(${id})">Historial</button>
+        <button class="btn btn-secundario btn-mini" onclick="copiarEquipo(${id})">Copiar 📋</button>
         <button class="btn btn-secundario btn-mini" onclick="abrirModal('equipos', ${id})">Editar</button>
         <button class="btn btn-peligro btn-mini" onclick="eliminarRegistro('equipos', ${id})">Eliminar</button>`;
     }

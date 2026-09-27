@@ -59,6 +59,12 @@ const API = {
     return this.descargarArchivo(`/api/certificados/${idEmpresa}/csr`, nombreArchivo || 'solicitud.csr');
   },
 
+  // ---------- Historial de equipos ----------
+  historialEquipo(idEquipo) { return this._solicitud(`/api/equipos/${idEquipo}/historial`); },
+  moverInicioPeriodo(idHistorial, desde) {
+    return this._solicitud(`/api/equipos/historial/${idHistorial}`, { method: 'PUT', body: JSON.stringify({ desde }) });
+  },
+
   // Descarga un archivo protegido (PDF, CSR) enviando el token por cabecera.
   // Nunca por la URL: ahí quedaría registrado en los logs del servidor y en el
   // historial del navegador. El nombre lo toma de Content-Disposition.

@@ -16,6 +16,7 @@ const stockRouter = require('./modulos/stock/stock.rutas');
 const dashboardRouter = require('./modulos/dashboard/dashboard.rutas');
 const cuentasCorrientesRouter = require('./modulos/cuentas/cuentasCorrientes.rutas');
 const facturacionRouter = require('./modulos/facturacion/facturacion.rutas');
+const equiposRouter = require('./modulos/equipos/equipos.rutas');
 
 function montarRutasApi(app) {
   // Rutas públicas de autenticación (login)
@@ -34,6 +35,9 @@ function montarRutasApi(app) {
 
   // Operaciones especiales de stock (antes del CRUD)
   app.use('/api/stock', protegerDatos, requiereModulo('stock'), stockRouter);
+
+  // Historial de composición de los equipos (antes del CRUD de equipos)
+  app.use('/api/equipos', protegerDatos, requiereModulo('equipos'), equiposRouter);
 
   // CRUD de las tablas (cada uno protegido por su módulo correspondiente)
   tablas.forEach(def => {

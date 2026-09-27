@@ -141,6 +141,74 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     assert.equal(Number(liq.monto), 18000);
   });
 
+  test('el historial del equipo decide la foto de cada viaje según su fecha', async () => {
+    const cliente = await crearCuenta('CLIENTE');
+    const equipo = await ok(entorno.api('POST', '/api/equipos', {
+      id_unidad_principal: 3, id_unidad_secundaria: 8, id_chofer: 3, peso_tara: 1, peso_bruto: 2
+    }));
+    const antes = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, {
+      id_equipo: equipo.id_equipo, fecha_origen: '2026-08-10 08:00:00', estado: 'FINALIZADO'
+    })));
+    const despues = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, {
+      id_equipo: equipo.id_equipo, fecha_origen: '2026-08-20 08:00:00', estado: 'FINALIZADO'
+    })));
+
+    // El cambio de chofer y camión se carga tarde, con su fecha real (15/8).
+    await ok(entorno.api('PUT', `/api/equipos/${equipo.id_equipo}`, {
+      id_unidad_principal: 4, id_unidad_secundaria: 9, id_chofer: 4, fecha_cambio: '2026-08-15T00:00'
+    }));
+    const vAntes = await ok(entorno.api('GET', `/api/viajes/${antes.id_viaje}`));
+    const vDespues = await ok(entorno.api('GET', `/api/viajes/${despues.id_viaje}`));
+    assert.deepEqual([vAntes.id_unidad_principal, vAntes.id_chofer], [3, 3]);
+    assert.deepEqual([vDespues.id_unidad_principal, vDespues.id_chofer], [4, 4]);
+
+    // El viaje posterior al cambio ya no se liquida al chofer anterior (Roberto
+    // Díaz, 18 %) sino al nuevo (Miguel Torres, sueldo FIJO: sin liquidación).
+    const liquidacion = async id => (await entorno.pool.query(
+      "SELECT COUNT(*) AS n FROM MOVIMIENTOS WHERE origen_tipo = 'VIAJE_LIQUIDACION' AND origen_id = ?", [id]))[0][0].n;
+    assert.equal(Number(await liquidacion(antes.id_viaje)), 1);
+    assert.equal(Number(await liquidacion(despues.id_viaje)), 0);
+
+    // Historial: dos períodos; corregir la fecha del cambio al 25/8 devuelve
+    // el segundo viaje a la composición anterior (y su liquidación).
+    const periodos = await ok(entorno.api('GET', `/api/equipos/${equipo.id_equipo}/historial`));
+    assert.equal(periodos.length, 2);
+    assert.equal(periodos[0].desde, '2026-08-15 00:00:00');
+    assert.equal(Number(periodos[0].viajes), 1);
+    const r = await ok(entorno.api('PUT', `/api/equipos/historial/${periodos[0].id_historial}`, { desde: '2026-08-25 00:00:00' }));
+    assert.equal(r.viajes_actualizados, 1);
+    assert.equal((await ok(entorno.api('GET', `/api/viajes/${despues.id_viaje}`))).id_chofer, 3);
+    assert.equal(Number(await liquidacion(despues.id_viaje)), 1);
+
+    // Una fecha anterior al período previo o futura se rechaza con un mensaje claro.
+    const futura = await entorno.api('PUT', `/api/equipos/${equipo.id_equipo}`, {
+      id_unidad_principal: 5, id_unidad_secundaria: 10, id_chofer: 5, fecha_cambio: '2099-01-01T00:00'
+    });
+    assert.equal(futura.estado, 400);
+  });
+
+  test('los consumos generales de una unidad van al equipo que la tenía en esa fecha', async () => {
+    const proveedor = await crearCuenta('PROVEEDOR');
+    const unidad = await ok(entorno.api('POST', '/api/unidades', { patente: `H${Date.now() % 100000}`, modelo: 'Test', funcionalidad: 'PRINCIPAL' }));
+    const equipo = await ok(entorno.api('POST', '/api/equipos', {
+      id_unidad_principal: unidad.id_unidad, id_unidad_secundaria: 6, id_chofer: 2, peso_tara: 1, peso_bruto: 2
+    }));
+    const consumo = (fecha, monto) => ok(entorno.api('POST', '/api/consumos-generales', {
+      proveedor: proveedor.nombre, fecha, id_unidad: unidad.id_unidad, concepto: 'Repuesto', monto
+    }));
+    await consumo('2026-07-01 10:00:00', 1000);   // con el equipo
+    // El camión sale del equipo el 1/8 (queda en el taller)
+    await ok(entorno.api('PUT', `/api/equipos/${equipo.id_equipo}`, {
+      id_unidad_principal: 1, fecha_cambio: '2026-08-01T00:00'
+    }));
+    await consumo('2026-08-10 10:00:00', 500);    // en el taller: sin equipo
+
+    const rent = await ok(entorno.api('GET', `/api/dashboard/rentabilidad-equipos?fecha_desde=2026-07-01&fecha_hasta=2026-08-31&id_equipo=${equipo.id_equipo}`));
+    assert.equal(rent.equipos[0].costo_generales, 1000);
+    const general = await ok(entorno.api('GET', '/api/dashboard/rentabilidad-equipos?fecha_desde=2026-08-10&fecha_hasta=2026-08-10'));
+    assert.ok(general.gastos_unidades_sin_equipo >= 500);
+  });
+
   test('un viaje POR TONELADA no se puede facturar con resultado 0', async () => {
     const cliente = await crearCuenta('CLIENTE');
     const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, {

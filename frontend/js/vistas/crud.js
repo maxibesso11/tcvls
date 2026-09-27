@@ -194,13 +194,15 @@ async function cargarTabla(clave, q = '', idEquipo = '', deposito = '', extras =
       } catch (err) { diccionariosFk[c.nombre] = {}; }
     }));
 
-    const columnas = mod.campos.map(c => c.nombre);
+    // Los campos soloFormulario (ej. fecha del cambio de un equipo) no son columnas.
+    const camposTabla = mod.campos.filter(c => !c.soloFormulario);
+    const columnas = camposTabla.map(c => c.nombre);
     $('#tabla-modulo').innerHTML = `
       <table>
         <thead>
           <tr>
             <th>#</th>
-            ${mod.campos.map(c => `<th>${c.etiqueta}</th>`).join('')}
+            ${camposTabla.map(c => `<th>${c.etiqueta}</th>`).join('')}
             <th>Acciones</th>
           </tr>
         </thead>

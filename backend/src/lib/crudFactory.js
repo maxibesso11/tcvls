@@ -11,7 +11,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const { calcularPaginacion } = require('./paginacion');
-const { responderError: responderErrorGeneral } = require('./errores');
+const { responderError: responderErrorGeneral, ErrorNegocio } = require('./errores');
 
 const MENSAJE_FALLA_AUTOMATISMO =
   'No se pudo completar la operación: falló la actualización automática de las cuentas corrientes. No se guardó ningún cambio.';
@@ -40,6 +40,8 @@ async function correrHookPosterior(nombre, fn) {
   try {
     await fn();
   } catch (err) {
+    // Un ErrorNegocio trae un mensaje pensado para el usuario: se muestra tal cual.
+    if (err instanceof ErrorNegocio) throw err;
     console.error(`Error en ${nombre}:`, err.message);
     err.fallaAutomatismo = true;
     throw err;

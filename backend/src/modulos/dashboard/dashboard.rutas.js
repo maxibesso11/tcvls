@@ -3,7 +3,7 @@
 // del usuario autenticado (req.usuario.id_empresa).
 const express = require('express');
 const pool = require('../../config/db');
-const { SQL_BASE_VIAJE, SQL_IVA_VIAJE, SQL_UNIDADES_DEL_VIAJE, filtros } = require('./dashboard.consultas');
+const { SQL_BASE_VIAJE, SQL_IVA_VIAJE, SQL_UNIDADES_DEL_VIAJE, sqlConsumoDelEquipo, filtros } = require('./dashboard.consultas');
 const { responderError } = require('../../lib/errores');
 const router = express.Router();
 
@@ -319,7 +319,7 @@ router.get('/consumos-por-equipo', async (req, res) => {
         SELECT cg.id_consumo_general, cg.fecha, cg.proveedor, cg.concepto, cg.monto, u.patente, e.id_equipo
         FROM CONSUMOS_GENERALES cg
         JOIN UNIDADES u ON u.id_unidad = cg.id_unidad
-        JOIN EQUIPO e ON (e.id_unidad_principal = u.id_unidad OR e.id_unidad_secundaria = u.id_unidad)
+        JOIN EQUIPO e ON e.id_empresa = cg.id_empresa AND ${sqlConsumoDelEquipo('e.id_equipo')}
         WHERE cg.id_empresa = ? ${fechaCond} ${equipoCond}
         ORDER BY cg.fecha DESC LIMIT 200
       `, [e, ...pFecha, ...equipoParam]);
@@ -336,7 +336,7 @@ router.get('/consumos-por-equipo', async (req, res) => {
       JOIN UNIDADES us ON us.id_unidad = e.id_unidad_secundaria
       JOIN CHOFERES ch ON ch.id_chofer = e.id_chofer
       LEFT JOIN CONSUMOS_GENERALES cg
-        ON (cg.id_unidad = e.id_unidad_principal OR cg.id_unidad = e.id_unidad_secundaria) ${fechaCond}
+        ON cg.id_empresa = e.id_empresa AND ${sqlConsumoDelEquipo('e.id_equipo')} ${fechaCond}
       WHERE e.id_empresa = ? ${equipoCond}
       GROUP BY e.id_equipo, up.patente, us.patente, ch.nombre
       ORDER BY total DESC LIMIT 50
@@ -480,8 +480,8 @@ router.get('/rentabilidad-equipos', async (req, res) => {
       const [[gen]] = await pool.query(`
         SELECT COALESCE(SUM(cg.monto), 0) AS gasto
         FROM CONSUMOS_GENERALES cg
-        WHERE cg.id_empresa = ? AND cg.id_unidad IN (?, ?)${wGe}
-      `, [e, eq.id_unidad_principal, eq.id_unidad_secundaria, ...pGe]);
+        WHERE cg.id_empresa = ? AND ${sqlConsumoDelEquipo('?')}${wGe}
+      `, [e, eq.id_equipo, ...pGe]);
 
       // Sueldo variable: lo efectivamente liquidado a cada chofer por los
       // viajes del equipo (movimientos VIAJE_LIQUIDACION), con la
@@ -531,17 +531,32 @@ router.get('/rentabilidad-equipos', async (req, res) => {
       [e, ...pGa]
     );
 
+    // Consumos generales de unidades que en esa fecha no estaban en ningún
+    // equipo (ej. un camión parado en el taller): no se pierden, se muestran
+    // aparte y se descuentan de la rentabilidad neta.
+    const [[sinEquipo]] = await pool.query(`
+      SELECT COALESCE(SUM(cg.monto), 0) AS total
+      FROM CONSUMOS_GENERALES cg
+      WHERE cg.id_empresa = ?${wGe} AND NOT EXISTS (
+        SELECT 1 FROM EQUIPO_HISTORIAL h
+         WHERE h.id_empresa = cg.id_empresa
+           AND cg.id_unidad IN (h.id_unidad_principal, h.id_unidad_secundaria)
+           AND (h.desde IS NULL OR h.desde <= cg.fecha) AND (h.hasta IS NULL OR h.hasta > cg.fecha))
+    `, [e, ...pGe]);
+
     const sumaRent = resultado.reduce((s, r) => s + r.rentabilidad, 0);
     const sumaIva = resultado.reduce((s, r) => s + r.iva, 0);
     const totalGA = Number(gastosAdmin.total);
+    const totalSinEquipo = idEquipoFiltro ? 0 : Number(sinEquipo.total);
     res.json({
       equipos: resultado, dias_periodo: diasPeriodo,
       gastos_administrativos: totalGA,
+      gastos_unidades_sin_equipo: totalSinEquipo,
       rentabilidad_equipos: sumaRent,
-      rentabilidad_neta: sumaRent - totalGA,
+      rentabilidad_neta: sumaRent - totalGA - totalSinEquipo,
       iva_total: sumaIva,
       rentabilidad_equipos_con_iva: sumaRent + sumaIva,
-      rentabilidad_neta_con_iva: sumaRent + sumaIva - totalGA
+      rentabilidad_neta_con_iva: sumaRent + sumaIva - totalGA - totalSinEquipo
     });
   } catch (err) {
     responderError(res, err, req);

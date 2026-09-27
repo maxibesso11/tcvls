@@ -249,6 +249,7 @@ async function renderDashboard() {
         <div style="padding:10px 14px;border-top:1px solid var(--borde);font-size:13px">
           <div style="display:flex;justify-content:space-between"><span>Rentabilidad de equipos</span><strong>${fmtDinero(rentabilidad.rentabilidad_equipos || 0)}</strong></div>
           <div style="display:flex;justify-content:space-between;color:var(--peligro)"><span>− Gastos administrativos</span><strong>${fmtDinero(rentabilidad.gastos_administrativos || 0)}</strong></div>
+          ${rentabilidad.gastos_unidades_sin_equipo ? `<div style="display:flex;justify-content:space-between;color:var(--peligro)" title="Consumos de unidades que en esa fecha no estaban en ningún equipo (por ejemplo, en el taller)"><span>− Gastos de unidades sin equipo</span><strong>${fmtDinero(rentabilidad.gastos_unidades_sin_equipo)}</strong></div>` : ''}
           <div style="display:flex;justify-content:space-between;margin-top:4px;padding-top:4px;border-top:1px dashed var(--borde);font-size:15px">
             <span><strong>Rentabilidad neta</strong></span>
             <strong style="color:${(rentabilidad.rentabilidad_neta || 0) >= 0 ? 'var(--exito)' : 'var(--peligro)'}">${fmtDinero(rentabilidad.rentabilidad_neta || 0)}</strong>

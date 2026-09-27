@@ -161,6 +161,31 @@ CREATE TABLE EQUIPO (
     INDEX idx_unidad_secundaria (id_unidad_secundaria)
 );
 
+-- 3b. EQUIPO_HISTORIAL: qué camión, acoplado y chofer tuvo cada equipo y
+-- desde/hasta cuándo (desde NULL = desde el alta; hasta NULL = vigente).
+-- Es la fuente de la "foto" de cada viaje y de la rentabilidad por equipo.
+CREATE TABLE EQUIPO_HISTORIAL (
+    id_historial INT AUTO_INCREMENT PRIMARY KEY,
+    id_empresa INT NOT NULL,
+    id_equipo INT NOT NULL,
+    id_unidad_principal INT NOT NULL,
+    id_unidad_secundaria INT NOT NULL,
+    id_chofer INT NOT NULL,
+    desde DATETIME NULL,
+    hasta DATETIME NULL,
+    id_usuario INT NULL,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
+    FOREIGN KEY (id_equipo) REFERENCES EQUIPO(id_equipo) ON DELETE CASCADE,
+    FOREIGN KEY (id_unidad_principal) REFERENCES UNIDADES(id_unidad) ON DELETE RESTRICT,
+    FOREIGN KEY (id_unidad_secundaria) REFERENCES UNIDADES(id_unidad) ON DELETE RESTRICT,
+    FOREIGN KEY (id_chofer) REFERENCES CHOFERES(id_chofer) ON DELETE RESTRICT,
+    FOREIGN KEY (id_usuario) REFERENCES USUARIOS(id_usuario) ON DELETE SET NULL,
+    INDEX idx_historial_equipo (id_empresa, id_equipo, desde),
+    INDEX idx_historial_principal (id_unidad_principal),
+    INDEX idx_historial_secundaria (id_unidad_secundaria)
+);
+
 -- 4. VIAJES
 CREATE TABLE VIAJES (
     id_viaje INT AUTO_INCREMENT PRIMARY KEY,
@@ -516,6 +541,10 @@ INSERT INTO VIAJES (id_empresa, fecha_origen, tipo_carga, origen, destino, id_eq
 -- #9 FINALIZADO POR KM (chofer 5 POR KM 205/km)
 (1, DATE_SUB(NOW(), INTERVAL 15 DAY), 'Cemento',      'Córdoba',       'San Juan',     5, 1980,    'POR KM',       NULL,  540,  0,  'FINALIZADO', DATE_SUB(NOW(), INTERVAL 14 DAY),'Molinos Unidos',     'R-0001-00012620');
 
+-- Historial de los equipos de ejemplo: su composición actual desde el alta
+INSERT INTO EQUIPO_HISTORIAL (id_empresa, id_equipo, id_unidad_principal, id_unidad_secundaria, id_chofer)
+SELECT id_empresa, id_equipo, id_unidad_principal, id_unidad_secundaria, id_chofer FROM EQUIPO;
+
 -- Foto del chofer y las unidades en los viajes de ejemplo (el equipo al crearse)
 UPDATE VIAJES v JOIN EQUIPO e ON e.id_equipo = v.id_equipo
 SET v.id_chofer = e.id_chofer,
@@ -723,7 +752,8 @@ INSERT INTO MIGRACIONES (nombre) VALUES
 ('migracion_022_facturacion_requisito_viajes.sql'),
 ('migracion_023_origen_movimientos.sql'),
 ('migracion_024_seguridad_usuarios.sql'),
-('migracion_025_unidades_viaje.sql');
+('migracion_025_unidades_viaje.sql'),
+('migracion_026_historial_equipos.sql');
 
 -- =========================================================
 -- FIN DE LA INSTALACIÓN
