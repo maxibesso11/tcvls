@@ -6,13 +6,14 @@
 #   MYSQL_ROOT_PASSWORD            → root de MySQL (solo dentro del contenedor)
 #   TCV_UID, TCV_GID               → usuario del servidor con el que corre la app
 #   APP_PUERTO                     → puerto local donde Nginx encuentra la app
+#   TCV_IMAGEN, TAG                → imagen de Docker Hub y versión desplegada
 #
 # Comandos habituales (desde la raíz del proyecto):
 #   docker compose up -d                         levantar todo
 #   docker compose ps                            estado y salud
 #   docker compose logs -f app                   logs de la app
 #   docker compose run --rm app node backend/database/migrar.js   migraciones
-#   deploy/desplegar.sh                          actualizar a la última versión
+#   deploy/publicar-imagen.sh (PC) → sudo deploy/desplegar.sh <versión> (servidor)
 name: tcvls
 
 services:
@@ -45,8 +46,10 @@ services:
         max-file: "5"
 
   app:
+    # En la PC de desarrollo se construye local (docker compose build app);
+    # en el servidor se baja de Docker Hub (deploy/desplegar.sh).
     build: .
-    image: tcvls-app:${TAG:-latest}
+    image: ${TCV_IMAGEN:-tcvls-app}:${TAG:-latest}
     restart: unless-stopped
     env_file: .env
     environment:

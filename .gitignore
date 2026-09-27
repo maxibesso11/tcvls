@@ -28,8 +28,6 @@ Thumbs.db
 *.sql.gz
 erp_*.sql
 
-# Versión desplegada (la escribe deploy/desplegar.sh)
-.version-desplegada
 
 # Informes para el cliente (contienen datos reales: nunca al repositorio)
 informes/
