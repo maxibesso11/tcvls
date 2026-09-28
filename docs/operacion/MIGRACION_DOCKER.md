@@ -10,8 +10,11 @@ operación diaria está en [SERVIDOR.md](SERVIDOR.md).
   dicen **[PC]**, que van en tu computadora (Git Bash o PowerShell).
 - Después de cada bloque hay un **✔ Esperado**. Si la salida no coincide,
   pará ahí.
-- En los comandos, `<IP>` es la IP del VPS y `<COMMIT>` es la versión que
-  imprime `publicar-imagen.sh`.
+- En los comandos, `<IP>` es la IP del VPS y `<COMMIT>` es la versión de la
+  imagen: el tag que imprime `publicar-imagen.sh` al terminar
+  (`✓ Publicada tcvls/tcvls-app:<COMMIT>`). También se ve en Docker Hub,
+  pestaña *Tags* (el que no es `latest`), o en el VPS con
+  `sudo docker images tcvls/tcvls-app`.
 - **Nada de las fases A y B corta el servicio.** El corte es solo la fase C
   (unos 20 minutos), y tiene su vuelta atrás.
 
