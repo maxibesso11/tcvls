@@ -1,8 +1,6 @@
 # Operación del servidor (VPS con Docker)
 
-Cómo está armado el servidor y las tareas de todos los días. La puesta a punto
-inicial (paso de PM2 a Docker, HTTPS, respaldos en Drive y SSH) está en
-[MIGRACION_DOCKER.md](MIGRACION_DOCKER.md).
+Cómo está armado el servidor y las tareas de todos los días.
 
 ## Cómo está armado
 
@@ -48,7 +46,10 @@ Las migraciones no se deshacen: si una versión nueva cambió la base de forma
 incompatible, hay que restaurar el respaldo que se hizo antes de desplegarla.
 
 **Si cambia `docker-compose.yml` o un script de `deploy/`** (no es lo
-habitual), copiarlo al servidor como en MIGRACION_DOCKER.md, paso A3.
+habitual): copiarlo desde la PC con `scp` a la misma ruta dentro de
+`/opt/tcvls`, quitarle los fines de línea de Windows
+(`sed -i 's/\r$//' <archivo>`) y, si es un script de respaldo, reinstalarlo en
+`/usr/local/sbin` con `sudo install -m 750`.
 
 ## Comandos útiles
 
@@ -82,9 +83,11 @@ sudo tcv-verificar-respaldo                          # verificar el último ahor
 `ULTIMO_SUBIDO` dice cuándo se subió y qué archivo. Si no es el último
 respaldo local, la subida está pendiente: el cron la reintenta cada 3 horas, o
 se fuerza con `sudo tcv-respaldo-bd --reintentar-subida`. Si falla varios días
-seguidos, mirá el log. Puede ser la cuota compartida de rclone (solución:
-MIGRACION_DOCKER.md, paso B2-bis) o que se haya revocado el acceso (se rehace
-con el paso B2).
+seguidos, mirá el log. Puede ser la cuota compartida de la aplicación de Google de
+rclone (solución: una aplicación OAuth propia en Google Cloud con el permiso
+`drive.file`, cargando su `client_id` y `client_secret` en
+`/etc/tcv-rclone.conf`) o que se haya revocado el acceso (se rehace con
+`rclone authorize` y se reemplaza el `token` de ese archivo).
 
 ### Restaurar sobre la base del sistema
 

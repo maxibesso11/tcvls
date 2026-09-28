@@ -21,15 +21,9 @@ Thumbs.db
 *.tmp
 *.bak
 
-# Documentación
-*.pdf
-
 # Respaldos de la base (datos reales: nunca al repositorio)
 *.sql.gz
 erp_*.sql
 
-
-# Informes para el cliente (contienen datos reales: nunca al repositorio)
-informes/
-# Notas y transcripciones de reuniones con el cliente
-*Notas de Gemini*.md
+# Archivos personales del equipo (notas, informes, respaldos, guías propias)
+privado/

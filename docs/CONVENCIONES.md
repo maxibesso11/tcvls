@@ -51,7 +51,7 @@ sistema siga funcionando en producción.
    (composición de un equipo, chofer y unidades de un viaje) se guarda con
    fecha y no se sobrescribe al editar el registro actual.
 10. **Datos del cliente fuera del repositorio** (es público): respaldos,
-    informes y notas van en carpetas ignoradas (`informes/`, `*.sql.gz`).
+    informes, notas y guías propias van en la carpeta `privado/`, que git ignora.
 
 ## Antes de subir un cambio
 

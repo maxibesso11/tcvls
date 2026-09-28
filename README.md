@@ -196,7 +196,6 @@ Recursos: `choferes`, `unidades`, `equipos`, `viajes`, `consumos-combustible`,
 - Guía general: **[docs/despliegue/DEPLOY.md](docs/despliegue/DEPLOY.md)**
 - Hostinger con dominio y HTTPS: **[docs/despliegue/DEPLOY_HOSTINGER.md](docs/despliegue/DEPLOY_HOSTINGER.md)**
 - **Servidor actual (Docker): publicar, desplegar, respaldos y restauración: [docs/operacion/SERVIDOR.md](docs/operacion/SERVIDOR.md)**
-- Paso a Docker, HTTPS, respaldos en Drive y SSH (una sola vez): [docs/operacion/MIGRACION_DOCKER.md](docs/operacion/MIGRACION_DOCKER.md)
 - Instalación vieja sin Docker, migraciones a mano: [docs/operacion/ACTUALIZAR_SIN_PERDER_DATOS.md](docs/operacion/ACTUALIZAR_SIN_PERDER_DATOS.md)
 - Factura electrónica ARCA: **[docs/facturacion/HABILITAR_FACTURACION_ARCA.md](docs/facturacion/HABILITAR_FACTURACION_ARCA.md)**
 
