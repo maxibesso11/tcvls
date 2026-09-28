@@ -9,18 +9,15 @@ const {
 const limite = require('../../lib/seguridad/limiteIntentos');
 const { requiereAutenticacion, requiereAutenticacionConCambioPendiente } = require('../../middleware/autenticacion');
 const { responderError } = require('../../lib/errores');
+const { modulosActivosDe } = require('../../middleware/modulos');
 
 const router = express.Router();
 
-// Devuelve un array con las claves de los módulos activos de una empresa.
+// Devuelve un array con las claves de los módulos activos de una empresa
+// (sin los apagados para todo el sistema, ver config/modulos.js).
 // El ADMIN (sin empresa) recibe un array vacío (gestiona todo aparte).
 async function modulosActivos(idEmpresa) {
-  if (!idEmpresa) return [];
-  const [filas] = await pool.query(
-    'SELECT modulo FROM MODULOS_EMPRESA WHERE id_empresa = ? AND activo = 1',
-    [idEmpresa]
-  );
-  return filas.map(f => f.modulo);
+  return [...await modulosActivosDe(idEmpresa)];
 }
 
 // Token de sesión del usuario. Lleva version_sesion (v): al cambiar la

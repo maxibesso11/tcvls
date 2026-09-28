@@ -112,6 +112,17 @@ age -d -i clave.txt tcvdb_AAAAMMDD_HHMMSS.sql.gz.age > tcvdb.sql.gz
 El `.sql.gz` resultante se carga como en *Restaurar*. El `.conteos` que está
 al lado en Drive dice cuántas filas tiene que tener cada tabla.
 
+## Facturación con comprobantes
+
+Está **apagada** hasta que la emisión real con ARCA esté lista: sin
+`FACTURACION_HABILITADA=1` en `/opt/tcvls/.env`, el menú Facturación no
+aparece, la API no emite comprobantes y los viajes se facturan como en la
+versión anterior (líquido producto con IVA, o sin facturar). Así nadie genera
+comprobantes borrador que ocupen la numeración del punto de venta.
+
+Para prenderla: agregar `FACTURACION_HABILITADA=1` al `.env` y
+`sudo docker compose --project-directory /opt/tcvls up -d app`.
+
 ## Seguridad
 
 - SSH solo con clave, sin contraseñas ni root (`/etc/ssh/sshd_config.d/00-tcv-seguridad.conf`).

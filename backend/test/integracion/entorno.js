@@ -26,6 +26,7 @@ function configurarVariables() {
   process.env.AUTH_SECRET = 'secreto-de-firma-solo-para-tests-0123456789';
   process.env.CERT_SECRET = 'secreto-de-certificados-solo-para-tests-9876';
   process.env.ARCA_HABILITADO = '0';
+  process.env.FACTURACION_HABILITADA = '1';
 }
 
 async function recrearBase() {

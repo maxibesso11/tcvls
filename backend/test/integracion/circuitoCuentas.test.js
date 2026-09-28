@@ -209,6 +209,31 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     assert.ok(general.gastos_unidades_sin_equipo >= 500);
   });
 
+  test('con la facturación apagada no se emiten comprobantes ni se factura "con factura A"', async () => {
+    process.env.FACTURACION_HABILITADA = '0';
+    try {
+      const yo = await ok(entorno.api('GET', '/api/auth/yo'));
+      assert.ok(!yo.usuario.modulos.includes('facturacion'));
+
+      const cliente = await crearCuenta('CLIENTE');
+      const manual = await entorno.api('POST', '/api/facturacion/manual', {
+        id_cuenta: cliente.id_cuenta, items: [{ descripcion: 'Flete', cantidad: 1, precio_unitario: 1000 }]
+      });
+      assert.equal(manual.estado, 403);
+
+      const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, { estado: 'FINALIZADO' })));
+      const conFactura = await entorno.api('PUT', `/api/viajes/${viaje.id_viaje}`, { estado: 'FACTURADO', modo_facturacion: 'FACTURA' });
+      assert.equal(conFactura.estado, 400);
+      // Lo de siempre sigue andando: facturado líquido producto (con IVA).
+      await ok(entorno.api('PUT', `/api/viajes/${viaje.id_viaje}`, { estado: 'FACTURADO', modo_facturacion: 'LIQUIDO_PRODUCTO' }));
+      assert.equal(await saldo(cliente.id_cuenta), -121000);
+      const [[{ n }]] = await entorno.pool.query('SELECT COUNT(*) AS n FROM FACTURAS WHERE id_cuenta = ?', [cliente.id_cuenta]);
+      assert.equal(Number(n), 0);
+    } finally {
+      process.env.FACTURACION_HABILITADA = '1';
+    }
+  });
+
   test('un viaje POR TONELADA no se puede facturar con resultado 0', async () => {
     const cliente = await crearCuenta('CLIENTE');
     const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, {

@@ -7,6 +7,7 @@
 // Los movimientos los arma viajes.servicio.js; los hooks after* escriben con
 // req.db, dentro de la transacción del CRUD.
 const pool = require('../../config/db');
+const { modulosApagadosPorSistema, MENSAJE_FACTURACION_APAGADA } = require('../../config/modulos');
 const {
   buscarCuentaPagador,
   fotografiarEquipo,
@@ -30,6 +31,13 @@ async function validarPagador(data, anterior, idEmpresa) {
 // data: los campos entrantes; anterior: registro previo (null al crear).
 function validarEstado(data, anterior) {
   const estadoFuturo = data.estado ?? anterior?.estado;
+
+  // Con la facturación formal apagada no se puede marcar un viaje como
+  // facturado "con factura A" (no habría comprobante).
+  if (data.modo_facturacion === 'FACTURA' && anterior?.modo_facturacion !== 'FACTURA'
+      && modulosApagadosPorSistema().includes('facturacion')) {
+    return MENSAJE_FACTURACION_APAGADA;
+  }
 
   if (estadoFuturo === 'FACTURADO') {
     const pagador = data.pagador !== undefined ? data.pagador : anterior?.pagador;

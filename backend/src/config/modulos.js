@@ -73,4 +73,20 @@ function conObligatorios(activos) {
   return [...new Set([...(activos || []), ...MODULOS_OBLIGATORIOS])];
 }
 
-module.exports = { MODULOS, CLAVES, RUTA_A_MODULO, MODULOS_OBLIGATORIOS, validarDependencias, conObligatorios };
+// Módulos apagados para TODO el sistema por configuración, aunque la empresa
+// los tenga activos. La facturación formal (Factura A, notas de crédito)
+// queda apagada hasta que la emisión real con ARCA esté lista: sin esto, los
+// usuarios podrían emitir comprobantes borrador que ocupan la numeración del
+// punto de venta. Se enciende con FACTURACION_HABILITADA=1 en el .env.
+// (Se lee en cada llamada para que los tests puedan cambiarla.)
+function modulosApagadosPorSistema() {
+  return process.env.FACTURACION_HABILITADA === '1' ? [] : ['facturacion'];
+}
+
+const MENSAJE_FACTURACION_APAGADA =
+  'La facturación con comprobantes todavía no está habilitada en este sistema.';
+
+module.exports = {
+  MODULOS, CLAVES, RUTA_A_MODULO, MODULOS_OBLIGATORIOS, validarDependencias, conObligatorios,
+  modulosApagadosPorSistema, MENSAJE_FACTURACION_APAGADA
+};

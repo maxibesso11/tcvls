@@ -134,6 +134,8 @@ let _datosViajeFacturar = null;
 function abrirModalFacturarViaje(datos) {
   _datosViajeFacturar = datos;
   const { base, comision, neto, conIVA } = calcularMontosViaje(datos);
+  // La factura A solo se ofrece si la facturación está habilitada en el sistema.
+  const conFactura = moduloActivo('facturacion');
   const filaComision = comision > 0
     ? `<div class="resumen-fila" style="display:flex;justify-content:space-between;padding:3px 0"><span>Comisión (${comision}%)</span><span>− ${fmtDinero(base - neto)}</span></div>`
     : '';
@@ -151,12 +153,12 @@ function abrirModalFacturarViaje(datos) {
       <div class="resumen-fila" style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:6px;font-weight:700;border-top:1px solid var(--borde)"><span>Total con IVA</span><span>${fmtDinero(conIVA)}</span></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <button class="btn btn-primario" onclick="confirmarFacturarViaje('FACTURA')">Emitir factura A · ${fmtDinero(conIVA)}</button>
-      <button class="btn btn-secundario" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Facturado líquido producto (con IVA) · ${fmtDinero(conIVA)}</button>
+      ${conFactura ? `<button class="btn btn-primario" onclick="confirmarFacturarViaje('FACTURA')">Emitir factura A · ${fmtDinero(conIVA)}</button>` : ''}
+      <button class="btn ${conFactura ? 'btn-secundario' : 'btn-primario'}" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Facturado líquido producto (con IVA) · ${fmtDinero(conIVA)}</button>
       <button class="btn btn-secundario" onclick="confirmarFacturarViaje('SIN_FACTURAR')">Continuar sin facturar (sin IVA) · ${fmtDinero(neto)}</button>
     </div>
     <p style="color:var(--texto-suave);font-size:12px;margin-top:14px;line-height:1.5">
-      <strong>Emitir factura A</strong> genera el comprobante formal e imputa el total en la cuenta.
+      ${conFactura ? '<strong>Emitir factura A</strong> genera el comprobante formal e imputa el total en la cuenta.' : ''}
       <strong>Líquido producto</strong> imputa el total con IVA sin emitir comprobante.
       <strong>Sin facturar</strong> imputa solo el neto, sin IVA.
     </p>`;
