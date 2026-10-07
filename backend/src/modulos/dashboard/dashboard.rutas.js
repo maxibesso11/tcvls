@@ -4,6 +4,7 @@
 const express = require('express');
 const pool = require('../../config/db');
 const { SQL_BASE_VIAJE, SQL_IVA_VIAJE, SQL_UNIDADES_DEL_VIAJE, sqlConsumoDelEquipo, filtros } = require('./dashboard.consultas');
+const { sueldoFijoProrrateado } = require('./dashboard.calculos');
 const { responderError } = require('../../lib/errores');
 const router = express.Router();
 
@@ -119,7 +120,7 @@ router.get('/alertas', async (req, res) => {
       SELECT v.id_vencimiento, v.concepto, v.fecha_vencimiento, u.patente,
              DATEDIFF(v.fecha_vencimiento, CURDATE()) AS dias_restantes
       FROM VENCIMIENTOS v
-      JOIN UNIDADES u ON u.id_unidad = v.id_unidad
+      LEFT JOIN UNIDADES u ON u.id_unidad = v.id_unidad
       WHERE v.id_empresa = ? AND v.fecha_vencimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
       ORDER BY v.fecha_vencimiento LIMIT ${LIMITE}
     `, [e]);
@@ -128,7 +129,7 @@ router.get('/alertas', async (req, res) => {
       SELECT m.id_mantenimiento, m.concepto, m.fecha_vencimiento, u.patente,
              DATEDIFF(m.fecha_vencimiento, CURDATE()) AS dias_restantes
       FROM MANTENIMIENTOS m
-      JOIN UNIDADES u ON u.id_unidad = m.id_unidad
+      LEFT JOIN UNIDADES u ON u.id_unidad = m.id_unidad
       WHERE m.id_empresa = ? AND m.fecha_vencimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
       ORDER BY m.fecha_vencimiento LIMIT ${LIMITE}
     `, [e]);
@@ -428,11 +429,18 @@ router.get('/rentabilidad-equipos', async (req, res) => {
     const hasta = req.query.fecha_hasta || null;
     const idEquipoFiltro = req.query.id_equipo || null;
 
-    let diasPeriodo = 30;
-    if (desde && hasta) {
-      const d1 = new Date(desde), d2 = new Date(hasta);
-      diasPeriodo = Math.max(1, Math.round((d2 - d1) / 86400000) + 1);
-    }
+    // Ventana efectiva del período (siempre concreta, para prorratear el
+    // sueldo fijo según EQUIPO_HISTORIAL): si falta alguno de los dos
+    // límites, se completa con un período de 30 días terminado hoy.
+    const hoy = new Date().toISOString().slice(0, 10);
+    const efectivoHasta = hasta || hoy;
+    const efectivoDesde = desde || (() => {
+      const d = new Date(efectivoHasta);
+      d.setDate(d.getDate() - 29);
+      return d.toISOString().slice(0, 10);
+    })();
+    const diasPeriodo = Math.max(1, Math.round(
+      (new Date(efectivoHasta) - new Date(efectivoDesde)) / 86400000) + 1);
 
     const fVi = []; const pVi = [];
     if (desde) { fVi.push('DATE(v.fecha_origen) >= ?'); pVi.push(desde); }
@@ -455,7 +463,7 @@ router.get('/rentabilidad-equipos', async (req, res) => {
     const [equipos] = await pool.query(`
       SELECT e.id_equipo, e.id_unidad_principal, e.id_unidad_secundaria,
         up.patente AS patente_principal, us.patente AS patente_secundaria,
-        ch.id_chofer, ch.nombre AS chofer, ch.tipo_remuneracion, ch.remuneracion
+        ch.id_chofer, ch.nombre AS chofer
       FROM EQUIPO e
       JOIN UNIDADES up ON up.id_unidad = e.id_unidad_principal
       JOIN UNIDADES us ON us.id_unidad = e.id_unidad_secundaria
@@ -493,12 +501,22 @@ router.get('/rentabilidad-equipos', async (req, res) => {
         JOIN VIAJES v ON v.id_viaje = m.origen_id AND v.id_empresa = m.id_empresa
         WHERE m.id_empresa = ? AND m.origen_tipo = 'VIAJE_LIQUIDACION' AND v.id_equipo = ?${wVi}
       `, [e, eq.id_equipo, ...pVi]);
-      let sueldo = Number(liq.sueldo);
-      // Sueldo fijo del chofer actual, prorrateado por los días del período.
-      const remu = Number(eq.remuneracion) || 0;
-      if (eq.tipo_remuneracion === 'FIJA') {
-        sueldo += (remu / 30) * diasPeriodo;
-      }
+      const sueldoVariable = Number(liq.sueldo);
+
+      // Sueldo fijo: se prorratea por los días que cada chofer estuvo
+      // asignado al equipo según EQUIPO_HISTORIAL (no por el chofer actual),
+      // de cualquier chofer con sueldo_fijo_mensual (no solo los "FIJA" de
+      // antes: así el mixto suma las dos partes). Nunca usa los movimientos
+      // de LIQUIDACIONES_SUELDO, para que un mes sin liquidar no aparezca
+      // más rentable de lo que es.
+      const [periodos] = await pool.query(`
+        SELECT ch.sueldo_fijo_mensual, h.desde, h.hasta
+        FROM EQUIPO_HISTORIAL h
+        JOIN CHOFERES ch ON ch.id_chofer = h.id_chofer
+        WHERE h.id_empresa = ? AND h.id_equipo = ?
+      `, [e, eq.id_equipo]);
+      const sueldoFijo = sueldoFijoProrrateado(periodos, efectivoDesde, efectivoHasta);
+      const sueldo = sueldoVariable + sueldoFijo;
 
       const ingresos = Number(ing.ingresos);
       const iva = Number(ing.iva);
@@ -510,10 +528,10 @@ router.get('/rentabilidad-equipos', async (req, res) => {
       resultado.push({
         id_equipo: eq.id_equipo, patente_principal: eq.patente_principal,
         patente_secundaria: eq.patente_secundaria, chofer: eq.chofer,
-        tipo_remuneracion: eq.tipo_remuneracion,
         ingresos, iva, ingresos_con_iva: ingresosConIva,
         costo_combustible: costoComb, costo_generales: costoGen,
-        sueldo, costos, rentabilidad,
+        sueldo, sueldo_fijo: sueldoFijo, sueldo_variable: sueldoVariable,
+        costos, rentabilidad,
         rentabilidad_con_iva: ingresosConIva - costos,
         margen: ingresos > 0 ? (rentabilidad / ingresos) * 100 : 0,
         margen_con_iva: ingresosConIva > 0 ? ((ingresosConIva - costos) / ingresosConIva) * 100 : 0

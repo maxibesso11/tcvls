@@ -101,7 +101,7 @@ const RANGO = 'fecha_desde=2025-01-01&fecha_hasta=2026-12-31';
 function pasosLectura() {
   const p = [];
   // Estáticos: solo estado y tipo (el HTML puede cambiar al reorganizar el frontend)
-  for (const url of ['/', '/app', '/css/styles.css', '/js/api.js', '/js/app.js', '/img/logo/isotipo.svg', '/cualquier/ruta']) {
+  for (const url of ['/', '/app', '/stylo/main.css', '/js/api.js', '/js/app.js', '/img/logo/isotipo.svg', '/cualquier/ruta']) {
     p.push({ nombre: `estatico ${url}`, url, soloEstado: true });
   }
   p.push({ nombre: 'health', url: '/api/health' });
@@ -190,7 +190,7 @@ function pasosEscritura() {
   p.push({ nombre: 'consumo proveedor inválido', metodo: 'POST', url: '/api/consumos-combustible', cuerpo: { proveedor: 'Nadie', id_equipo: 1, cantidad_litros: 100, precio_por_litro: 10, fecha: '2026-03-01' }, como: 'demo' });
   p.push({ nombre: 'gasto administrativo', metodo: 'POST', url: '/api/gastos-administrativos', cuerpo: { proveedor: 'Agro del Centro SA', concepto: 'Smoke', fecha: '2026-03-02', monto: 1234 }, como: 'demo', guardar: 'gasto' });
   p.push({ nombre: 'editar gasto', metodo: 'PUT', url: ctx => `/api/gastos-administrativos/${ctx.gasto.id_gasto_administrativo}`, cuerpo: { monto: 999 }, como: 'demo' });
-  p.push({ nombre: 'crear chofer', metodo: 'POST', url: '/api/choferes', cuerpo: { nombre: 'Chofer Smoke', cuil: '20-99999999-1', edad: 40, vencimiento_carnet: '2027-01-01', domicilio: 'Calle 1', remuneracion: 10, tipo_remuneracion: 'PORCENTAJE' }, como: 'demo', guardar: 'chofer' });
+  p.push({ nombre: 'crear chofer', metodo: 'POST', url: '/api/choferes', cuerpo: { nombre: 'Chofer Smoke', cuil: '20-99999999-1', edad: 40, vencimiento_carnet: '2027-01-01', domicilio: 'Calle 1', variable_valor: 10, variable_tipo: 'PORCENTAJE' }, como: 'demo', guardar: 'chofer' });
   p.push({ nombre: 'cuenta del chofer', url: '/api/cuentas?q=Chofer%20Smoke', como: 'demo' });
   p.push({ nombre: 'editar chofer', metodo: 'PUT', url: ctx => `/api/choferes/${ctx.chofer.id_chofer}`, cuerpo: { nombre: 'Chofer Smoke 2' }, como: 'demo' });
   p.push({ nombre: 'eliminar chofer', metodo: 'DELETE', url: ctx => `/api/choferes/${ctx.chofer.id_chofer}`, como: 'demo' });

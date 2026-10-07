@@ -1,0 +1,46 @@
+/* vistas/tablero.css
+   Pulso del tablero, estado de flota, gráficos SVG, antigüedad de saldos. */
+
+.pulso.tablero { grid-template-columns: minmax(250px, 1.7fr) repeat(5, minmax(0, 1fr)); }
+.pulso.tablero .cifra-xl .cifra-valor { font-size: 50px; line-height: 48px; }
+
+/* Estado de flota: una fila por equipo */
+.flota-fila { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.flota-fila:hover { background: #f7f8f5; }
+.flota-fila:last-child { border-bottom: 0; }
+.flota-fila .pat { display: flex; gap: 4px; }
+.flota-fila .det { min-width: 0; }
+.flota-fila .det b { display: block; font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flota-fila .det span { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.progreso { height: 4px; background: var(--surface-sunk); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.progreso i { display: block; height: 100%; background: var(--info); }
+
+/* Gráficos SVG */
+.grafico { display: block; width: 100%; height: auto; }
+.grafico text { font: 500 11px var(--font-text); fill: var(--ink-2); }
+.grafico .valor { font: 600 13px var(--font-display); fill: var(--ink); letter-spacing: .2px; }
+.grafico .eje { stroke: var(--line); }
+.grafico .base { stroke: var(--ink); stroke-width: 1; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--ink-2); }
+.leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* Antigüedad de saldos */
+.tramos { display: flex; height: 34px; border-radius: var(--radius-s); overflow: hidden; gap: 2px; }
+.tramos > div { display: flex; align-items: center; padding: 0 8px; font: 600 12px var(--font-text); white-space: nowrap; overflow: hidden; min-width: 0; }
+.tramos-ref { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.tramos-ref div { display: flex; flex-direction: column; gap: 2px; }
+.tramos-ref b { font: 600 20px/22px var(--font-display); }
+
+/* Celdas del tablero: dos líneas en vez de columnas extra (evita el scroll lateral) */
+.equipo-celda { display: flex; flex-direction: column; gap: 4px; }
+.equipo-celda > span { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.celda-cifra { display: flex; flex-direction: column; align-items: stretch; gap: 5px; min-width: 110px; }
+.celda-cifra .barra, .celda-cifra .barra-apilada { min-width: 0; }
+.tabla td.col-barra { width: 32%; }
+.tabla td.col-barra .barra { min-width: 0; }
+.tabla-equipos td { padding-top: 10px; padding-bottom: 10px; }
+.parte-ingreso { background: var(--chart-income); }
+.hoja-pie .leyenda { display: inline-flex; vertical-align: middle; }
+
+/* Secciones del tablero: un título por tema, y las hojas debajo */
+.seccion-tablero { margin: var(--space-2) 0 -12px; padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); font: 600 11px/14px var(--font-text); letter-spacing: 1.1px; text-transform: uppercase; color: var(--ink-2); }

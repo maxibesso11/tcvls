@@ -151,7 +151,8 @@ describe('seguridad de la API', { skip: !HABILITADO && MOTIVO_OMISION }, () => {
   test('un campo obligatorio faltante da un mensaje entendible, sin detalles de la base', async () => {
     const u = await usuarioListo();
     const r = await entorno.api('POST', '/api/choferes',
-      { nombre: 'Sin domicilio', cuil: '20-11111111-1', edad: 30, vencimiento_carnet: '2027-01-01' }, { token: u.token });
+      { nombre: 'Sin domicilio', cuil: '20-11111111-1', edad: 30, vencimiento_carnet: '2027-01-01', variable_tipo: 'PORCENTAJE', variable_valor: 10 },
+      { token: u.token });
     assert.equal(r.estado, 400);
     assert.equal(r.datos.error, 'Falta completar el campo obligatorio "domicilio".');
   });

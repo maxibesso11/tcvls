@@ -2,7 +2,7 @@
 
 Estos archivos documentan los cambios incrementales que se aplicaron
 sobre la base de datos a lo largo del desarrollo. **Ya no son necesarios
-para una instalación nueva**: el archivo `../esquema/init_db.sql` contiene el
+para una instalación nueva**: el archivo `../esquema/esquema.sql` contiene el
 esquema final consolidado con todas estas modificaciones ya incorporadas.
 
 Se conservan como referencia histórica y para actualizar instancias en
@@ -37,6 +37,12 @@ ni perder datos.
 | 024 | seguridad de usuarios: cambio obligatorio de contraseña y versión de sesión |
 | 025 | foto del camión y el acoplado en cada viaje (id_unidad_principal, id_unidad_secundaria) |
 | 026 | historial de composición de los equipos (EQUIPO_HISTORIAL), armado desde las fotos de los viajes |
+| 027 | IVA discriminado en compras: comprobante del proveedor en CONSUMOS_COMBUSTIBLE/CONSUMOS_GENERALES/GASTOS_ADMINISTRATIVOS, condicion_iva en CUENTA y vista V_COMPRAS_FISCALES |
+| 028 | rol ADMIN_EMPRESA: administra los usuarios, el certificado ARCA y los datos fiscales de su propia empresa |
+| 029 | remuneración mixta de choferes (sueldo fijo mensual y/o variable por viaje) y tabla LIQUIDACIONES_SUELDO |
+| 030 | rol ADMIN_MULTIEMPRESA y tabla USUARIOS_EMPRESAS |
+| 031 | vencimientos y mantenimientos generales de la flota (id_unidad opcional) |
+| 032 | bitácora de actividad AUDITORIA (quién hizo qué, desde qué IP y con qué resultado) |
 | reparar_facturacion | repara instalaciones de facturación a medias (ver abajo) |
 
 ## Cómo actualizar una base: `migrar.js`
@@ -56,7 +62,7 @@ node backend/database/migrar.js --registrar-hasta 016
 (En Docker: `sudo docker compose run --rm app node backend/database/migrar.js …`.)
 
 Una migración nueva: archivo `migracion_NNN_descripcion.sql` en esta carpeta,
-el cambio incorporado a `../esquema/init_db.sql` y su nombre agregado al
+el cambio incorporado a `../esquema/esquema.sql` y su nombre agregado al
 `INSERT INTO MIGRACIONES` del final de ese archivo.
 
 ## Cómo se actualizaba a mano (instalaciones anteriores al registro)

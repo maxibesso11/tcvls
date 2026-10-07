@@ -36,10 +36,10 @@ sistema siga funcionando en producción.
    No renombrar una función sin buscar sus usos en los templates. Al cambiar un
    `.js` o `.css`, subir el `?v=` en `index.html`.
 4. **Base de datos:** todo cambio de esquema es una migración nueva y numerada en
-   `backend/database/migraciones/`, se incorpora a `esquema/init_db.sql` y su
+   `backend/database/migraciones/`, se incorpora a `esquema/esquema.sql` y su
    nombre se agrega al `INSERT INTO MIGRACIONES` del final de ese archivo.
-   Las aplica `migrar.js` en cada despliegue. Nunca correr `init_db.sql` en
-   producción.
+   Las aplica `migrar.js` en cada despliegue. `instalar.js` solo funciona sobre
+   una base vacía: nunca se reinstala una base con datos.
 5. **`server.js` de la raíz no se mueve**: lo usan PM2, systemd y las guías.
 6. **`CERT_SECRET` no se cambia** una vez guardados certificados.
 7. **Errores:** en las rutas, `catch (err) { responderError(res, err, req); }`.

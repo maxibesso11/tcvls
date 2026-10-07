@@ -1,14 +1,28 @@
 // backend/src/modulos/admin/admin.rutas.js
-// Gestión de empresas y usuarios. Todas las rutas requieren rol ADMIN.
+// Gestión de empresas, usuarios y herramientas de sistema. Todas las rutas requieren rol ADMIN.
 const express = require('express');
 const pool = require('../../config/db');
-const { hashearContrasena, problemaContrasenaNueva } = require('../../lib/seguridad/credenciales');
 const { requiereAutenticacion, requiereAdmin } = require('../../middleware/autenticacion');
 const { MODULOS, CLAVES, validarDependencias, conObligatorios } = require('../../config/modulos');
 const { responderError } = require('../../lib/errores');
+const usuariosServicio = require('./usuarios.servicio');
+const empresasServicio = require('./empresas.servicio');
+const empresasAsignadasServicio = require('./empresasAsignadas.servicio');
 
 const router = express.Router();
 router.use(requiereAutenticacion, requiereAdmin);
+
+// Bitácora de actividad de todas las empresas
+router.get('/auditoria', async (req, res) => {
+  try {
+    res.json(await require('../../lib/auditoria').listar({ query: req.query }));
+  } catch (err) {
+    responderError(res, err, req);
+  }
+});
+
+// Registros del servidor y respaldos
+router.use('/sistema', require('./sistema.rutas'));
 
 // ==================== EMPRESAS ====================
 
@@ -28,27 +42,10 @@ router.get('/empresas', async (req, res) => {
 
 router.post('/empresas', async (req, res) => {
   try {
-    const { nombre, iniciales, cuit, domicilio, telefono, email } = req.body;
-    if (!nombre) return res.status(400).json({ error: 'El nombre de la empresa es obligatorio.' });
-    const [result] = await pool.query(
-      'INSERT INTO EMPRESAS SET ?',
-      [{
-        nombre,
-        iniciales: (iniciales || '').trim().slice(0, 4).toUpperCase() || null,
-        cuit: cuit || null,
-        domicilio: domicilio || null,
-        telefono: telefono || null,
-        email: email || null,
-        activa: 1
-      }]
-    );
     // Toda empresa nueva arranca con todos los módulos activos
-    const nuevaId = result.insertId;
-    const valores = CLAVES.map(m => [nuevaId, m, 1]);
-    await pool.query('INSERT INTO MODULOS_EMPRESA (id_empresa, modulo, activo) VALUES ?', [valores]);
-    res.status(201).json({ id_empresa: nuevaId, nombre });
+    const { id_empresa, nombre } = await empresasServicio.crear(req.body);
+    res.status(201).json({ id_empresa, nombre });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Ya existe una empresa con ese CUIT.' });
     responderError(res, err, req);
   }
 });
@@ -81,14 +78,7 @@ router.put('/empresas/:id', async (req, res) => {
 
 router.get('/usuarios', async (req, res) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT u.id_usuario, u.nombre_usuario, u.correo, u.rol, u.id_empresa, u.activo,
-             e.nombre AS nombre_empresa
-      FROM USUARIOS u
-      LEFT JOIN EMPRESAS e ON e.id_empresa = u.id_empresa
-      ORDER BY u.nombre_usuario
-    `);
-    res.json(rows);
+    res.json(await usuariosServicio.listar(null));
   } catch (err) {
     responderError(res, err, req);
   }
@@ -96,106 +86,17 @@ router.get('/usuarios', async (req, res) => {
 
 router.post('/usuarios', async (req, res) => {
   try {
-    const { nombre_usuario, contrasena, correo, id_empresa, rol } = req.body;
-    if (!nombre_usuario || !contrasena) {
-      return res.status(400).json({ error: 'Usuario y contraseña son obligatorios.' });
-    }
-    const problema = problemaContrasenaNueva(contrasena, nombre_usuario);
-    if (problema) return res.status(400).json({ error: problema });
-    const rolFinal = rol === 'ADMIN' ? 'ADMIN' : 'USUARIO';
-    // Un usuario operativo (no ADMIN) debe tener empresa
-    if (rolFinal === 'USUARIO' && !id_empresa) {
-      return res.status(400).json({ error: 'Un usuario operativo debe pertenecer a una empresa.' });
-    }
-    const [result] = await pool.query('INSERT INTO USUARIOS SET ?', [{
-      nombre_usuario,
-      contrasena_hash: hashearContrasena(contrasena),
-      correo: correo || null,
-      id_empresa: rolFinal === 'ADMIN' ? null : id_empresa,
-      rol: rolFinal,
-      activo: 1,
-      // La contraseña la eligió el administrador: el usuario la cambia al ingresar.
-      debe_cambiar_contrasena: 1
-    }]);
-    res.status(201).json({ id_usuario: result.insertId, nombre_usuario, rol: rolFinal });
+    const usuario = await usuariosServicio.crear(req.body, null);
+    res.status(201).json(usuario);
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Ya existe un usuario con ese nombre.' });
     responderError(res, err, req);
   }
 });
 
 router.put('/usuarios/:id', async (req, res) => {
   try {
-    // Identificar al usuario a editar para proteger al ADMIN original.
-    // El admin original es el del seed (nombre_usuario = 'admin'); no se
-    // puede desactivar, renombrar, cambiarle el rol ni la empresa. Solo se
-    // permite cambiarle la contraseña, para no dejar nunca al sistema sin
-    // su administrador principal.
-    const [[objetivo]] = await pool.query(
-      'SELECT id_usuario, nombre_usuario, rol, version_sesion FROM USUARIOS WHERE id_usuario = ?',
-      [req.params.id]
-    );
-    if (!objetivo) return res.status(404).json({ error: 'Usuario no encontrado.' });
-    const esAdminOriginal = objetivo.nombre_usuario === 'admin' && objetivo.rol === 'ADMIN';
-
-    const { nombre_usuario, contrasena, correo, id_empresa, rol, activo } = req.body;
-    const data = {};
-
-    if (contrasena) {
-      const problema = problemaContrasenaNueva(contrasena, nombre_usuario || objetivo.nombre_usuario);
-      if (problema) return res.status(400).json({ error: problema });
-    }
-    // Contraseña asignada por el administrador a OTRO usuario: queda como
-    // temporal (debe cambiarla al ingresar) y se cierran sus sesiones abiertas.
-    const asignarContrasena = () => {
-      data.contrasena_hash = hashearContrasena(contrasena);
-      if (objetivo.id_usuario !== req.usuario.id_usuario) {
-        data.debe_cambiar_contrasena = 1;
-        data.version_sesion = (Number(objetivo.version_sesion) || 0) + 1;
-      }
-    };
-
-    if (esAdminOriginal) {
-      // Para el admin original, ignorar todo menos la contraseña.
-      if (contrasena) asignarContrasena();
-      // Permitir actualizar el correo (dato de contacto, inofensivo)
-      if (correo !== undefined) data.correo = correo || null;
-      if (Object.keys(data).length === 0) {
-        return res.status(400).json({ error: 'Del usuario administrador principal solo se puede cambiar la contraseña.' });
-      }
-      // Bloquear explícitamente intentos de desactivarlo o degradarlo
-      if (activo !== undefined && !activo) {
-        return res.status(403).json({ error: 'No se puede desactivar al administrador principal.' });
-      }
-      if (rol !== undefined && rol !== 'ADMIN') {
-        return res.status(403).json({ error: 'No se puede cambiar el rol del administrador principal.' });
-      }
-      if (nombre_usuario !== undefined && nombre_usuario !== 'admin') {
-        return res.status(403).json({ error: 'No se puede renombrar al administrador principal.' });
-      }
-    } else {
-      if (nombre_usuario !== undefined) data.nombre_usuario = nombre_usuario;
-      if (correo !== undefined) data.correo = correo || null;
-      if (rol !== undefined) data.rol = rol === 'ADMIN' ? 'ADMIN' : 'USUARIO';
-      if (id_empresa !== undefined) data.id_empresa = id_empresa || null;
-      if (activo !== undefined) data.activo = activo ? 1 : 0;
-      // Solo cambiar la contraseña si se envió una nueva no vacía
-      if (contrasena) asignarContrasena();
-
-      // Coherencia: un ADMIN no tiene empresa; un USUARIO debe tenerla
-      if (data.rol === 'ADMIN') data.id_empresa = null;
-      if (data.rol === 'USUARIO' && data.id_empresa === null) {
-        return res.status(400).json({ error: 'Un usuario operativo debe pertenecer a una empresa.' });
-      }
-    }
-
-    const [result] = await pool.query('UPDATE USUARIOS SET ? WHERE id_usuario = ?', [data, req.params.id]);
-    if (result.affectedRows === 0) return res.status(404).json({ error: 'Usuario no encontrado.' });
-    delete data.contrasena_hash;
-    delete data.version_sesion;
-    res.json({ id_usuario: Number(req.params.id), ...data });
+    res.json(await usuariosServicio.actualizar(req.params.id, req.body, null, req.usuario));
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Ya existe un usuario con ese nombre.' });
     responderError(res, err, req);
   }
 });
@@ -203,22 +104,25 @@ router.put('/usuarios/:id', async (req, res) => {
 // Eliminar un usuario. El administrador principal (seed) nunca puede eliminarse.
 router.delete('/usuarios/:id', async (req, res) => {
   try {
-    const [[objetivo]] = await pool.query(
-      'SELECT id_usuario, nombre_usuario, rol FROM USUARIOS WHERE id_usuario = ?',
-      [req.params.id]
-    );
-    if (!objetivo) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    res.json(await usuariosServicio.eliminar(req.params.id, null, req.usuario));
+  } catch (err) {
+    responderError(res, err, req);
+  }
+});
 
-    if (objetivo.nombre_usuario === 'admin' && objetivo.rol === 'ADMIN') {
-      return res.status(403).json({ error: 'No se puede eliminar al administrador principal del sistema.' });
-    }
-    // Evitar que un admin se elimine a sí mismo en plena sesión
-    if (objetivo.id_usuario === req.usuario.id_usuario) {
-      return res.status(403).json({ error: 'No podés eliminar tu propio usuario mientras estás conectado.' });
-    }
+// Empresas asignadas a un usuario ADMIN_MULTIEMPRESA.
+router.get('/usuarios/:id/empresas', async (req, res) => {
+  try {
+    res.json(await empresasAsignadasServicio.listar(req.params.id));
+  } catch (err) {
+    responderError(res, err, req);
+  }
+});
 
-    await pool.query('DELETE FROM USUARIOS WHERE id_usuario = ?', [req.params.id]);
-    res.json({ mensaje: 'Usuario eliminado correctamente.' });
+// Reemplaza el conjunto completo. Body: { empresas: [1, 2, ...] }
+router.put('/usuarios/:id/empresas', async (req, res) => {
+  try {
+    res.json(await empresasAsignadasServicio.asignar(req.params.id, req.body.empresas));
   } catch (err) {
     responderError(res, err, req);
   }

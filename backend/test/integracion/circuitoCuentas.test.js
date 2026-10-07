@@ -251,7 +251,7 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     const cuil = `20-${String(30000000 + secuencia * 104729).slice(-8)}-${secuencia % 10}`;
     const chofer = await ok(entorno.api('POST', '/api/choferes', {
       nombre: `Chofer Test ${secuencia}`, cuil, edad: 40, domicilio: 'Calle 123', vencimiento_carnet: '2027-01-01',
-      remuneracion: 10, tipo_remuneracion: 'PORCENTAJE'
+      variable_valor: 10, variable_tipo: 'PORCENTAJE'
     }));
 
     await ok(entorno.api('PUT', `/api/choferes/${chofer.id_chofer}`, { telefono: '351-0000000' }));

@@ -40,15 +40,18 @@ Navegador (frontend/js)  →  Nginx  →  server.js  →  backend/server.js
 
 | Dominio | Archivos | Qué resuelve |
 |---------|----------|--------------|
-| `tablas.js` | — | Declara las 13 tablas CRUD: campos, filtros, orden y hooks |
+| `tablas.js` | — | Declara las tablas CRUD: campos, filtros, orden y hooks |
 | `auth/` | `auth.rutas.js` | Login, datos de la sesión, tema |
-| `admin/` | `admin.rutas.js`, `certificados.rutas.js` | Empresas, usuarios, módulos por empresa, certificados ARCA |
-| `cuentas/` | `cuentas.hooks.js`, `cuentas.servicio.js`, `movimientos.servicio.js`, `cuentasCorrientes.rutas.js`, `cuentasCorrientes.pdf.js` | Cuenta del chofer sincronizada, validación de proveedores, movimientos automáticos con origen, saldos y resumen PDF |
-| `viajes/` | `viajes.hooks.js`, `viajes.servicio.js`, `viajes.calculos.js` | Liquidación al chofer (FINALIZADO) y débito al pagador (FACTURADO), por un único camino; foto del equipo en cada viaje |
+| `admin/` | `admin.rutas.js`, `certificados.rutas.js`, `usuarios.servicio.js`, `certificados.servicio.js` | Empresas, módulos por empresa; reglas de usuarios y certificados ARCA compartidas con `empresa/` (parametrizadas por alcance) |
+| `empresa/` | `empresa.rutas.js` | Panel "Mi empresa" del rol `ADMIN_EMPRESA`: sus usuarios, certificado ARCA y datos fiscales, nunca de otra empresa |
+| `multiempresa/` | `multiempresa.rutas.js` | Panel "Mi multiempresa" del rol `ADMIN_MULTIEMPRESA`: usuarios, certificado ARCA y datos fiscales de la empresa que esté operando (elegida con la cabecera `X-Empresa-Id`, validada contra `USUARIOS_EMPRESAS`), nunca de una empresa no asignada |
+| `choferes/` | `choferes.hooks.js` | Valida la remuneración mixta (sueldo fijo y/o variable) al guardar un chofer |
+| `cuentas/` | `cuentas.hooks.js`, `cuentas.servicio.js`, `movimientos.servicio.js`, `liquidacionSueldos.servicio.js`, `cuentasCorrientes.rutas.js`, `cuentasCorrientes.pdf.js` | Cuenta del chofer sincronizada, validación de proveedores, movimientos automáticos con origen, liquidación mensual del sueldo fijo, saldos y resumen PDF |
+| `viajes/` | `viajes.hooks.js`, `viajes.servicio.js`, `viajes.calculos.js` | Liquidación al chofer (FINALIZADO, solo la parte variable de su remuneración) y débito al pagador (FACTURADO), por un único camino; foto del equipo en cada viaje |
 | `equipos/` | `equipos.historial.js`, `equipos.hooks.js`, `equipos.rutas.js` | Historial de composición (camión, acoplado y chofer por período) y su consulta y corrección |
-| `gastos/` | `consumos.hooks.js`, `gastosAdministrativos.hooks.js` | Crédito al proveedor por cada consumo o gasto |
+| `gastos/` | `consumos.hooks.js`, `gastosAdministrativos.hooks.js`, `comprobanteCompra.js`, `comprobanteDuplicado.servicio.js` | Crédito al proveedor por cada consumo o gasto; comprobante del proveedor (IVA discriminado) validado y sin duplicados entre las tres tablas |
 | `facturacion/` | `facturacion.rutas.js`, `facturacion.servicio.js`, `facturacion.pdf.js` | Factura A, nota de crédito, numeración, CAE, PDF |
-| `dashboard/` | `dashboard.rutas.js`, `dashboard.consultas.js` | KPIs, alertas y métricas |
+| `dashboard/` | `dashboard.rutas.js`, `dashboard.consultas.js`, `dashboard.calculos.js` | KPIs, alertas, métricas y prorrateo del sueldo fijo por días asignados (rentabilidad por equipo) |
 | `stock/` | `stock.rutas.js` | Depósitos y traspaso masivo |
 | `asesoria/` | `asesoria.rutas.js` | Formulario público de la landing (correo SMTP) |
 
@@ -108,7 +111,8 @@ después reconcilia los movimientos de la cuenta del chofer y del cliente
 | Qué | Dónde |
 |-----|-------|
 | Arranque bloqueado si faltan `AUTH_SECRET`/`CERT_SECRET` o son débiles | `lib/seguridad/configuracion.js` (lo llama `server.js`) |
-| Sesión: token firmado en `Authorization: Bearer` (nunca en la URL); en cada pedido se verifica que el usuario siga activo y que su `version_sesion` coincida | `middleware/autenticacion.js` |
+| Roles: `ADMIN` (plataforma, todas las empresas), `ADMIN_MULTIEMPRESA` (como `ADMIN_EMPRESA` pero para un subconjunto de empresas asignado por el `ADMIN`, nunca crea ni da de baja empresas), `ADMIN_EMPRESA` (opera como `USUARIO` y además administra usuarios/certificado/datos fiscales de su propia empresa) y `USUARIO` (opera su empresa) | `requiereRol`/`requiereAdmin`/`alcanceEmpresaPropia` en `middleware/autenticacion.js`; `resolverEmpresaMultiempresa` en `middleware/alcanceMultiempresa.js` |
+| Sesión: token firmado en `Authorization: Bearer` (nunca en la URL); en cada pedido se verifica que el usuario siga activo y que su `version_sesion` coincida (también se incrementa al cambiar el rol o la empresa de alguien) | `middleware/autenticacion.js` |
 | Contraseña temporal (instalación inicial o asignada por el admin): hay que cambiarla antes de operar | `debe_cambiar_contrasena` + `PUT /api/auth/contrasena` |
 | Límite de intentos de login: 5 por usuario e IP y 20 por IP, cada 15 min | `lib/seguridad/limiteIntentos.js` |
 | Cabeceras HTTP (CSP, nosniff, anti-iframe, HSTS con HTTPS) | `middleware/seguridad.js` |
@@ -121,7 +125,7 @@ Drive, HTTPS y SSH) está documentado en `docs/operacion/SERVIDOR.md`.
 
 ## Frontend (`frontend/`)
 
-Se sirve como carpeta estática: `frontend/css/styles.css` es `/css/styles.css`.
+Se sirve como carpeta estática: `frontend/stylo/main.css` es `/stylo/main.css` (único CSS que carga `index.html`; solo `@import`). Los valores viven en `base/tokens.css` y `base/temas.css`; los componentes en `componentes/`, el esqueleto en `layout/` y lo específico de cada pantalla en `vistas/`. Los gráficos son SVG propios (`js/nucleo/graficos.js`), sin librerías.
 No hay bundler: los archivos se cargan con `<script>` en el orden de `index.html`
 y **todas las funciones son globales**, porque el HTML generado usa
 `onclick="nombreDeFuncion(...)"`.
@@ -140,16 +144,18 @@ y **todas las funciones son globales**, porque el HTML generado usa
 
 | Carpeta | Uso | Cuándo |
 |---------|-----|--------|
-| `esquema/init_db.sql` | Crea la base desde cero con datos iniciales. **Ejecuta `DROP DATABASE`** | Solo instalación nueva o pruebas |
+| `esquema/esquema.sql` | Todas las tablas, sin datos. Lo aplica `instalar.js` sobre una base **vacía** (no borra nada) | Instalación limpia de un cliente |
+| `instalar.js` · `alta-cliente.js` | Instalación (tablas + administrador de plataforma) y alta de cada cliente (empresa + su administrador) | [ALTA_DE_CLIENTE.md](operacion/ALTA_DE_CLIENTE.md) |
 | `migraciones/` | Cambios incrementales 001…026, aplicados por `migrar.js` (tabla `MIGRACIONES`) | Actualizar producción sin perder datos |
-| `datos_prueba/` | ~5.600 filas coherentes y su generador | Pruebas y demos |
+| `datos_prueba/` | `datos_basicos.sql` (empresa de ejemplo y usuarios `admin`/`demo`, solo desarrollo y tests) y ~5.600 filas coherentes con su generador | Pruebas y demos |
 
 ## Verificación
 
 - `npm test` — reglas de cálculo.
 - `npm run test:integracion` — circuito viaje → facturación → cuenta corriente
-  contra un MySQL **descartable** (recrea la base con `init_db.sql`; exige
+  contra un MySQL **descartable** (recrea la base con `esquema.sql` + `datos_basicos.sql`; exige
   `TEST_DB_PERMITIR_BORRADO=1` y `TEST_DB_*`).
 - `npm run verificar` — sintaxis y `require` del backend.
+- `npm run verificar-entorno` — secretos, base, esquema, migraciones y respaldos (lo mismo que comprueba el servidor al arrancar).
 - `npm run smoke` — foto de todas las respuestas de la API para comparar antes
   y después de un cambio (con `--con-escritura` solo contra una base de prueba).

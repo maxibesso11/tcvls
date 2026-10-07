@@ -1,0 +1,14 @@
+/* componentes/utilidades.css
+   Clases sueltas de texto y estado vacío. */
+
+.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.mono { font-family: var(--font-mono); font-size: 13px; }
+.rotulo { font: 600 11px/14px var(--font-text); letter-spacing: .9px; text-transform: uppercase; color: var(--ink-2); }
+.tenue { color: var(--ink-3); }
+
+/* Importes con signo: verde = a favor / crédito, rojo = en contra / débito */
+.monto-pos { color: var(--ok); }
+.monto-neg { color: var(--danger); }
+
+/* ---------- Vacío ---------- */
+.vacio { padding: var(--space-6) var(--space-4); text-align: center; color: var(--ink-3); }

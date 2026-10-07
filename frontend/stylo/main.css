@@ -1,0 +1,31 @@
+/* main.css
+   Punto de entrada. index.html carga solo este archivo. El orden importa. */
+
+@import url('./base/fuentes.css');
+@import url('./base/tokens.css');
+@import url('./base/temas.css');
+@import url('./base/reset.css');
+@import url('./componentes/utilidades.css');
+@import url('./componentes/boton.css');
+@import url('./componentes/patente.css');
+@import url('./componentes/insignia.css');
+@import url('./componentes/cifra.css');
+@import url('./componentes/hoja.css');
+@import url('./componentes/tabla.css');
+@import url('./componentes/graficos.css');
+@import url('./componentes/tabs.css');
+@import url('./componentes/campo.css');
+@import url('./componentes/alerta.css');
+@import url('./componentes/composicion.css');
+@import url('./componentes/rail.css');
+@import url('./componentes/ficha.css');
+@import url('./componentes/modal.css');
+@import url('./componentes/capas.css');
+@import url('./layout/app.css');
+@import url('./vistas/tablero.css');
+@import url('./vistas/unidades.css');
+@import url('./vistas/viajes.css');
+@import url('./vistas/agenda.css');
+@import url('./vistas/configuracion.css');
+@import url('./vistas/admin.css');
+@import url('./layout/responsive.css');

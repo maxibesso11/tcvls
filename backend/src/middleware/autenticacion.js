@@ -54,17 +54,23 @@ const requiereAutenticacion = crearVerificacion({ permitirCambioPendiente: false
 // consultar la sesión y hacer ese cambio.
 const requiereAutenticacionConCambioPendiente = crearVerificacion({ permitirCambioPendiente: true });
 
-// Exige rol ADMIN.
-function requiereAdmin(req, res, next) {
-  if (!req.usuario || req.usuario.rol !== 'ADMIN') {
-    return res.status(403).json({ error: 'Acción reservada al administrador.' });
-  }
-  next();
+// Exige que el rol del usuario sea uno de los indicados.
+function requiereRol(...roles) {
+  return function (req, res, next) {
+    if (!req.usuario || !roles.includes(req.usuario.rol)) {
+      return res.status(403).json({ error: 'No tenés permiso para realizar esta acción.' });
+    }
+    next();
+  };
 }
+
+// Exige rol ADMIN (administrador de plataforma).
+const requiereAdmin = requiereRol('ADMIN');
 
 // Exige que el usuario tenga una empresa asignada (usuarios operativos).
 // El ADMIN no opera datos de empresa, así que se le bloquea el acceso a
-// los módulos de datos para no romper el aislamiento.
+// los módulos de datos para no romper el aislamiento. ADMIN_EMPRESA sí
+// tiene empresa asignada, así que pasa igual que un USUARIO.
 function requiereEmpresa(req, res, next) {
   if (!req.usuario || !req.usuario.id_empresa) {
     return res.status(403).json({
@@ -74,10 +80,19 @@ function requiereEmpresa(req, res, next) {
   next();
 }
 
+// Fija el alcance de un ADMIN_EMPRESA a su propia empresa (nunca a la de la
+// URL ni del cuerpo del pedido). Se monta después de requiereRol('ADMIN_EMPRESA').
+function alcanceEmpresaPropia(req, res, next) {
+  req.idEmpresaObjetivo = req.usuario.id_empresa;
+  next();
+}
+
 module.exports = {
   requiereAutenticacion,
   requiereAutenticacionConCambioPendiente,
+  requiereRol,
   requiereAdmin,
   requiereEmpresa,
+  alcanceEmpresaPropia,
   CODIGO_CAMBIO_REQUERIDO
 };

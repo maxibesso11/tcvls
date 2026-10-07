@@ -27,19 +27,21 @@ async function abrirModalMoverDeposito(clave) {
   ).join('');
 
   $('#modal-cuerpo').innerHTML = `
-    <div class="campo ancho-completo">
-      <label for="md-origen">Depósito de origen *</label>
-      <select id="md-origen">${opciones}</select>
-    </div>
-    <div class="campo ancho-completo">
-      <label for="md-destino">Depósito de destino *</label>
-      <input id="md-destino" type="text" maxlength="100" list="md-lista-destinos" placeholder="Existente o nuevo (ej: Equipo #2 · AD789GH)">
-      <datalist id="md-lista-destinos">
-        ${depositos.map(d => `<option value="${esc(d.deposito)}"></option>`).join('')}
-      </datalist>
-    </div>
-    <div class="campo ancho-completo" style="font-size:13px;color:var(--texto-suave)">
-      Se moverán <strong>todos</strong> los elementos del depósito de origen al de destino en una sola operación.
+    <div class="formulario">
+      <div class="campo ancho">
+        <label for="md-origen">Depósito de origen *</label>
+        <select id="md-origen">${opciones}</select>
+      </div>
+      <div class="campo ancho">
+        <label for="md-destino">Depósito de destino *</label>
+        <input id="md-destino" type="text" maxlength="100" list="md-lista-destinos" placeholder="Existente o nuevo (ej: Equipo #2 · AD789GH)">
+        <datalist id="md-lista-destinos">
+          ${depositos.map(d => `<option value="${esc(d.deposito)}"></option>`).join('')}
+        </datalist>
+      </div>
+      <div class="campo ancho">
+        <span class="ayuda">Se moverán <strong>todos</strong> los elementos del depósito de origen al de destino en una sola operación.</span>
+      </div>
     </div>
   `;
 
@@ -50,7 +52,7 @@ async function guardarMoverDeposito() {
   const origen = $('#md-origen').value;
   const destino = $('#md-destino').value.trim();
 
-  if (!destino) { mostrarToast('Indica el depósito de destino', true); return; }
+  if (!destino) { mostrarToast('Indicá el depósito de destino', true); return; }
   if (origen === destino) { mostrarToast('El origen y el destino no pueden ser iguales', true); return; }
 
   try {

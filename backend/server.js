@@ -2,32 +2,49 @@
 // Carga la configuración (.env de la carpeta desde donde se ejecuta, la raíz
 // del proyecto), abre el puerto y maneja el cierre ordenado.
 require('dotenv').config();
-
-// Sin los secretos críticos bien configurados el servidor no arranca (ver
-// src/lib/seguridad/configuracion.js). Se verifica antes de cargar la app.
-const { problemasDeConfiguracion } = require('./src/lib/seguridad/configuracion');
-const problemas = problemasDeConfiguracion();
-if (problemas.length) {
-  console.error('✗ El ERP no puede arrancar: configuración insegura o incompleta.');
-  problemas.forEach(p => console.error(`  - ${p}`));
-  console.error('  Corregí el archivo .env (valores nuevos con: openssl rand -hex 48) y volvé a iniciar.');
-  process.exit(1);
-}
+require('./src/lib/registro').instalar();
 
 const app = require('./src/app');
 const pool = require('./src/config/db');
+const { verificar, informe } = require('./src/lib/verificacionEntorno');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-const servidor = app.listen(PORT, HOST, () => {
-  console.log(`✓ TCV LogiSuite ERP corriendo en http://${HOST}:${PORT} (entorno: ${process.env.NODE_ENV || 'development'})`);
+let servidor;
+
+// Antes de abrir el puerto se verifica el entorno (src/lib/verificacionEntorno.js):
+// secretos, base de datos, esquema y migraciones. Si algo impide funcionar bien,
+// el servidor NO arranca y explica cómo corregirlo; los avisos solo se imprimen.
+async function iniciar() {
+  const resultado = await verificar({ pool });
+  if (resultado.errores.length) {
+    console.error('✗ El ERP no puede arrancar: el entorno no está bien configurado.');
+    console.error(informe(resultado));
+    process.exit(1);
+  }
+  if (resultado.avisos.length) {
+    console.warn('⚠ El ERP arranca, pero conviene revisar:');
+    console.warn(informe({ errores: [], avisos: resultado.avisos, correctos: [] }));
+  }
+
+  require('./src/lib/auditoria').iniciarDepuracion();
+
+  servidor = app.listen(PORT, HOST, () => {
+    console.log(`✓ TCV LogiSuite ERP corriendo en http://${HOST}:${PORT} (entorno: ${process.env.NODE_ENV || 'development'})`);
+  });
+}
+
+iniciar().catch(err => {
+  console.error('✗ No se pudo iniciar el ERP:', err.message);
+  process.exit(1);
 });
 
 // Cierre ordenado: al recibir señal de parada (PM2/systemd), cerrar el
 // servidor HTTP y el pool de conexiones antes de salir.
 function cierreOrdenado(senal) {
   console.log(`\n${senal} recibido. Cerrando servidor…`);
+  if (!servidor) process.exit(0);
   servidor.close(async () => {
     try { await pool.end(); } catch (e) { /* ignorar */ }
     console.log('Servidor y conexiones cerradas. Hasta luego.');

@@ -1,0 +1,17 @@
+/* componentes/tabs.css
+   Ver guía del componente en el sistema de diseño. */
+
+/* ---------- Tabs ---------- */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tab { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 10px var(--space-3) 11px; border: 0; background: none; color: var(--ink-2); font: 600 13.5px/1 var(--font-text); cursor: pointer; white-space: nowrap; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); }
+.tab[aria-selected="true"]::after { content: ""; position: absolute; left: var(--space-3); right: var(--space-3); bottom: -1px; height: 3px; background: var(--accent-text); }
+.tab .cuenta { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--surface-sunk); color: var(--ink-2); font-size: 11px; line-height: 18px; text-align: center; }
+.tab .cuenta.peligro { background: var(--danger-fill); color: #fff; }
+
+/* Segmentado (períodos, filtros rápidos) */
+.segmentado { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius-m); overflow: hidden; }
+.segmentado button { height: 30px; padding: 0 var(--space-3); border: 0; border-left: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font: 600 12.5px/1 var(--font-text); cursor: pointer; }
+.segmentado button:first-child { border-left: 0; }
+.segmentado button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }

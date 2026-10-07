@@ -1,0 +1,42 @@
+/* vistas/admin.css
+   Matriz empresa × módulo. */
+
+/* Matriz de módulos */
+.matriz td.m { text-align: center; }
+.matriz .pto { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink-3); }
+.matriz .pto.on { background: var(--ink); border-color: var(--ink); }
+.matriz th.rot { writing-mode: vertical-rl; transform: rotate(180deg); height: 120px; vertical-align: bottom; text-align: left; padding: 8px 6px; }
+
+/* ---------- Paneles de administración ---------- */
+/* Empresa en una celda: iniciales + nombre y CUIT */
+.empresa-celda { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.empresa-celda .avatar { flex: none; }
+
+/* Hoja con dos grupos (ej. datos de la empresa): la segunda cabecera separa */
+.hoja-cabecera-intermedia { border-top: 1px solid var(--line); }
+.hoja-pie-acciones { display: flex; justify-content: flex-end; gap: var(--space-2); padding-block: var(--space-3); }
+
+/* Registros del servidor */
+.registros { display: flex; flex-direction: column; }
+.registro { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--line); }
+.registro.error { background: var(--danger-tint); }
+.registro-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 12px; }
+.registro-texto { margin: 0; font: 12.5px/1.5 var(--font-mono, ui-monospace, monospace); white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .registro { grid-template-columns: 1fr; } }
+
+/* Certificado ARCA: pasos numerados (hecho · actual · pendiente) */
+.pasos { list-style: none; margin: var(--space-4) 0; padding: 0; display: flex; flex-direction: column; }
+.paso { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--space-3); padding-bottom: var(--space-5); }
+.paso:last-child { padding-bottom: 0; }
+.paso::before { content: ""; position: absolute; left: 15px; top: 34px; bottom: 2px; width: 2px; background: var(--line); }
+.paso:last-child::before { display: none; }
+.paso-num { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); font: 600 15px/1 var(--font-display); color: var(--ink-2); }
+.paso.actual .paso-num { border-color: var(--ink); background: var(--ink); color: var(--surface); }
+.paso.hecho .paso-num { border-color: var(--ok); background: var(--ok-tint); color: var(--ok); }
+.paso-cuerpo { display: flex; flex-direction: column; gap: var(--space-2); padding-top: 5px; min-width: 0; }
+.paso-cuerpo b { font-weight: 600; }
+.paso-cuerpo p { margin: 0; font-size: 13px; color: var(--ink-3); }
+.paso.pendiente .paso-cuerpo b { color: var(--ink-2); }
+.paso-cuerpo .acciones, .paso-cuerpo > .btn { align-self: flex-start; }
+.avisos-cert { margin-bottom: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-m); }
+.cert-estado { margin-bottom: var(--space-3); }

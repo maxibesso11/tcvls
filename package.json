@@ -6,11 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "init-db": "mysql -u $DB_USER -p $DB_NAME < backend/database/esquema/init_db.sql",
+    "instalar": "node backend/database/instalar.js",
+    "alta-cliente": "node backend/database/alta-cliente.js",
+    "verificar-entorno": "node scripts/verificar-entorno.js",
     "verificar": "node scripts/verificar-requires.js",
     "smoke": "node scripts/smoke-test.js",
-    "test": "node --test backend/test/viajes.calculos.test.js backend/test/facturacion.servicio.test.js",
-    "test:integracion": "node --test --test-concurrency=1 backend/test/integracion/circuitoCuentas.test.js backend/test/integracion/seguridad.test.js"
+    "test": "node --test backend/test/viajes.calculos.test.js backend/test/facturacion.servicio.test.js backend/test/dashboard.calculos.test.js backend/test/comprobanteCompra.test.js backend/test/verificacionEntorno.test.js",
+    "test:integracion": "node --test --test-concurrency=1 backend/test/integracion/circuitoCuentas.test.js backend/test/integracion/seguridad.test.js backend/test/integracion/adminEmpresa.test.js backend/test/integracion/adminMultiempresa.test.js backend/test/integracion/remuneracionMixta.test.js backend/test/integracion/comprobanteCompra.test.js"
   },
   "engines": {
     "node": ">=18.0.0"

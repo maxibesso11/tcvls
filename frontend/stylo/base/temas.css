@@ -1,0 +1,16 @@
+/* base/temas.css
+   Temas de Apariencia. Cada tema redefine SOLO estas 6 variables. Se aplica con <html data-tema="id">. */
+
+[data-tema="tcv"] { --rail: #16386b; --rail-raised: #1c4789; --accent: #38b6ff; --accent-text: #006cab; --on-accent: #0f1b2d; --rail-ink-muted: #adbacf; } /* TCV */
+[data-tema="verde"] { --rail: #1d2f29; --rail-raised: #2b453c; --accent: #e8a13c; --accent-text: #915c11; --on-accent: #0f1b2d; --rail-ink-muted: #a0b0ab; } /* Verde pizarra */
+[data-tema="azul"] { --rail: #1a2940; --rail-raised: #243959; --accent: #4f9dde; --accent-text: #206baa; --on-accent: #0f1b2d; --rail-ink-muted: #98a4b6; } /* Azul noche */
+[data-tema="violeta"] { --rail: #2f2046; --rail-raised: #3f2b5e; --accent: #a779e0; --accent-text: #8443d4; --on-accent: #0f1b2d; --rail-ink-muted: #a69bb5; } /* Violeta */
+[data-tema="borgona"] { --rail: #3c1d22; --rail-raised: #542930; --accent: #d98f6b; --accent-text: #a2512a; --on-accent: #0f1b2d; --rail-ink-muted: #b39b9e; } /* Borgoña */
+[data-tema="grafito"] { --rail: #292a2d; --rail-raised: #3a3b40; --accent: #d6a85c; --accent-text: #866122; --on-accent: #0f1b2d; --rail-ink-muted: #a7a7aa; } /* Grafito */
+[data-tema="oceano"] { --rail: #163b3f; --rail-raised: #1f5459; --accent: #3bb3a8; --accent-text: #26726b; --on-accent: #0f1b2d; --rail-ink-muted: #abc4c6; } /* Océano */
+[data-tema="indigo"] { --rail: #25264f; --rail-raised: #303267; --accent: #7c83f8; --accent-text: #4751f5; --on-accent: #0f1b2d; --rail-ink-muted: #a0a0b8; } /* Índigo */
+[data-tema="esmeralda"] { --rail: #133d2e; --rail-raised: #1b5843; --accent: #2ecc8f; --accent-text: #1a7552; --on-accent: #0f1b2d; --rail-ink-muted: #aac7bd; } /* Esmeralda */
+[data-tema="cobre"] { --rail: #3d271b; --rail-raised: #563726; --accent: #e08a4b; --accent-text: #9f531b; --on-accent: #0f1b2d; --rail-ink-muted: #b9a8a0; } /* Cobre */
+[data-tema="rosa"] { --rail: #421d33; --rail-raised: #5b2846; --accent: #e06b9e; --accent-text: #bf286a; --on-accent: #0f1b2d; --rail-ink-muted: #b89dae; } /* Rosa */
+[data-tema="slate"] { --rail: #21282f; --rail-raised: #303a44; --accent: #6aa0c8; --accent-text: #366c93; --on-accent: #0f1b2d; --rail-ink-muted: #9ea4ab; } /* Pizarra azul */
+[data-tema="bosque"] { --rail: #1f3324; --rail-raised: #2c4934; --accent: #9bc24a; --accent-text: #576f25; --on-accent: #0f1b2d; --rail-ink-muted: #a5b5aa; } /* Bosque */

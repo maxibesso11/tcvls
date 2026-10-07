@@ -1,6 +1,7 @@
 // public/js/api.js - Cliente HTTP para la API del ERP
 const API = {
   _token: null,
+  _empresaContexto: null,
 
   setToken(token) {
     this._token = token;
@@ -13,9 +14,25 @@ const API = {
     return this._token;
   },
 
+  // Empresa que un ADMIN_MULTIEMPRESA eligió operar. Se guarda por pestaña
+  // (sessionStorage, no localStorage): así dos pestañas pueden operar dos
+  // empresas distintas sin cruzarse, y una pestaña nueva siempre obliga a
+  // elegir explícitamente en vez de heredar la última usada.
+  setEmpresaContexto(idEmpresa) {
+    this._empresaContexto = idEmpresa || null;
+    if (idEmpresa) sessionStorage.setItem('erp_empresa_contexto', idEmpresa);
+    else sessionStorage.removeItem('erp_empresa_contexto');
+  },
+
+  cargarEmpresaContexto() {
+    this._empresaContexto = sessionStorage.getItem('erp_empresa_contexto') || null;
+    return this._empresaContexto;
+  },
+
   async _solicitud(url, opciones = {}) {
     const headers = { 'Content-Type': 'application/json', ...(opciones.headers || {}) };
     if (this._token) headers['Authorization'] = `Bearer ${this._token}`;
+    if (this._empresaContexto) headers['X-Empresa-Id'] = this._empresaContexto;
     const res = await fetch(url, { ...opciones, headers });
     const datos = await res.json().catch(() => ({}));
     if (res.status === 401) {
@@ -59,6 +76,34 @@ const API = {
     return this.descargarArchivo(`/api/certificados/${idEmpresa}/csr`, nombreArchivo || 'solicitud.csr');
   },
 
+  // ---------- Mi empresa (solo ADMIN_EMPRESA) ----------
+  miEmpresaListarUsuarios() { return this._solicitud('/api/empresa/usuarios'); },
+  miEmpresaCrearUsuario(datos) { return this._solicitud('/api/empresa/usuarios', { method: 'POST', body: JSON.stringify(datos) }); },
+  miEmpresaActualizarUsuario(id, datos) { return this._solicitud(`/api/empresa/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(datos) }); },
+  miEmpresaEliminarUsuario(id) { return this._solicitud(`/api/empresa/usuarios/${id}`, { method: 'DELETE' }); },
+  miEmpresaCertificadoEstado() { return this._solicitud('/api/empresa/certificado'); },
+  miEmpresaCertificadoGenerar() { return this._solicitud('/api/empresa/certificado/generar', { method: 'POST' }); },
+  miEmpresaCertificadoSubir(certificado_pem) { return this._solicitud('/api/empresa/certificado', { method: 'POST', body: JSON.stringify({ certificado_pem }) }); },
+  miEmpresaCertificadoEliminar() { return this._solicitud('/api/empresa/certificado', { method: 'DELETE' }); },
+  miEmpresaDescargarCSR() { return this.descargarArchivo('/api/empresa/certificado/csr', 'solicitud.csr'); },
+  miEmpresaDatosFiscales() { return this._solicitud('/api/empresa/datos-fiscales'); },
+  miEmpresaGuardarDatosFiscales(datos) { return this._solicitud('/api/empresa/datos-fiscales', { method: 'PUT', body: JSON.stringify(datos) }); },
+
+  // ---------- Mi multiempresa (solo ADMIN_MULTIEMPRESA) ----------
+  // Todas viajan con la cabecera X-Empresa-Id (ver setEmpresaContexto), que
+  // indica sobre cuál de sus empresas asignadas está operando.
+  multiempresaListarUsuarios() { return this._solicitud('/api/multiempresa/usuarios'); },
+  multiempresaCrearUsuario(datos) { return this._solicitud('/api/multiempresa/usuarios', { method: 'POST', body: JSON.stringify(datos) }); },
+  multiempresaActualizarUsuario(id, datos) { return this._solicitud(`/api/multiempresa/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(datos) }); },
+  multiempresaEliminarUsuario(id) { return this._solicitud(`/api/multiempresa/usuarios/${id}`, { method: 'DELETE' }); },
+  multiempresaCertificadoEstado() { return this._solicitud('/api/multiempresa/certificado'); },
+  multiempresaCertificadoGenerar() { return this._solicitud('/api/multiempresa/certificado/generar', { method: 'POST' }); },
+  multiempresaCertificadoSubir(certificado_pem) { return this._solicitud('/api/multiempresa/certificado', { method: 'POST', body: JSON.stringify({ certificado_pem }) }); },
+  multiempresaCertificadoEliminar() { return this._solicitud('/api/multiempresa/certificado', { method: 'DELETE' }); },
+  multiempresaDescargarCSR() { return this.descargarArchivo('/api/multiempresa/certificado/csr', 'solicitud.csr'); },
+  multiempresaDatosFiscales() { return this._solicitud('/api/multiempresa/datos-fiscales'); },
+  multiempresaGuardarDatosFiscales(datos) { return this._solicitud('/api/multiempresa/datos-fiscales', { method: 'PUT', body: JSON.stringify(datos) }); },
+
   // ---------- Historial de equipos ----------
   historialEquipo(idEquipo) { return this._solicitud(`/api/equipos/${idEquipo}/historial`); },
   moverInicioPeriodo(idHistorial, desde) {
@@ -71,6 +116,7 @@ const API = {
   async descargarArchivo(ruta, nombrePorDefecto) {
     const headers = {};
     if (this._token) headers['Authorization'] = `Bearer ${this._token}`;
+    if (this._empresaContexto) headers['X-Empresa-Id'] = this._empresaContexto;
     const res = await fetch(ruta, { headers });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
@@ -92,6 +138,31 @@ const API = {
   catalogoModulos() { return this._solicitud('/api/admin/modulos/catalogo'); },
   modulosDeEmpresa(id) { return this._solicitud(`/api/admin/empresas/${id}/modulos`); },
   guardarModulosEmpresa(id, modulos) { return this._solicitud(`/api/admin/empresas/${id}/modulos`, { method: 'PUT', body: JSON.stringify({ modulos }) }); },
+  // Herramientas de sistema (ADMIN): registros del servidor y respaldos
+  adminLogs(params = {}) {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v) q.set(k, v); });
+    return this._solicitud(`/api/admin/sistema/logs?${q}`);
+  },
+  adminAuditoria(p = {}) {
+    const q = new URLSearchParams();
+    Object.entries(p).forEach(([k, v]) => { if (v) q.set(k, v); });
+    return this._solicitud(`/api/admin/auditoria?${q}`);
+  },
+  miEmpresaAuditoria(p = {}) {
+    const q = new URLSearchParams();
+    Object.entries(p).forEach(([k, v]) => { if (v) q.set(k, v); });
+    return this._solicitud(`/api/empresa/auditoria?${q}`);
+  },
+  multiempresaAuditoria(p = {}) {
+    const q = new URLSearchParams();
+    Object.entries(p).forEach(([k, v]) => { if (v) q.set(k, v); });
+    return this._solicitud(`/api/multiempresa/auditoria?${q}`);
+  },
+  adminRespaldos() { return this._solicitud('/api/admin/sistema/respaldos'); },
+  descargarRespaldo(nombre) { return this.descargarArchivo(`/api/admin/sistema/respaldos/${encodeURIComponent(nombre)}`, nombre); },
+  usuarioEmpresasAsignadas(id) { return this._solicitud(`/api/admin/usuarios/${id}/empresas`); },
+  asignarEmpresasUsuario(id, empresas) { return this._solicitud(`/api/admin/usuarios/${id}/empresas`, { method: 'PUT', body: JSON.stringify({ empresas }) }); },
 
   // Listado paginado para tablas. Devuelve { datos, paginacion }.
   listar(recurso, q = '', idEquipo = '', deposito = '', extras = {}, pagina = 1) {
@@ -171,8 +242,22 @@ const API = {
   detalleCuentaCorriente(id) {
     return this._solicitud(`/api/cuentas-corrientes/${id}`);
   },
+  liquidablesSueldosFijos(periodo) {
+    return this._solicitud(`/api/cuentas-corrientes/liquidar-sueldos-fijos?periodo=${periodo}`);
+  },
+  liquidarSueldosFijos(periodo, idChoferes) {
+    const body = { periodo };
+    if (idChoferes) body.id_choferes = idChoferes;
+    return this._solicitud('/api/cuentas-corrientes/liquidar-sueldos-fijos', { method: 'POST', body: JSON.stringify(body) });
+  },
   descargarPdfCuenta(id) {
     return this.descargarArchivo(`/api/cuentas-corrientes/${id}/pdf`, `resumen_cuenta_${id}.pdf`);
+  },
+  descargarPdfLiquidacionesPeriodo(periodo) {
+    return this.descargarArchivo(`/api/cuentas-corrientes/liquidacion-sueldos/periodo/${periodo}/pdf`, `liquidacion_sueldos_${periodo}.pdf`);
+  },
+  descargarPdfLiquidacion(id) {
+    return this.descargarArchivo(`/api/cuentas-corrientes/liquidacion-sueldos/${id}/pdf`, `recibo_sueldo_${id}.pdf`);
   },
 
   // Facturación

@@ -1,0 +1,9 @@
+/* componentes/ficha.css
+   Ver guía del componente en el sistema de diseño. */
+
+/* ---------- Ficha (cabecera de detalle) ---------- */
+.ficha-cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4) var(--space-5); padding: var(--space-5); background: var(--surface); border: 1px solid var(--line); border-bottom: 0; border-radius: var(--radius-m) var(--radius-m) 0 0; }
+.ficha-datos { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); }
+.ficha-dato { display: flex; flex-direction: column; gap: 2px; }
+.ficha-dato b { font-weight: 600; }
+.ficha-tabs { background: var(--surface); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 var(--radius-m) var(--radius-m); padding: 0 var(--space-3); }

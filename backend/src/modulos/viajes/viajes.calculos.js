@@ -5,7 +5,10 @@
 //   Monto del viaje   = tarifa (UNICA) o tarifa × resultado (o cantidad cargada)
 //   Neto con comisión = monto × (1 − comisión%)
 //   Cuenta cliente    = neto (SIN_FACTURAR) o neto + IVA 21% (resto de los modos)
-//   Liquidación chofer: PORCENTAJE del monto, POR KM × km (solo tarifa POR KM), FIJA = 0
+//   Liquidación chofer: solo la parte VARIABLE de su remuneración mixta
+//   (PORCENTAJE del monto, o POR KM × km si la tarifa es por km). La parte
+//   fija mensual no genera liquidación por viaje (ver "Liquidar sueldos
+//   fijos del mes" en cuentas/liquidacionSueldos.servicio.js).
 const { IVA_ALICUOTA: IVA } = require('../../config/constantes');
 
 function calcularMontoViaje(viaje) {
@@ -39,22 +42,21 @@ function calcularMontoCuentaCliente(viaje) {
 }
 
 function calcularLiquidacionChofer(viaje, chofer) {
-  if (!chofer || !chofer.tipo_remuneracion || chofer.remuneracion == null) {
+  if (!chofer || !chofer.variable_tipo || chofer.variable_valor == null) {
     return { monto: 0, incompleto: false };
   }
-  const remu = Number(chofer.remuneracion);
-  if (!Number.isFinite(remu) || remu <= 0) return { monto: 0, incompleto: false };
+  const valor = Number(chofer.variable_valor);
+  if (!Number.isFinite(valor) || valor <= 0) return { monto: 0, incompleto: false };
 
-  switch (chofer.tipo_remuneracion) {
+  switch (chofer.variable_tipo) {
     case 'PORCENTAJE':
-      return { monto: calcularMontoViaje(viaje) * (remu / 100), incompleto: false };
+      return { monto: calcularMontoViaje(viaje) * (valor / 100), incompleto: false };
     case 'POR KM':
       if (viaje.tipo_tarifa === 'POR KM') {
         const km = Number(viaje.resultado) || 0;
-        return { monto: km * remu, incompleto: false };
+        return { monto: km * valor, incompleto: false };
       }
       return { monto: 0, incompleto: true };
-    case 'FIJA':
     default:
       return { monto: 0, incompleto: false };
   }

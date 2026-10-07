@@ -1,8 +1,11 @@
 // backend/src/middleware/seguridad.js
 // Cabeceras de seguridad HTTP para todas las respuestas.
 //
-// Política de contenido (CSP): el sistema no carga nada de otros dominios, así
-// que todo se limita al propio sitio. Se permiten scripts y estilos en línea
+// Política de contenido (CSP): todo se limita al propio sitio, salvo las
+// tipografías de la interfaz (Barlow Condensed, Archivo, IBM Plex Mono), que se
+// sirven desde Google Fonts: la hoja de estilos desde fonts.googleapis.com y los
+// archivos de fuente desde fonts.gstatic.com. Sin esto el navegador las bloquea
+// y la interfaz cae a las fuentes del sistema. Se permiten scripts y estilos en línea
 // porque el frontend usa onclick="…" y style="…" en el HTML generado; aun así
 // la política impide cargar scripts externos, embeber el sistema en otro sitio
 // y enviar datos a otros dominios.
@@ -12,9 +15,9 @@
 const POLITICA_CONTENIDO = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob:",
-  "font-src 'self' data:",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "connect-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
