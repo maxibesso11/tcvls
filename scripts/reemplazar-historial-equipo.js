@@ -12,13 +12,20 @@
 //   node scripts/reemplazar-historial-equipo.js historial.json            vista previa
 //   node scripts/reemplazar-historial-equipo.js historial.json --aplicar  aplica
 //
-// historial.json (fechas en hora argentina; el primer período sin "desde"):
+// historial.json (fechas en hora argentina):
 // { "id_empresa": 2,
 //   "equipos": [
 //     { "id_equipo": 10, "periodos": [
 //         { "camion": "HKF072", "acoplado": "GFG347", "chofer": "CARLOS ALBERTO FERNANDEZ" },
 //         { "desde": "2026-07-10 00:00", "camion": "HKF072", "acoplado": "GFG347", "chofer": "OLEKSIUK JOSE IGNACIO" },
-//         { "desde": "2026-09-12 00:00", "camion": "EOR599", "acoplado": "IRE242", "chofer": "OLEKSIUK JOSE IGNACIO" } ] } ] }
+//         { "desde": "2026-09-12 00:00", "camion": "EOR599", "acoplado": "IRE242", "chofer": "OLEKSIUK JOSE IGNACIO" } ] },
+//     { "id_equipo": 11, "baja": "2026-09-10 00:00", "periodos": [ ... ] } ],
+//   "eliminar_equipos": [16],                      equipos sin viajes ni consumos (duplicados)
+//   "eliminar_unidades": ["aaaa0000", "bbbb0000"] } unidades inventadas, sin ninguna referencia
+//
+// - El primer período va sin "desde" (desde el alta) o con "desde" si el
+//   equipo empezó a usar un camión que ya tenía historia en otro equipo.
+// - "baja": el equipo se da de baja en esa fecha (cierra su último período).
 'use strict';
 const fs = require('fs');
 const pool = require('../backend/src/config/db');
@@ -67,10 +74,9 @@ async function main() {
     for (const eq of plan.equipos) {
       const periodos = [];
       for (const [i, p] of eq.periodos.entries()) {
-        if (i === 0 && p.desde) throw new Error(`Equipo ${eq.id_equipo}: el primer período no lleva "desde" (empieza con el alta).`);
         if (i > 0 && !p.desde) throw new Error(`Equipo ${eq.id_equipo}: el período ${i + 1} necesita "desde".`);
         periodos.push({
-          desde: i === 0 ? null : normalizar(p.desde),
+          desde: p.desde ? normalizar(p.desde) : null,
           up: await unidadPorPatente(db, idEmpresa, p.camion),
           us: await unidadPorPatente(db, idEmpresa, p.acoplado),
           ch: await choferPorNombre(db, idEmpresa, p.chofer),
@@ -81,15 +87,29 @@ async function main() {
         if (periodos[i].desde <= (periodos[i - 1].desde || '')) throw new Error(`Equipo ${eq.id_equipo}: las fechas deben ir en orden creciente.`);
       }
 
+      const baja = eq.baja ? normalizar(eq.baja) : null;
+      if (baja && baja <= (periodos[periodos.length - 1].desde || '')) {
+        throw new Error(`Equipo ${eq.id_equipo}: la baja tiene que ser posterior al inicio del último período.`);
+      }
+      if (baja) {
+        const [[posterior]] = await db.query(
+          'SELECT COUNT(*) AS n FROM VIAJES WHERE id_equipo = ? AND id_empresa = ? AND fecha_origen >= ?',
+          [eq.id_equipo, idEmpresa, baja]);
+        if (Number(posterior.n)) throw new Error(`Equipo ${eq.id_equipo}: tiene viajes posteriores a la baja (${baja}).`);
+      }
+
       const antes = await fotos(db, eq.id_equipo, idEmpresa);
       await db.query('DELETE FROM EQUIPO_HISTORIAL WHERE id_equipo = ? AND id_empresa = ?', [eq.id_equipo, idEmpresa]);
       for (let i = 0; i < periodos.length; i++) {
         const p = periodos[i];
+        const hasta = periodos[i + 1] ? periodos[i + 1].desde : baja;
         await db.query(
           `INSERT INTO EQUIPO_HISTORIAL (id_empresa, id_equipo, id_unidad_principal, id_unidad_secundaria, id_chofer, desde, hasta)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [idEmpresa, eq.id_equipo, p.up, p.us, p.ch, p.desde, periodos[i + 1] ? periodos[i + 1].desde : null]);
+          [idEmpresa, eq.id_equipo, p.up, p.us, p.ch, p.desde, hasta]);
       }
+      await db.query('UPDATE EQUIPO SET activo = ?, fecha_baja = ? WHERE id_equipo = ? AND id_empresa = ?',
+        [baja ? 0 : 1, baja, eq.id_equipo, idEmpresa]);
       const ultimo = periodos[periodos.length - 1];
       await db.query(
         'UPDATE EQUIPO SET id_unidad_principal = ?, id_unidad_secundaria = ?, id_chofer = ? WHERE id_equipo = ? AND id_empresa = ?',
@@ -99,6 +119,7 @@ async function main() {
 
       console.log(`\n== Equipo ${eq.id_equipo}: ${periodos.length} período(s), ${cambiados} viaje(s) cambian`);
       periodos.forEach(p => console.log(`   desde ${p.desde || 'el alta'}: ${p.texto}`));
+      if (baja) console.log(`   baja: ${baja}`);
       despues.forEach((d, i) => {
         const a = antes[i];
         const cambio = a.camion !== d.camion || a.acoplado !== d.acoplado || a.chofer !== d.chofer || Number(a.liquidacion) !== Number(d.liquidacion);
@@ -107,6 +128,33 @@ async function main() {
         }
       });
     }
+    // Equipos duplicados: solo si no tienen viajes ni consumos de combustible.
+    for (const idEquipo of plan.eliminar_equipos || []) {
+      const [[uso]] = await db.query(
+        `SELECT (SELECT COUNT(*) FROM VIAJES WHERE id_equipo = ?) AS viajes,
+                (SELECT COUNT(*) FROM CONSUMOS_COMBUSTIBLE WHERE id_equipo = ?) AS consumos`, [idEquipo, idEquipo]);
+      if (Number(uso.viajes) || Number(uso.consumos)) {
+        throw new Error(`El equipo ${idEquipo} tiene ${uso.viajes} viaje(s) y ${uso.consumos} consumo(s): no se elimina.`);
+      }
+      const [r] = await db.query('DELETE FROM EQUIPO WHERE id_equipo = ? AND id_empresa = ?', [idEquipo, idEmpresa]);
+      if (!r.affectedRows) throw new Error(`El equipo ${idEquipo} no existe en la empresa ${idEmpresa}.`);
+      console.log(`\n== Equipo ${idEquipo} eliminado (sin viajes ni consumos)`);
+    }
+
+    // Unidades inventadas: solo si nada las referencia (si no, la base lo impide).
+    for (const patente of plan.eliminar_unidades || []) {
+      const id = await unidadPorPatente(db, idEmpresa, patente);
+      const [[uso]] = await db.query(
+        `SELECT (SELECT COUNT(*) FROM VIAJES WHERE id_unidad_principal = ? OR id_unidad_secundaria = ?) +
+                (SELECT COUNT(*) FROM CONSUMOS_GENERALES WHERE id_unidad = ?) +
+                (SELECT COUNT(*) FROM VENCIMIENTOS WHERE id_unidad = ?) +
+                (SELECT COUNT(*) FROM MANTENIMIENTOS WHERE id_unidad = ?) +
+                (SELECT COUNT(*) FROM CUBIERTAS WHERE id_unidad = ?) AS n`, [id, id, id, id, id, id]);
+      if (Number(uso.n)) throw new Error(`La unidad ${patente} todavía tiene ${uso.n} registro(s) asociados: no se elimina.`);
+      await db.query('DELETE FROM UNIDADES WHERE id_unidad = ? AND id_empresa = ?', [id, idEmpresa]);
+      console.log(`== Unidad ${patente} eliminada`);
+    }
+
     if (APLICAR) {
       await db.commit();
       console.log('\n✓ Aplicado.');

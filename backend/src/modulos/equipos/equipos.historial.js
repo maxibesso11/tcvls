@@ -57,13 +57,111 @@ async function validarFechaCambio(db, idEquipo, idEmpresa, fechaCambio) {
   return null;
 }
 
-// Primer período de un equipo recién creado.
+// Primer período de un equipo recién creado. Empieza "desde el alta" (sin
+// fecha) salvo que alguna de sus unidades ya haya estado en otro equipo: en
+// ese caso empieza ahora, para que los consumos anteriores de esa unidad
+// sigan siendo del equipo que la tenía y no se cuenten dos veces.
 async function registrarAlta(db, equipo, idEmpresa, idUsuario) {
+  const [[previa]] = await db.query(
+    `SELECT COUNT(*) AS n FROM EQUIPO_HISTORIAL
+      WHERE id_empresa = ? AND id_equipo <> ?
+        AND (id_unidad_principal IN (?, ?) OR id_unidad_secundaria IN (?, ?))`,
+    [idEmpresa, equipo.id_equipo, equipo.id_unidad_principal, equipo.id_unidad_secundaria,
+     equipo.id_unidad_principal, equipo.id_unidad_secundaria]);
+  const desde = Number(previa.n) > 0 ? ahora() : null;
   await db.query(
     `INSERT INTO EQUIPO_HISTORIAL
        (id_empresa, id_equipo, id_unidad_principal, id_unidad_secundaria, id_chofer, desde, hasta, id_usuario)
-     VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)`,
-    [idEmpresa, equipo.id_equipo, equipo.id_unidad_principal, equipo.id_unidad_secundaria, equipo.id_chofer, idUsuario || null]);
+     VALUES (?, ?, ?, ?, ?, ?, NULL, ?)`,
+    [idEmpresa, equipo.id_equipo, equipo.id_unidad_principal, equipo.id_unidad_secundaria, equipo.id_chofer,
+     desde, idUsuario || null]);
+}
+
+// Un camión, un acoplado o un chofer no puede estar en dos equipos activos a
+// la vez. Devuelve el mensaje de error (o null). idEquipoPropio: el equipo
+// que se está editando (se excluye de la búsqueda).
+async function validarDisponibilidad(db, idEmpresa, composicion, idEquipoPropio = null) {
+  const up = Number(composicion.id_unidad_principal);
+  const us = Number(composicion.id_unidad_secundaria);
+  const ch = Number(composicion.id_chofer);
+  const [ocupados] = await db.query(`
+    SELECT e.id_equipo, e.id_unidad_principal, e.id_unidad_secundaria, e.id_chofer,
+           up.patente AS patente_principal, us.patente AS patente_secundaria, c.nombre AS chofer
+      FROM EQUIPO e
+      JOIN UNIDADES up ON up.id_unidad = e.id_unidad_principal
+      JOIN UNIDADES us ON us.id_unidad = e.id_unidad_secundaria
+      JOIN CHOFERES c ON c.id_chofer = e.id_chofer
+     WHERE e.id_empresa = ? AND e.activo = 1 AND e.id_equipo <> ?
+       AND (e.id_unidad_principal IN (?, ?) OR e.id_unidad_secundaria IN (?, ?) OR e.id_chofer = ?)`,
+    [idEmpresa, idEquipoPropio || 0, up, us, up, us, ch]);
+  if (!ocupados.length) return null;
+  const o = ocupados[0];
+  const queCosa = [up, us].includes(o.id_unidad_principal) ? `El camión ${o.patente_principal}`
+    : [up, us].includes(o.id_unidad_secundaria) ? `El acoplado ${o.patente_secundaria}`
+    : `El chofer ${o.chofer}`;
+  return `${queCosa} ya está en el equipo #${o.id_equipo} (${o.patente_principal} / ${o.patente_secundaria} · ${o.chofer}). ` +
+    'Si cambió el chofer, editá ese equipo y cambiale el chofer; si ese equipo ya no trabaja, dalo de baja primero.';
+}
+
+// Da de baja un equipo en una fecha: cierra su período vigente (la historia
+// queda intacta) y libera sus unidades y su chofer. No se puede si tiene
+// viajes con fecha posterior a la baja.
+async function darDeBaja(db, idEquipo, idEmpresa, fechaBaja) {
+  const fecha = normalizarFecha(fechaBaja) || ahora();
+  if (fecha > ahora()) throw new ErrorNegocio('La fecha de baja no puede ser futura.');
+  const [[equipo]] = await db.query(
+    'SELECT * FROM EQUIPO WHERE id_equipo = ? AND id_empresa = ? FOR UPDATE', [idEquipo, idEmpresa]);
+  if (!equipo) throw new ErrorNegocio('Equipo no encontrado.', 404);
+  if (!equipo.activo) throw new ErrorNegocio('El equipo ya está dado de baja.');
+  const vigente = await periodoVigente(db, idEquipo, idEmpresa);
+  if (vigente && vigente.desde && fecha < String(vigente.desde)) {
+    throw new ErrorNegocio(`La fecha de baja no puede ser anterior al inicio de la composición actual (${String(vigente.desde).slice(0, 16)}).`);
+  }
+  const [posteriores] = await db.query(
+    `SELECT id_viaje, DATE_FORMAT(fecha_origen, '%d/%m/%Y') AS fecha FROM VIAJES
+      WHERE id_equipo = ? AND id_empresa = ? AND fecha_origen >= ? ORDER BY fecha_origen LIMIT 5`,
+    [idEquipo, idEmpresa, fecha]);
+  if (posteriores.length) {
+    throw new ErrorNegocio('El equipo tiene viajes con fecha posterior a la baja (' +
+      posteriores.map(v => `#${v.id_viaje} del ${v.fecha}`).join(', ') + '). Elegí una fecha de baja posterior al último viaje.');
+  }
+  if (vigente) await db.query('UPDATE EQUIPO_HISTORIAL SET hasta = ? WHERE id_historial = ?', [fecha, vigente.id_historial]);
+  await db.query('UPDATE EQUIPO SET activo = 0, fecha_baja = ? WHERE id_equipo = ? AND id_empresa = ?',
+    [fecha, idEquipo, idEmpresa]);
+}
+
+// Vuelve a poner en servicio un equipo dado de baja, con la composición que
+// tenía, desde ahora. Sus unidades y su chofer tienen que estar libres.
+async function reactivar(db, idEquipo, idEmpresa, idUsuario) {
+  const [[equipo]] = await db.query(
+    'SELECT * FROM EQUIPO WHERE id_equipo = ? AND id_empresa = ? FOR UPDATE', [idEquipo, idEmpresa]);
+  if (!equipo) throw new ErrorNegocio('Equipo no encontrado.', 404);
+  if (equipo.activo) throw new ErrorNegocio('El equipo ya está activo.');
+  const ocupado = await validarDisponibilidad(db, idEmpresa, equipo, idEquipo);
+  if (ocupado) throw new ErrorNegocio(ocupado);
+  await db.query(
+    `INSERT INTO EQUIPO_HISTORIAL
+       (id_empresa, id_equipo, id_unidad_principal, id_unidad_secundaria, id_chofer, desde, hasta, id_usuario)
+     VALUES (?, ?, ?, ?, ?, ?, NULL, ?)`,
+    [idEmpresa, idEquipo, equipo.id_unidad_principal, equipo.id_unidad_secundaria, equipo.id_chofer,
+     ahora(), idUsuario || null]);
+  await db.query('UPDATE EQUIPO SET activo = 1, fecha_baja = NULL WHERE id_equipo = ? AND id_empresa = ?',
+    [idEquipo, idEmpresa]);
+}
+
+// Para viajes y consumos: el equipo tiene que estar activo en esa fecha.
+// Devuelve el mensaje de error o null.
+async function validarEquipoOperable(db, idEquipo, idEmpresa, fecha) {
+  if (!idEquipo) return null;
+  const [[equipo]] = await db.query(
+    'SELECT activo, fecha_baja FROM EQUIPO WHERE id_equipo = ? AND id_empresa = ?', [idEquipo, idEmpresa]);
+  if (!equipo || equipo.activo) return null;
+  const f = normalizarFecha(fecha) || (fecha ? String(fecha).slice(0, 10) + ' 00:00:00' : null);
+  if (!f || f >= String(equipo.fecha_baja)) {
+    return `El equipo #${idEquipo} está dado de baja desde el ${String(equipo.fecha_baja).slice(0, 10).split('-').reverse().join('/')}: ` +
+      'elegí un equipo activo.';
+  }
+  return null;
 }
 
 // Cierra el período vigente en fechaCambio (o ahora) y abre uno con la
@@ -167,6 +265,10 @@ async function listarHistorial(db, idEquipo, idEmpresa) {
 module.exports = {
   cambioComposicion,
   validarFechaCambio,
+  validarDisponibilidad,
+  validarEquipoOperable,
+  darDeBaja,
+  reactivar,
   registrarAlta,
   registrarCambio,
   refotografiarViajes,

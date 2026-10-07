@@ -57,6 +57,8 @@ const MODULOS = {
       { nombre: 'id_chofer', etiqueta: 'Chofer', tipo: 'fk', recurso: 'choferes', mostrar: r => r.nombre, requerido: true },
       { nombre: 'peso_tara', etiqueta: 'Peso de tara (kg)', tipo: 'number', requerido: true },
       { nombre: 'peso_bruto', etiqueta: 'Peso bruto (kg)', tipo: 'number', requerido: true },
+      { nombre: '_estado', etiqueta: 'Estado', soloTabla: true,
+        calcular: fila => fila.activo === 0 ? insignia(`Baja ${fmtFecha(fila.fecha_baja)}`, 'aviso') : insignia('Activo', 'ok') },
       // No es una columna: si cambia el camión, el acoplado o el chofer, la
       // fecha real del cambio para el historial del equipo (vacía = ahora).
       { nombre: 'fecha_cambio', etiqueta: 'Fecha del cambio de camión/acoplado/chofer', tipo: 'datetime-local', soloEdicion: true, soloFormulario: true, ancho: true,
@@ -64,6 +66,9 @@ const MODULOS = {
     ],
     acciones: (fila) => [
       { texto: 'Ver historial', onclick: `verHistorialEquipo(${fila.id_equipo})` },
+      fila.activo === 0
+        ? { texto: 'Reactivar', onclick: `reactivarEquipo(${fila.id_equipo})` }
+        : { texto: 'Dar de baja', peligro: true, onclick: `darDeBajaEquipo(${fila.id_equipo})` },
       { texto: 'Copiar equipo', onclick: `copiarEquipo(${fila.id_equipo})` },
       { texto: 'Eliminar', peligro: true, onclick: `eliminarRegistro('equipos', ${fila.id_equipo})` }
     ]
@@ -77,7 +82,7 @@ const MODULOS = {
     id: 'id_viaje',
     campos: [
       { nombre: 'fecha_origen', etiqueta: 'Fecha de origen', tipo: 'datetime-local', requerido: true },
-      { nombre: 'id_equipo', etiqueta: 'Equipo', tipo: 'fk', recurso: 'equipos', mostrar: r => `${r.patente_principal || '?'} / ${r.patente_secundaria || '?'}`, requerido: true,
+      { nombre: 'id_equipo', etiqueta: 'Equipo', tipo: 'fk', recurso: 'equipos', mostrar: r => `${r.patente_principal || '?'} / ${r.patente_secundaria || '?'}${r.activo === 0 ? ' (dado de baja)' : ''}`, requerido: true, soloActivos: true,
         // En la tabla: el camión y el acoplado que HICIERON el viaje (foto del
         // viaje), aunque el equipo se haya editado después.
         mostrarEnTabla: (fila, equipo) => fila.id_unidad_principal
@@ -118,7 +123,7 @@ const MODULOS = {
     totalRegistro: () => (Number($('#f-cantidad_litros')?.value) || 0) * (Number($('#f-precio_por_litro')?.value) || 0),
     campos: [
       { nombre: 'fecha', etiqueta: 'Fecha', tipo: 'datetime-local', requerido: true },
-      { nombre: 'id_equipo', etiqueta: 'Equipo', tipo: 'fk', recurso: 'equipos', mostrar: r => `${r.patente_principal || '?'} / ${r.patente_secundaria || '?'}`, requerido: true },
+      { nombre: 'id_equipo', etiqueta: 'Equipo', tipo: 'fk', recurso: 'equipos', mostrar: r => `${r.patente_principal || '?'} / ${r.patente_secundaria || '?'}${r.activo === 0 ? ' (dado de baja)' : ''}`, requerido: true, soloActivos: true },
       { nombre: 'estacion_carga', etiqueta: 'Estación de carga', tipo: 'text', requerido: true },
       { nombre: 'proveedor', etiqueta: 'Proveedor (cuenta)', tipo: 'select_cuenta', tiposCuenta: ['PROVEEDOR', 'CLIENTE'], requerido: true },
       { nombre: 'cantidad_litros', etiqueta: 'Litros', tipo: 'number', requerido: true },

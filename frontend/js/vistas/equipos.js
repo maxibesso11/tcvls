@@ -54,3 +54,53 @@ async function guardarInicioPeriodo(idHistorial, idEquipo) {
     mostrarToast(err.message, true);
   }
 }
+
+// Baja de un equipo (por ejemplo, el chofer dejó la empresa): su historia y
+// sus viajes se conservan, deja de ofrecerse para cargar viajes y consumos y
+// su camión, acoplado y chofer quedan libres para otro equipo.
+function darDeBajaEquipo(idEquipo) {
+  const ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  $('#modal-titulo').textContent = `Dar de baja el equipo #${idEquipo}`;
+  $('#modal-cuerpo').innerHTML = `
+    <p class="tenue">
+      Usalo cuando el equipo deja de trabajar (por ejemplo, el chofer se fue). Sus viajes,
+      su historial y su rentabilidad se conservan; el camión, el acoplado y el chofer quedan
+      libres para armar otro equipo.
+    </p>
+    <p class="tenue">
+      Si solo cambió el chofer y el camión sigue trabajando, no lo des de baja:
+      editá el equipo y cambiale el chofer.
+    </p>
+    <div class="campo">
+      <label for="baja-fecha">Fecha de la baja</label>
+      <input type="datetime-local" id="baja-fecha" value="${ahora}">
+    </div>
+    <p class="campo error"><span class="ayuda" id="baja-error" hidden></span></p>`;
+  configurarGuardado(async () => {
+    const valor = $('#baja-fecha').value;
+    try {
+      await API.bajaEquipo(idEquipo, valor ? valor.replace('T', ' ') + ':00' : null);
+      mostrarToast('Equipo dado de baja');
+      recargarVistaModulo('equipos');
+      return true;
+    } catch (err) {
+      const box = $('#baja-error');
+      if (box) { box.textContent = err.message; box.hidden = false; }
+      return false;
+    }
+  });
+  abrirModalGenerico();
+  $('#btn-guardar').textContent = 'Dar de baja';
+}
+
+async function reactivarEquipo(idEquipo) {
+  if (!await confirmar('El equipo vuelve a estar disponible desde ahora, con el camión, el acoplado y el chofer que tenía.',
+    'Reactivar', '¿Reactivar el equipo?')) return;
+  try {
+    await API.reactivarEquipo(idEquipo);
+    mostrarToast('Equipo reactivado');
+    recargarVistaModulo('equipos');
+  } catch (err) {
+    mostrarToast(err.message, true);
+  }
+}

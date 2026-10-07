@@ -173,6 +173,9 @@ CREATE TABLE EQUIPO (
     id_chofer INT NOT NULL,
     peso_tara DECIMAL(10,2),
     peso_bruto DECIMAL(10,2),
+    -- Baja (migración 033): el equipo deja de operar; su historia se conserva.
+    activo TINYINT(1) NOT NULL DEFAULT 1,
+    fecha_baja DATETIME NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
     FOREIGN KEY (id_unidad_principal) REFERENCES UNIDADES(id_unidad) ON DELETE RESTRICT,
@@ -180,7 +183,8 @@ CREATE TABLE EQUIPO (
     FOREIGN KEY (id_chofer) REFERENCES CHOFERES(id_chofer) ON DELETE RESTRICT,
     INDEX idx_chofer (id_chofer),
     INDEX idx_unidad_principal (id_unidad_principal),
-    INDEX idx_unidad_secundaria (id_unidad_secundaria)
+    INDEX idx_unidad_secundaria (id_unidad_secundaria),
+    INDEX idx_equipo_activo (id_empresa, activo)
 );
 
 -- 3b. EQUIPO_HISTORIAL: qué camión, acoplado y chofer tuvo cada equipo y
@@ -605,7 +609,8 @@ INSERT INTO MIGRACIONES (nombre) VALUES
 ('migracion_029_remuneracion_mixta.sql'),
 ('migracion_030_rol_admin_multiempresa.sql'),
 ('migracion_031_vencimientos_mantenimientos_generales.sql'),
-('migracion_032_auditoria.sql');
+('migracion_032_auditoria.sql'),
+('migracion_033_baja_equipos.sql');
 
 -- =========================================================
 -- FIN DE LA INSTALACIÓN

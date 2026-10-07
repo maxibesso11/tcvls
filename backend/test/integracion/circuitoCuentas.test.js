@@ -114,38 +114,73 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
 
   // ---------- Historia del equipo (bug reportado en producción) ----------
 
+  // Unidades, choferes y equipos propios de cada test: un camión, un acoplado
+  // o un chofer no puede estar en dos equipos activos a la vez.
+  async function crearUnidad(funcionalidad) {
+    secuencia += 1;
+    return ok(entorno.api('POST', '/api/unidades', {
+      patente: `T${String(Date.now()).slice(-5)}${secuencia}`, modelo: 'Test', funcionalidad
+    }));
+  }
+
+  async function crearChofer(remuneracion = { variable_tipo: 'PORCENTAJE', variable_valor: 18 }) {
+    secuencia += 1;
+    const n = String(Date.now()).slice(-6) + String(secuencia).padStart(2, '0');
+    return ok(entorno.api('POST', '/api/choferes', {
+      nombre: `CHOFER TEST ${n}`, cuil: `20-${n}-1`, edad: 40,
+      ultima_jornada_descanso: '2026-09-01', vencimiento_carnet: '2030-01-01',
+      domicilio: 'Test', telefono: '000', ...remuneracion
+    }));
+  }
+
+  async function armarComposicion(remuneracion = { variable_tipo: 'PORCENTAJE', variable_valor: 18 }) {
+    const [camion, acoplado, chofer] = await Promise.all([
+      crearUnidad('PRINCIPAL'), crearUnidad('SECUNDARIA'), crearChofer(remuneracion)]);
+    return {
+      id_unidad_principal: camion.id_unidad, id_unidad_secundaria: acoplado.id_unidad,
+      id_chofer: chofer.id_chofer, chofer
+    };
+  }
+
+  async function crearEquipo(composicion) {
+    const { chofer, ...datos } = composicion;
+    return ok(entorno.api('POST', '/api/equipos', { ...datos, peso_tara: 1, peso_bruto: 2 }));
+  }
+
+  const liquidacionDe = async idViaje => (await entorno.pool.query(
+    `SELECT c.nombre, m.monto FROM MOVIMIENTOS m JOIN CUENTA c ON c.id_cuenta = m.id_cuenta
+      WHERE m.origen_tipo = 'VIAJE_LIQUIDACION' AND m.origen_id = ?`, [idViaje]))[0];
+
   test('editar las unidades y el chofer de un equipo no reescribe sus viajes pasados', async () => {
     const cliente = await crearCuenta('CLIENTE');
-    const equipo = await ok(entorno.api('POST', '/api/equipos', {
-      id_unidad_principal: 3, id_unidad_secundaria: 8, id_chofer: 3
-    }));
+    const a = await armarComposicion();
+    const b = await armarComposicion({ sueldo_fijo_mensual: 900000 });
+    const equipo = await crearEquipo(a);
     const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, { id_equipo: equipo.id_equipo })));
 
     // El equipo cambia de camión, acoplado y chofer (como pasó en producción).
     await ok(entorno.api('PUT', `/api/equipos/${equipo.id_equipo}`, {
-      id_unidad_principal: 4, id_unidad_secundaria: 9, id_chofer: 4
+      id_unidad_principal: b.id_unidad_principal, id_unidad_secundaria: b.id_unidad_secundaria, id_chofer: b.id_chofer
     }));
     // Una edición posterior del viaje tampoco debe tomar la composición nueva.
     await ok(entorno.api('PUT', `/api/viajes/${viaje.id_viaje}`, { estado: 'FINALIZADO' }));
 
     const guardado = await ok(entorno.api('GET', `/api/viajes/${viaje.id_viaje}`));
-    assert.equal(guardado.id_unidad_principal, 3);
-    assert.equal(guardado.id_unidad_secundaria, 8);
-    assert.equal(guardado.id_chofer, 3);
+    assert.equal(guardado.id_unidad_principal, a.id_unidad_principal);
+    assert.equal(guardado.id_unidad_secundaria, a.id_unidad_secundaria);
+    assert.equal(guardado.id_chofer, a.id_chofer);
 
-    // La liquidación va al chofer que hizo el viaje (Roberto Díaz, 18 %).
-    const [[liq]] = await entorno.pool.query(
-      `SELECT c.nombre, m.monto FROM MOVIMIENTOS m JOIN CUENTA c ON c.id_cuenta = m.id_cuenta
-        WHERE m.origen_tipo = 'VIAJE_LIQUIDACION' AND m.origen_id = ?`, [viaje.id_viaje]);
-    assert.equal(liq.nombre, 'Roberto Díaz');
+    // La liquidación va al chofer que hizo el viaje (18 % de $100.000).
+    const [liq] = await liquidacionDe(viaje.id_viaje);
+    assert.equal(liq.nombre, a.chofer.nombre);
     assert.equal(Number(liq.monto), 18000);
   });
 
   test('el historial del equipo decide la foto de cada viaje según su fecha', async () => {
     const cliente = await crearCuenta('CLIENTE');
-    const equipo = await ok(entorno.api('POST', '/api/equipos', {
-      id_unidad_principal: 3, id_unidad_secundaria: 8, id_chofer: 3, peso_tara: 1, peso_bruto: 2
-    }));
+    const a = await armarComposicion();
+    const b = await armarComposicion({ sueldo_fijo_mensual: 900000 });  // sin parte variable
+    const equipo = await crearEquipo(a);
     const antes = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, {
       id_equipo: equipo.id_equipo, fecha_origen: '2026-08-10 08:00:00', estado: 'FINALIZADO'
     })));
@@ -155,19 +190,18 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
 
     // El cambio de chofer y camión se carga tarde, con su fecha real (15/8).
     await ok(entorno.api('PUT', `/api/equipos/${equipo.id_equipo}`, {
-      id_unidad_principal: 4, id_unidad_secundaria: 9, id_chofer: 4, fecha_cambio: '2026-08-15T00:00'
+      id_unidad_principal: b.id_unidad_principal, id_unidad_secundaria: b.id_unidad_secundaria,
+      id_chofer: b.id_chofer, fecha_cambio: '2026-08-15T00:00'
     }));
     const vAntes = await ok(entorno.api('GET', `/api/viajes/${antes.id_viaje}`));
     const vDespues = await ok(entorno.api('GET', `/api/viajes/${despues.id_viaje}`));
-    assert.deepEqual([vAntes.id_unidad_principal, vAntes.id_chofer], [3, 3]);
-    assert.deepEqual([vDespues.id_unidad_principal, vDespues.id_chofer], [4, 4]);
+    assert.deepEqual([vAntes.id_unidad_principal, vAntes.id_chofer], [a.id_unidad_principal, a.id_chofer]);
+    assert.deepEqual([vDespues.id_unidad_principal, vDespues.id_chofer], [b.id_unidad_principal, b.id_chofer]);
 
-    // El viaje posterior al cambio ya no se liquida al chofer anterior (Roberto
-    // Díaz, 18 %) sino al nuevo (Miguel Torres, sueldo FIJO: sin liquidación).
-    const liquidacion = async id => (await entorno.pool.query(
-      "SELECT COUNT(*) AS n FROM MOVIMIENTOS WHERE origen_tipo = 'VIAJE_LIQUIDACION' AND origen_id = ?", [id]))[0][0].n;
-    assert.equal(Number(await liquidacion(antes.id_viaje)), 1);
-    assert.equal(Number(await liquidacion(despues.id_viaje)), 0);
+    // El viaje posterior al cambio ya no se liquida al chofer anterior (18 %)
+    // sino al nuevo (solo sueldo fijo: sin liquidación por viaje).
+    assert.equal((await liquidacionDe(antes.id_viaje)).length, 1);
+    assert.equal((await liquidacionDe(despues.id_viaje)).length, 0);
 
     // Historial: dos períodos; corregir la fecha del cambio al 25/8 devuelve
     // el segundo viaje a la composición anterior (y su liquidación).
@@ -177,29 +211,30 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     assert.equal(Number(periodos[0].viajes), 1);
     const r = await ok(entorno.api('PUT', `/api/equipos/historial/${periodos[0].id_historial}`, { desde: '2026-08-25 00:00:00' }));
     assert.equal(r.viajes_actualizados, 1);
-    assert.equal((await ok(entorno.api('GET', `/api/viajes/${despues.id_viaje}`))).id_chofer, 3);
-    assert.equal(Number(await liquidacion(despues.id_viaje)), 1);
+    assert.equal((await ok(entorno.api('GET', `/api/viajes/${despues.id_viaje}`))).id_chofer, a.id_chofer);
+    assert.equal((await liquidacionDe(despues.id_viaje)).length, 1);
 
-    // Una fecha anterior al período previo o futura se rechaza con un mensaje claro.
+    // Una fecha de cambio futura se rechaza con un mensaje claro.
+    const c = await armarComposicion();
     const futura = await entorno.api('PUT', `/api/equipos/${equipo.id_equipo}`, {
-      id_unidad_principal: 5, id_unidad_secundaria: 10, id_chofer: 5, fecha_cambio: '2099-01-01T00:00'
+      id_unidad_principal: c.id_unidad_principal, id_unidad_secundaria: c.id_unidad_secundaria,
+      id_chofer: c.id_chofer, fecha_cambio: '2099-01-01T00:00'
     });
     assert.equal(futura.estado, 400);
   });
 
   test('los consumos generales de una unidad van al equipo que la tenía en esa fecha', async () => {
     const proveedor = await crearCuenta('PROVEEDOR');
-    const unidad = await ok(entorno.api('POST', '/api/unidades', { patente: `H${Date.now() % 100000}`, modelo: 'Test', funcionalidad: 'PRINCIPAL' }));
-    const equipo = await ok(entorno.api('POST', '/api/equipos', {
-      id_unidad_principal: unidad.id_unidad, id_unidad_secundaria: 6, id_chofer: 2, peso_tara: 1, peso_bruto: 2
-    }));
+    const a = await armarComposicion();
+    const otroCamion = await crearUnidad('PRINCIPAL');
+    const equipo = await crearEquipo(a);
     const consumo = (fecha, monto) => ok(entorno.api('POST', '/api/consumos-generales', {
-      proveedor: proveedor.nombre, fecha, id_unidad: unidad.id_unidad, concepto: 'Repuesto', monto
+      proveedor: proveedor.nombre, fecha, id_unidad: a.id_unidad_principal, concepto: 'Repuesto', monto
     }));
     await consumo('2026-07-01 10:00:00', 1000);   // con el equipo
     // El camión sale del equipo el 1/8 (queda en el taller)
     await ok(entorno.api('PUT', `/api/equipos/${equipo.id_equipo}`, {
-      id_unidad_principal: 1, fecha_cambio: '2026-08-01T00:00'
+      id_unidad_principal: otroCamion.id_unidad, fecha_cambio: '2026-08-01T00:00'
     }));
     await consumo('2026-08-10 10:00:00', 500);    // en el taller: sin equipo
 
@@ -207,6 +242,58 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     assert.equal(rent.equipos[0].costo_generales, 1000);
     const general = await ok(entorno.api('GET', '/api/dashboard/rentabilidad-equipos?fecha_desde=2026-08-10&fecha_hasta=2026-08-10'));
     assert.ok(general.gastos_unidades_sin_equipo >= 500);
+  });
+
+  test('baja de equipo: conserva la historia, libera las unidades y no acepta viajes posteriores', async () => {
+    const cliente = await crearCuenta('CLIENTE');
+    const a = await armarComposicion();
+    const viejo = await crearEquipo(a);
+
+    // El mismo camión no puede estar en dos equipos activos (lo que obligaba
+    // a inventar patentes para "liberarlo").
+    const duplicado = await entorno.api('POST', '/api/equipos', {
+      id_unidad_principal: a.id_unidad_principal, id_unidad_secundaria: (await crearUnidad('SECUNDARIA')).id_unidad,
+      id_chofer: (await crearChofer()).id_chofer, peso_tara: 1, peso_bruto: 2
+    });
+    assert.equal(duplicado.estado, 400);
+    assert.match(duplicado.datos.error, /ya está en el equipo/);
+
+    const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, {
+      id_equipo: viejo.id_equipo, fecha_origen: '2026-08-10 08:00:00', estado: 'FINALIZADO'
+    })));
+
+    // No se puede dar de baja antes de su último viaje.
+    const temprana = await entorno.api('POST', `/api/equipos/${viejo.id_equipo}/baja`, { fecha: '2026-08-01 00:00:00' });
+    assert.equal(temprana.estado, 400);
+    await ok(entorno.api('POST', `/api/equipos/${viejo.id_equipo}/baja`, { fecha: '2026-08-20 00:00:00' }));
+
+    // Dado de baja: no acepta viajes nuevos posteriores a la baja.
+    const posterior = await entorno.api('POST', '/api/viajes', viajeBase(cliente, {
+      id_equipo: viejo.id_equipo, fecha_origen: '2026-08-25 08:00:00'
+    }));
+    assert.equal(posterior.estado, 400);
+
+    // El camión y el chofer quedan libres para otro equipo.
+    const nuevo = await crearEquipo({ ...a, chofer: undefined });
+    assert.ok(nuevo.id_equipo);
+
+    // La historia del viejo queda: su viaje conserva la foto y su liquidación.
+    assert.equal((await ok(entorno.api('GET', `/api/viajes/${viaje.id_viaje}`))).id_chofer, a.id_chofer);
+    assert.equal((await liquidacionDe(viaje.id_viaje)).length, 1);
+
+    // Rentabilidad: el equipo dado de baja aparece en el período en que trabajó
+    // (marcado como baja) y no en uno posterior.
+    const agosto = await ok(entorno.api('GET', '/api/dashboard/rentabilidad-equipos?fecha_desde=2026-08-01&fecha_hasta=2026-08-31'));
+    const fila = agosto.equipos.find(e => e.id_equipo === viejo.id_equipo);
+    assert.ok(fila && fila.activo === false && fila.ingresos === 100000);
+    const octubre = await ok(entorno.api('GET', '/api/dashboard/rentabilidad-equipos?fecha_desde=2026-10-01&fecha_hasta=2026-10-31'));
+    assert.ok(!octubre.equipos.some(e => e.id_equipo === viejo.id_equipo));
+
+    // No se puede reactivar mientras sus unidades estén en otro equipo activo.
+    const reactivar = await entorno.api('POST', `/api/equipos/${viejo.id_equipo}/reactivar`);
+    assert.equal(reactivar.estado, 400);
+    await ok(entorno.api('POST', `/api/equipos/${nuevo.id_equipo}/baja`, {}));
+    await ok(entorno.api('POST', `/api/equipos/${viejo.id_equipo}/reactivar`));
   });
 
   test('con la facturación apagada no se emiten comprobantes ni se factura "con factura A"', async () => {

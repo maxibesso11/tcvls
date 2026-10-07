@@ -281,6 +281,9 @@ function insigniaEstado(valor) {
   return `<span class="insignia ${clase}">${esc(valor)}</span>`;
 }
 // Insignia suelta con la variante elegida (ok | aviso | peligro | info | marca | '').
+// Insignia "baja" para un equipo dado de baja en listados y métricas.
+const marcaBaja = r => (r && (r.activo === false || r.activo === 0) ? ' ' + insignia('baja', 'aviso') : '');
+
 const insignia = (texto, variante = '') => `<span class="insignia ${variante}">${esc(String(texto).toUpperCase())}</span>`;
 
 // Patente Mercosur: la identidad de cada unidad. tam: 'chica' | '' | 'grande'.

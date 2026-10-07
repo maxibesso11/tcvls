@@ -212,7 +212,7 @@ async function cargarMetrica(clave) {
             <tbody>
             ${filas.map(r => `<tr>
               <td>${patentesEquipo(r)}</td>
-              <td>${esc(r.chofer)}</td>
+              <td>${esc(r.chofer)}${marcaBaja(r)}</td>
               <td>${barraDoble(r.costos, r.ingresos, maxBarra)}</td>
               <td class="num">${fmtDinero(r.ingresos)}</td>
               <td class="num">${fmtDinero(r.costo_combustible)}</td>
@@ -305,7 +305,7 @@ async function cargarMetrica(clave) {
             <tbody>
             ${filas.map(r => `<tr>
               <td>${patentesEquipo(r)}</td>
-              <td>${esc(r.chofer)}</td>
+              <td>${esc(r.chofer)}${marcaBaja(r)}</td>
               <td class="num">${fmtNum(r.litros, 0)}</td>
               <td class="num">${fmtNum(r.km, 0)}</td>
               <td class="num fuerte">${fmtNum(r.km_por_litro)}</td>

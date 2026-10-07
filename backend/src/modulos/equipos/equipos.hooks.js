@@ -6,8 +6,17 @@
 const pool = require('../../config/db');
 const historial = require('./equipos.historial');
 
+async function antesDeCrearEquipo(data, req) {
+  return historial.validarDisponibilidad(pool, req.usuario.id_empresa, data);
+}
+
 async function antesDeActualizarEquipo(id, data, anterior, req) {
   if (!historial.cambioComposicion(data, anterior)) return null;
+  if (!anterior.activo) {
+    return 'El equipo está dado de baja: reactivalo antes de cambiarle el camión, el acoplado o el chofer.';
+  }
+  const ocupado = await historial.validarDisponibilidad(pool, req.usuario.id_empresa, { ...anterior, ...data }, anterior.id_equipo);
+  if (ocupado) return ocupado;
   return historial.validarFechaCambio(pool, anterior.id_equipo, req.usuario.id_empresa, req.body.fecha_cambio);
 }
 
@@ -20,4 +29,4 @@ async function alActualizarEquipo(equipo, anterior, req) {
   await historial.registrarCambio(req.db, equipo, req.usuario.id_empresa, req.usuario.id_usuario, req.body.fecha_cambio);
 }
 
-module.exports = { antesDeActualizarEquipo, alCrearEquipo, alActualizarEquipo };
+module.exports = { antesDeCrearEquipo, antesDeActualizarEquipo, alCrearEquipo, alActualizarEquipo };

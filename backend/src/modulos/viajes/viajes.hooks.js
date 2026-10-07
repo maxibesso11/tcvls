@@ -7,6 +7,7 @@
 // Los movimientos los arma viajes.servicio.js; los hooks after* escriben con
 // req.db, dentro de la transacción del CRUD.
 const pool = require('../../config/db');
+const { validarEquipoOperable } = require('../equipos/equipos.historial');
 const { modulosApagadosPorSistema, MENSAJE_FACTURACION_APAGADA } = require('../../config/modulos');
 const {
   buscarCuentaPagador,
@@ -64,6 +65,8 @@ function validarEstado(data, anterior) {
 async function antesDeCrearViaje(data, req) {
   const errorPagador = await validarPagador(data, null, req.usuario.id_empresa);
   if (errorPagador) return errorPagador;
+  const errorEquipo = await validarEquipoOperable(pool, data.id_equipo, req.usuario.id_empresa, data.fecha_origen);
+  if (errorEquipo) return errorEquipo;
   // Un viaje puede nacer directamente FINALIZADO o FACTURADO (carga histórica),
   // así que las validaciones de estado aplican también en la creación. Sin
   // esto, un viaje POR KM creado como FINALIZADO sin resultado dejaría al
@@ -79,6 +82,15 @@ async function antesDeActualizarViaje(id, data, anterior, req) {
 
   const errorEstado = validarEstado(data, anterior);
   if (errorEstado) return errorEstado;
+
+  // Cambiar el equipo o la fecha: el equipo tiene que estar activo en esa fecha.
+  const cambiaEquipo = data.id_equipo !== undefined && Number(data.id_equipo) !== Number(anterior.id_equipo);
+  const cambiaFecha = data.fecha_origen !== undefined && String(data.fecha_origen) !== String(anterior.fecha_origen);
+  if (cambiaEquipo || cambiaFecha) {
+    const errorEquipo = await validarEquipoOperable(pool, data.id_equipo ?? anterior.id_equipo,
+      req.usuario.id_empresa, data.fecha_origen ?? anterior.fecha_origen);
+    if (errorEquipo) return errorEquipo;
+  }
 
   if (anterior.estado === 'FACTURADO' && data.estado && data.estado !== 'FACTURADO') {
     return 'Un viaje en estado FACTURADO no puede volver a un estado anterior.';

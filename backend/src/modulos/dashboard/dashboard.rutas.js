@@ -68,7 +68,7 @@ router.get('/kpis', async (req, res) => {
       SELECT
         (SELECT COUNT(*) FROM CHOFERES WHERE id_empresa = ?) AS total_choferes,
         (SELECT COUNT(*) FROM UNIDADES WHERE id_empresa = ?) AS total_unidades,
-        (SELECT COUNT(*) FROM EQUIPO WHERE id_empresa = ?) AS total_equipos
+        (SELECT COUNT(*) FROM EQUIPO WHERE id_empresa = ? AND activo = 1) AS total_equipos
     `, [emp(req), emp(req), emp(req)]);
 
     const ingresosTotales = Number(ingresos.ingresos_totales);
@@ -222,7 +222,7 @@ router.get('/alertas', async (req, res) => {
 router.get('/rendimiento-equipos', async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT e.id_equipo, up.patente AS patente_principal, us.patente AS patente_secundaria,
+      SELECT e.id_equipo, e.activo, e.fecha_baja, up.patente AS patente_principal, us.patente AS patente_secundaria,
         ch.nombre AS chofer,
         COALESCE(SUM(cc.cantidad_litros), 0) AS litros,
         COALESCE(SUM(cc.km_recorridos), 0) AS km,
@@ -235,7 +235,9 @@ router.get('/rendimiento-equipos', async (req, res) => {
       JOIN CHOFERES ch ON ch.id_chofer = e.id_chofer
       LEFT JOIN CONSUMOS_COMBUSTIBLE cc ON cc.id_equipo = e.id_equipo
       WHERE e.id_empresa = ?
-      GROUP BY e.id_equipo, up.patente, us.patente, ch.nombre
+      GROUP BY e.id_equipo, e.activo, e.fecha_baja, up.patente, us.patente, ch.nombre
+      -- Los equipos dados de baja aparecen solo si tienen datos.
+      HAVING e.activo = 1 OR litros > 0
       ORDER BY km_por_litro DESC LIMIT 50
     `, [emp(req)]);
     res.json(rows);
@@ -328,7 +330,7 @@ router.get('/consumos-por-equipo', async (req, res) => {
     }
 
     const [rows] = await pool.query(`
-      SELECT e.id_equipo, up.patente AS patente_principal, us.patente AS patente_secundaria,
+      SELECT e.id_equipo, e.activo, e.fecha_baja, up.patente AS patente_principal, us.patente AS patente_secundaria,
         ch.nombre AS chofer,
         COUNT(cg.id_consumo_general) AS cantidad,
         COALESCE(SUM(cg.monto), 0) AS total
@@ -339,7 +341,8 @@ router.get('/consumos-por-equipo', async (req, res) => {
       LEFT JOIN CONSUMOS_GENERALES cg
         ON cg.id_empresa = e.id_empresa AND ${sqlConsumoDelEquipo('e.id_equipo')} ${fechaCond}
       WHERE e.id_empresa = ? ${equipoCond}
-      GROUP BY e.id_equipo, up.patente, us.patente, ch.nombre
+      GROUP BY e.id_equipo, e.activo, e.fecha_baja, up.patente, us.patente, ch.nombre
+      HAVING e.activo = 1 OR cantidad > 0
       ORDER BY total DESC LIMIT 50
     `, [...pFecha, e, ...equipoParam]);
     res.json(rows);
@@ -461,7 +464,7 @@ router.get('/rentabilidad-equipos', async (req, res) => {
     const equipoParam = idEquipoFiltro ? [idEquipoFiltro] : [];
 
     const [equipos] = await pool.query(`
-      SELECT e.id_equipo, e.id_unidad_principal, e.id_unidad_secundaria,
+      SELECT e.id_equipo, e.id_unidad_principal, e.id_unidad_secundaria, e.activo, e.fecha_baja,
         up.patente AS patente_principal, us.patente AS patente_secundaria,
         ch.id_chofer, ch.nombre AS chofer
       FROM EQUIPO e
@@ -525,8 +528,12 @@ router.get('/rentabilidad-equipos', async (req, res) => {
       const costoGen = Number(gen.gasto);
       const costos = costoComb + costoGen + sueldo;
       const rentabilidad = ingresos - costos;
+      // Un equipo dado de baja aparece solo si tuvo actividad en el período:
+      // su historia cuenta, pero no ensucia los meses en que ya no trabajaba.
+      if (!eq.activo && ingresos === 0 && costos === 0) continue;
       resultado.push({
-        id_equipo: eq.id_equipo, patente_principal: eq.patente_principal,
+        id_equipo: eq.id_equipo, activo: Boolean(eq.activo), fecha_baja: eq.fecha_baja,
+        patente_principal: eq.patente_principal,
         patente_secundaria: eq.patente_secundaria, chofer: eq.chofer,
         ingresos, iva, ingresos_con_iva: ingresosConIva,
         costo_combustible: costoComb, costo_generales: costoGen,

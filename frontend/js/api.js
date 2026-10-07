@@ -106,6 +106,10 @@ const API = {
 
   // ---------- Historial de equipos ----------
   historialEquipo(idEquipo) { return this._solicitud(`/api/equipos/${idEquipo}/historial`); },
+  bajaEquipo(idEquipo, fecha) {
+    return this._solicitud(`/api/equipos/${idEquipo}/baja`, { method: 'POST', body: JSON.stringify({ fecha }) });
+  },
+  reactivarEquipo(idEquipo) { return this._solicitud(`/api/equipos/${idEquipo}/reactivar`, { method: 'POST' }); },
   moverInicioPeriodo(idHistorial, desde) {
     return this._solicitud(`/api/equipos/historial/${idHistorial}`, { method: 'PUT', body: JSON.stringify({ desde }) });
   },

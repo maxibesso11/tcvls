@@ -406,6 +406,9 @@ async function abrirModal(clave, id, opciones = {}) {
       ? await listarEquiposEnriquecidos()
       : await API.listarTodo(c.recurso);
     if (c.filtro) lista = lista.filter(c.filtro);
+    // Equipos dados de baja: no se ofrecen para cargar, salvo el que el
+    // registro ya tiene (para poder editarlo sin perder el dato).
+    if (c.soloActivos) lista = lista.filter(r => r.activo !== 0 || String(r.id_equipo) === String(datos[c.nombre]));
     opcionesFk[c.nombre] = lista;
   }));
 
@@ -615,9 +618,9 @@ function cerrarModal() {
   modoAvanzarConResultado = null;
   _guardadoAdmin = null;
   _datosViajeFacturar = null;
-  // Restaurar el botón Guardar por si algún modal lo ocultó
+  // Restaurar el botón Guardar por si algún modal lo ocultó o le cambió el texto
   const btnGuardar = $('#btn-guardar');
-  if (btnGuardar) btnGuardar.hidden = false;
+  if (btnGuardar) { btnGuardar.hidden = false; btnGuardar.textContent = 'Guardar'; }
 }
 
 async function guardarRegistro() {

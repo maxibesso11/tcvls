@@ -18,6 +18,7 @@ const pool = require('../../config/db');
 const { buscarCuentaProveedor, validarProveedor } = require('../cuentas/cuentas.servicio');
 const { ORIGEN, crearMovimientoAutomatico, eliminarMovimientosDeOrigen } = require('../cuentas/movimientos.servicio');
 const { prepararComprobante } = require('./comprobanteCompra');
+const { validarEquipoOperable } = require('../equipos/equipos.historial');
 const { validarComprobanteNoDuplicado } = require('./comprobanteDuplicado.servicio');
 
 // Valor efectivo de un campo: lo que llega en `data`, o lo que ya tenía el
@@ -50,12 +51,20 @@ async function validarConsumo(data, anterior, idEmpresa, total, tabla, idActual)
 // ---------- CONSUMOS_COMBUSTIBLE ----------
 
 async function antesDeCrearConsumoCombustible(data, req) {
+  const errorEquipo = await validarEquipoOperable(pool, data.id_equipo, req.usuario.id_empresa, data.fecha);
+  if (errorEquipo) return errorEquipo;
   const litros = Number(efectivo('cantidad_litros', data, null)) || 0;
   const precio = Number(efectivo('precio_por_litro', data, null)) || 0;
   return validarConsumo(data, null, req.usuario.id_empresa, litros * precio, 'CONSUMOS_COMBUSTIBLE', null);
 }
 
 async function antesDeActualizarConsumoCombustible(id, data, anterior, req) {
+  if ((data.id_equipo !== undefined && Number(data.id_equipo) !== Number(anterior.id_equipo))
+      || (data.fecha !== undefined && String(data.fecha) !== String(anterior.fecha))) {
+    const errorEquipo = await validarEquipoOperable(pool, data.id_equipo ?? anterior.id_equipo,
+      req.usuario.id_empresa, data.fecha ?? anterior.fecha);
+    if (errorEquipo) return errorEquipo;
+  }
   const litros = Number(efectivo('cantidad_litros', data, anterior)) || 0;
   const precio = Number(efectivo('precio_por_litro', data, anterior)) || 0;
   return validarConsumo(data, anterior, req.usuario.id_empresa, litros * precio, 'CONSUMOS_COMBUSTIBLE', id);

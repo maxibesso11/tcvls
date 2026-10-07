@@ -41,7 +41,9 @@ module.exports = [
     table: 'EQUIPO',
     idField: 'id_equipo',
     fields: ['id_unidad_principal', 'id_unidad_secundaria', 'id_chofer', 'peso_tara', 'peso_bruto'],
+    filtrosExactos: ['activo'],
     hooks: {
+      beforeCreate: syncEquipos.antesDeCrearEquipo,
       beforeUpdate: syncEquipos.antesDeActualizarEquipo,
       afterCreate: syncEquipos.alCrearEquipo,
       afterUpdate: syncEquipos.alActualizarEquipo

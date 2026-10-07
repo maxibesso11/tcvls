@@ -205,7 +205,7 @@ async function renderDashboard() {
           ['Equipo', 'Chofer', 'Km/L', 'Costo/km'],
           top7(rendEquipos).map(r => [
             patentesEquipo(r),
-            esc(r.chofer),
+            esc(r.chofer) + marcaBaja(r),
             `<td class="num">${fmtNum(r.km_por_litro)}</td>`,
             `<td class="num">${fmtDinero(r.costo_por_km)}</td>`
           ])
