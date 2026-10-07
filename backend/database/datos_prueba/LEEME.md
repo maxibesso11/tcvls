@@ -21,7 +21,7 @@ python3 generar_datos_prueba.py --factor 100 --empresa 2 > datos_masivos_e2.sql
 ## Cómo cargarlos en MySQL
 
 Los datos se **agregan** a los que ya existan (no borran nada). Para una prueba
-limpia, primero cargá el esquema base (`init_db.sql`) y luego estos datos:
+limpia, primero instalá con `node backend/database/instalar.js --con-datos-de-prueba` (esquema + empresa de ejemplo) y luego estos datos:
 
 ```bash
 mysql -u erp_user -p erp_3_abril < datos_prueba_masivos.sql

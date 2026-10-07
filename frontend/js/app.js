@@ -9,9 +9,12 @@
 async function arrancar() {
   // Aplicar el último tema usado de inmediato (evita parpadeo antes de
   // revalidar la sesión); luego se confirma con el del usuario.
-  aplicarTema(localStorage.getItem('erp_tema') || 'verde');
+  aplicarTema(localStorage.getItem('erp_tema') || 'tcv');
   const token = API.cargarToken();
   if (!token) { mostrarLogin(); return; }
+  // Empresa elegida por un ADMIN_MULTIEMPRESA en esta pestaña: tiene que
+  // cargarse antes de API.yo() para que la cabecera viaje en ese primer pedido.
+  API.cargarEmpresaContexto();
   try {
     const { usuario } = await API.yo();
     aplicarSesion(usuario);

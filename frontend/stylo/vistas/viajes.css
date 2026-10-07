@@ -1,0 +1,7 @@
+/* vistas/viajes.css
+   Flujo de estados del viaje. */
+
+/* Flujo de estado de viaje */
+.flujo { display: flex; gap: 0; }
+.flujo span { flex: 1; height: 6px; background: var(--surface-sunk); margin-right: 2px; }
+.flujo span.on { background: var(--ink); }

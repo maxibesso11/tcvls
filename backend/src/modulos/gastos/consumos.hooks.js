@@ -3,22 +3,74 @@
 // corriente del proveedor, aislada por empresa.
 //
 // Convención: al registrar un consumo, la empresa queda debiéndole al
-// proveedor → crédito (monto > 0) en su cuenta.
+// proveedor → crédito (monto > 0) en su cuenta. `monto` (o litros × precio)
+// sigue siendo ese total: el comprobante del proveedor (Bloque 7 · IVA en
+// compras) solo lo discrimina en neto, IVA y el resto de los conceptos
+// fiscales, sin cambiar el crédito al proveedor ni los movimientos.
 //
 // Cada movimiento queda vinculado a su consumo por origen_tipo/origen_id
 // (ver cuentas/movimientos.servicio.js). El concepto es solo descriptivo:
 //   "CONSUMO COMBUSTIBLE #<id> — <detalle>"
 //   "CONSUMO GENERAL #<id> — <detalle>"
-// Los hooks after* escriben con req.db, dentro de la transacción del CRUD.
+// Los hooks after* escriben con req.db, dentro de la transacción del CRUD;
+// los hooks before* corren antes de esa transacción y validan contra `pool`.
+const pool = require('../../config/db');
 const { buscarCuentaProveedor, validarProveedor } = require('../cuentas/cuentas.servicio');
 const { ORIGEN, crearMovimientoAutomatico, eliminarMovimientosDeOrigen } = require('../cuentas/movimientos.servicio');
+const { prepararComprobante } = require('./comprobanteCompra');
+const { validarComprobanteNoDuplicado } = require('./comprobanteDuplicado.servicio');
 
-async function antesDeCrearConsumo(data, req) {
-  return validarProveedor(data, null, req.usuario.id_empresa);
+// Valor efectivo de un campo: lo que llega en `data`, o lo que ya tenía el
+// registro (`anterior`, null al crear). Necesario porque una edición parcial
+// no reenvía todos los campos (ej. litros y precio, para calcular el total).
+function efectivo(campo, data, anterior) {
+  if (data[campo] !== undefined) return data[campo];
+  return anterior ? anterior[campo] : undefined;
 }
 
-async function antesDeActualizarConsumo(id, data, anterior, req) {
-  return validarProveedor(data, anterior, req.usuario.id_empresa);
+// Valida el proveedor, arma el comprobante (o lo completa como NO_INFORMADO),
+// valida que no esté duplicado y, si todo está bien, agrega sus campos a
+// `data` (mutación in-place: es lo que crudFactory guarda). Devuelve el
+// mensaje de error, o null.
+async function validarConsumo(data, anterior, idEmpresa, total, tabla, idActual) {
+  const errorProveedor = await validarProveedor(data, anterior, idEmpresa);
+  if (errorProveedor) return errorProveedor;
+
+  const { datos, error } = prepararComprobante(data, anterior, total);
+  if (error) return error;
+
+  const proveedor = efectivo('proveedor', data, anterior);
+  const errorDuplicado = await validarComprobanteNoDuplicado(pool, idEmpresa, proveedor, datos, tabla, idActual);
+  if (errorDuplicado) return errorDuplicado;
+
+  Object.assign(data, datos);
+  return null;
+}
+
+// ---------- CONSUMOS_COMBUSTIBLE ----------
+
+async function antesDeCrearConsumoCombustible(data, req) {
+  const litros = Number(efectivo('cantidad_litros', data, null)) || 0;
+  const precio = Number(efectivo('precio_por_litro', data, null)) || 0;
+  return validarConsumo(data, null, req.usuario.id_empresa, litros * precio, 'CONSUMOS_COMBUSTIBLE', null);
+}
+
+async function antesDeActualizarConsumoCombustible(id, data, anterior, req) {
+  const litros = Number(efectivo('cantidad_litros', data, anterior)) || 0;
+  const precio = Number(efectivo('precio_por_litro', data, anterior)) || 0;
+  return validarConsumo(data, anterior, req.usuario.id_empresa, litros * precio, 'CONSUMOS_COMBUSTIBLE', id);
+}
+
+// ---------- CONSUMOS_GENERALES ----------
+
+async function antesDeCrearConsumoGeneral(data, req) {
+  const total = Number(efectivo('monto', data, null)) || 0;
+  return validarConsumo(data, null, req.usuario.id_empresa, total, 'CONSUMOS_GENERALES', null);
+}
+
+async function antesDeActualizarConsumoGeneral(id, data, anterior, req) {
+  const total = Number(efectivo('monto', data, anterior)) || 0;
+  return validarConsumo(data, anterior, req.usuario.id_empresa, total, 'CONSUMOS_GENERALES', id);
 }
 
 // Crea el movimiento de cuenta corriente para un consumo.
@@ -45,8 +97,6 @@ async function consumoGuardado(db, tabla, campoId, id, idEmpresa) {
     `SELECT * FROM ${tabla} WHERE ${campoId} = ? AND id_empresa = ?`, [id, idEmpresa]);
   return fila;
 }
-
-// ---------- CONSUMOS_COMBUSTIBLE ----------
 
 async function alCrearConsumoCombustible(registro, req) {
   const consumo = await consumoGuardado(req.db, 'CONSUMOS_COMBUSTIBLE', 'id_consumo_combustible',
@@ -102,8 +152,10 @@ async function alEliminarConsumoGeneral(consumo, req) {
 }
 
 module.exports = {
-  antesDeCrearConsumo,
-  antesDeActualizarConsumo,
+  antesDeCrearConsumoCombustible,
+  antesDeActualizarConsumoCombustible,
+  antesDeCrearConsumoGeneral,
+  antesDeActualizarConsumoGeneral,
   alCrearConsumoCombustible,
   alActualizarConsumoCombustible,
   alEliminarConsumoCombustible,

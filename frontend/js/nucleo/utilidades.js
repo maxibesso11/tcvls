@@ -10,8 +10,27 @@
 const $ = sel => document.querySelector(sel);
 const contenido = $('#contenido');
 
-const fmtDinero = n => '$' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
-const fmtNum = (n, d = 2) => Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: d });
+// Formatos es-AR: "$ 8.420.000" en tablas, "$ 18,4 M" en cifras grandes,
+// negativos con el signo menos real (−).
+const fmtDinero = n => {
+  const v = Number(n || 0);
+  return (v < 0 ? '−' : '') + '$ ' + Math.abs(v).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+};
+// Importe con color según el signo: positivo en verde, negativo en rojo, cero
+// sin color. El signo menos se mantiene, así no depende solo del color.
+const fmtDineroSigno = n => {
+  const v = Number(n || 0);
+  return v === 0 ? fmtDinero(v) : `<span class="${v > 0 ? 'monto-pos' : 'monto-neg'}">${fmtDinero(v)}</span>`;
+};
+const fmtMillones = n => {
+  const v = Number(n || 0);
+  if (Math.abs(v) < 1e6) return fmtDinero(v); // debajo del millón no se abrevia
+  return (v < 0 ? '−' : '') + '$ ' + (Math.abs(v) / 1e6).toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' M';
+};
+const fmtNum = (n, d = 2) => {
+  const v = Number(n || 0);
+  return (v < 0 ? '−' : '') + Math.abs(v).toLocaleString('es-AR', { maximumFractionDigits: d });
+};
 const fmtFecha = f => {
   if (!f) return '—';
   return String(f).slice(0, 10).split('-').reverse().join('/');
@@ -89,7 +108,7 @@ function aniosDisponibles() {
 // Describe un rango en lenguaje natural para mostrarlo como período activo.
 function describirPeriodo(desde, hasta) {
   if (!desde && !hasta) return '';
-  if (!desde || !hasta) return `Período: ${desde || '…'} a ${hasta || '…'}`;
+  if (!desde || !hasta) return `Período: ${desde ? fmtFecha(desde) : '…'} a ${hasta ? fmtFecha(hasta) : '…'}`;
   const d = new Date(desde + 'T00:00:00'), h = new Date(hasta + 'T00:00:00');
   const anio = d.getFullYear();
   // Año completo
@@ -109,7 +128,7 @@ function describirPeriodo(desde, hasta) {
       && h.getDate() === new Date(anio, h.getMonth() + 1, 0).getDate()) {
     return `Período: ${d.getMonth() / 3 + 1}° trimestre ${anio}`;
   }
-  return `Período: ${desde} a ${hasta}`;
+  return `Período: ${fmtFecha(desde)} a ${fmtFecha(hasta)}`;
 }
 
 // Deriva iniciales (hasta 3 letras) a partir del nombre de una empresa,
@@ -129,15 +148,16 @@ const recogerExtras = () => ({
   estado:      $('#fa-estado')?.value || '',
   tipo_carga:  $('#fa-tipo-carga')?.value || '',
   orden:       $('#fa-orden')?.value || '',
-  dir:         $('#fa-dir')?.value || ''
+  dir:         $('#fa-dir')?.value || '',
+  ambito:      $('#filtro-ambito')?.value || ''
 });
 
 function mostrarToast(mensaje, esError = false) {
   const toast = $('#toast');
   toast.textContent = mensaje;
-  toast.className = 'toast' + (esError ? ' error' : '');
   toast.hidden = false;
-  setTimeout(() => { toast.hidden = true; }, 3000);
+  clearTimeout(mostrarToast.t);
+  mostrarToast.t = setTimeout(() => { toast.hidden = true; }, esError ? 5000 : 3000);
 }
 
 // Diccionario en caché de unidades (id → registro completo) para
@@ -229,8 +249,8 @@ async function copiarAlPortapapeles(texto) {
   return new Promise((resolve, reject) => {
     const ta = document.createElement('textarea');
     ta.value = texto;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
+    ta.setAttribute('aria-hidden', 'true');
+    ta.style.cssText = 'position:fixed;opacity:0';
     document.body.appendChild(ta);
     ta.focus();
     ta.select();
@@ -245,14 +265,133 @@ async function copiarAlPortapapeles(texto) {
   });
 }
 
+// Insignia de estado: siempre lleva la palabra (el color nunca va solo).
+// EN CURSO info · EN DESTINO aviso · FINALIZADO ok · FACTURADO marca ·
+// vencido peligro · categorías sin punto.
+const ESTADOS_INSIGNIA = {
+  'EN CURSO': 'info', 'EN DESTINO': 'aviso', 'FINALIZADO': 'ok', 'FACTURADO': 'marca',
+  'PAGADO': 'ok', 'PENDIENTE': 'peligro', 'PARCIAL': 'aviso',
+  // Categorías: neutras y sin punto (no son un estado)
+  'PRINCIPAL': 'sin-punto', 'SECUNDARIA': 'sin-punto',
+  'COLOCADA': 'ok', 'AUXILIO': 'aviso',
+  'CHOFER': 'sin-punto', 'PROVEEDOR': 'sin-punto', 'CLIENTE': 'sin-punto'
+};
 function insigniaEstado(valor) {
-  const mapa = {
-    'EN CURSO': 'azul', 'EN DESTINO': 'ambar', 'FINALIZADO': 'verde', 'FACTURADO': 'gris',
-    'PAGADO': 'verde', 'PENDIENTE': 'rojo', 'PARCIAL': 'ambar',
-    'PRINCIPAL': 'azul', 'SECUNDARIA': 'gris',
-    'COLOCADA': 'verde', 'AUXILIO': 'ambar',
-    'CHOFER': 'azul', 'PROVEEDOR': 'ambar', 'CLIENTE': 'verde'
+  const clase = ESTADOS_INSIGNIA[valor] || 'sin-punto';
+  return `<span class="insignia ${clase}">${esc(valor)}</span>`;
+}
+// Insignia suelta con la variante elegida (ok | aviso | peligro | info | marca | '').
+const insignia = (texto, variante = '') => `<span class="insignia ${variante}">${esc(String(texto).toUpperCase())}</span>`;
+
+// Patente Mercosur: la identidad de cada unidad. tam: 'chica' | '' | 'grande'.
+function patenteHTML(patente, tam = 'chica') {
+  const clase = tam ? ` patente-${tam}` : '';
+  return `<span class="patente${clase}"><b>${esc(patente || '?')}</b></span>`;
+}
+
+// Equipo = dos patentes juntas (camión + acoplado)
+// (juntas en una línea, separadas 4px)
+const patentesEquipo = r => `<span style="display:inline-flex;gap:4px;white-space:nowrap">${patenteHTML(r.patente_principal)}${patenteHTML(r.patente_secundaria || '?')}</span>`;
+
+// Ícono SVG de línea 24×24, trazo 2.
+const ICONOS = {
+  mas: '<path d="M12 5v14M5 12h14"/>',
+  editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  borrar: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  volver: '<path d="M15 5l-7 7 7 7"/>',
+  descargar: '<path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/>'
+};
+const icono = (nombre, tam = 16) =>
+  `<svg viewBox="0 0 24 24" width="${tam}" height="${tam}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONOS[nombre] || ''}</svg>`;
+
+// Reemplaza a confirm(): modal con botón destructivo. Devuelve una promesa
+// que resuelve true si el usuario confirma. Uso: if (!await confirmar('…')) return;
+function confirmar(texto, boton = 'Confirmar', titulo = 'Confirmar acción') {
+  return new Promise(resolve => {
+    const fondo = $('#confirmar-fondo');
+    $('#confirmar-titulo').textContent = titulo;
+    $('#confirmar-texto').innerHTML = String(texto).split(/\n\n/).map(p => `<p>${esc(p)}</p>`).join('');
+    $('#confirmar-si').textContent = boton;
+    fondo.hidden = false;
+    $('#confirmar-no').focus();
+    const cerrar = valor => {
+      fondo.hidden = true;
+      $('#confirmar-si').removeEventListener('click', si);
+      $('#confirmar-no').removeEventListener('click', no);
+      fondo.removeEventListener('click', fuera);
+      document.removeEventListener('keydown', tecla);
+      resolve(valor);
+    };
+    const si = () => cerrar(true);
+    const no = () => cerrar(false);
+    const fuera = e => { if (e.target === fondo) cerrar(false); };
+    const tecla = e => { if (e.key === 'Escape') cerrar(false); };
+    $('#confirmar-si').addEventListener('click', si);
+    $('#confirmar-no').addEventListener('click', no);
+    fondo.addEventListener('click', fuera);
+    document.addEventListener('keydown', tecla);
+  });
+}
+
+// Tabla densa dentro de su marco (scrollea adentro, nunca el body).
+// filas: arreglo de arreglos; una celda que ya empieza con "<td" se usa tal
+// cual (ej. '<td class="num">12</td>'). Las columnas cuyas celdas son
+// numéricas (clase "num") alinean también su encabezado a la derecha.
+// opciones.clic(i) devuelve el JS que abre la ficha de la fila i (tr.clic).
+function tablaSimple(cabeceras, filas, opciones = {}) {
+  const esNum = i => filas.length > 0 && /^<td[^>]*class="[^"]*\bnum\b/.test(String(filas[0][i]));
+  const fila = (f, i) => {
+    const js = opciones.clic ? opciones.clic(i) : null;
+    const attrs = js ? ` class="clic" tabindex="0" onclick="${js}" onkeydown="if (event.key === 'Enter') { ${js} }"` : '';
+    return `<tr${attrs}>${f.map(c => String(c).startsWith('<td') ? c : `<td>${c}</td>`).join('')}</tr>`;
   };
-  const color = mapa[valor] || 'gris';
-  return `<span class="insignia ${color}">${valor}</span>`;
+  return `
+    <div class="tabla-marco"><table class="tabla">
+      <thead><tr>${cabeceras.map((h, i) => `<th${esNum(i) ? ' class="num"' : ''}>${h}</th>`).join('')}</tr></thead>
+      <tbody>${filas.map(fila).join('')}</tbody>
+    </table></div>`;
+}
+
+// Bloque "Otras acciones" para el pie de un formulario dentro de .formulario:
+// reemplaza al menú "…" de las filas. Cada acción cierra el modal y ejecuta
+// su JS. lista: [{ texto, onclick, peligro }].
+function bloqueAcciones(lista) {
+  if (!lista.length) return '';
+  return `
+    <div class="grupo-titulo"><div class="rotulo">Otras acciones</div></div>
+    <div class="campo ancho"><div class="acciones">${lista.map(a =>
+      `<button type="button" class="btn btn-chico${a.peligro ? ' btn-peligro' : ''}" onclick="cerrarModal(); ${a.onclick}">${a.texto}</button>`).join('')}</div></div>`;
+}
+
+// Argumento literal seguro para un onclick="…" generado: jsArg('a"b') → &quot;a\&quot;b&quot;
+const jsArg = v => esc(JSON.stringify(v ?? ''));
+
+// Hoja (reemplaza al panel): cabecera con título y subtítulo, cuerpo y pie.
+// cuerpo puede ser una tabla directa (a sangre) o un .hoja-cuerpo.
+function hojaHTML(titulo, sub, cuerpo, extra = '', pie = '') {
+  return `<section class="hoja"><header class="hoja-cabecera"><div><h2 class="hoja-titulo">${titulo}</h2>${sub ? `<div class="hoja-sub">${sub}</div>` : ''}</div>${extra}</header>${cuerpo}${pie ? `<footer class="hoja-pie">${pie}</footer>` : ''}</section>`;
+}
+
+// Fila de alerta con cuenta regresiva: .vencida si días < 0, .pronto si ≤ 7.
+// dias: número (negativo = vencido) o null cuando no aplica; sinDias: texto
+// alternativo para la columna de días (ej. "28" sin descanso).
+function alertaHTML({ dias, titulo, detalle, accion = '', sinDias = null, urgente = false }) {
+  let clase = '';
+  let numero;
+  if (dias === null || dias === undefined) {
+    clase = urgente ? 'vencida' : 'pronto';
+    numero = `${sinDias.valor}<small>${sinDias.unidad}</small>`;
+  } else {
+    clase = dias < 0 ? 'vencida' : dias <= 7 ? 'pronto' : '';
+    numero = `${dias < 0 ? '−' + Math.abs(dias) : dias}<small>días</small>`;
+  }
+  return `<li class="alerta ${clase}"><div class="alerta-dias">${numero}</div><div class="alerta-texto"><strong>${titulo}</strong><span>${detalle}</span></div>${accion || '<span></span>'}</li>`;
+}
+
+// Días de calendario entre hoy y una fecha (negativo si ya pasó).
+function diasHasta(fecha) {
+  if (!fecha) return null;
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const f = new Date(String(fecha).slice(0, 10) + 'T00:00:00');
+  return Math.round((f - hoy) / 86400000);
 }

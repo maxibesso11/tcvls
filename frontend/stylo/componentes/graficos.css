@@ -1,0 +1,45 @@
+/* componentes/graficos.css
+   Gráficos en HTML (cascada horizontal, puntos contra el promedio, barra
+   apilada). Texto a tamaño real y sin ancho mínimo: nunca scrollean. */
+
+/* ---------- Cascada horizontal ---------- */
+.cascada { position: relative; display: flex; flex-direction: column; gap: var(--space-2); }
+.cascada-fila { display: grid; grid-template-columns: 132px minmax(0, 1fr) 76px; gap: var(--space-3); align-items: center; }
+.cascada-rot { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.cascada-rot b { font-weight: 600; font-size: 13.5px; }
+.cascada-rot span { font-size: 12px; color: var(--ink-3); }
+.cascada-pista { position: relative; height: 22px; background: linear-gradient(to right, var(--line) 1px, transparent 1px) 0 0 / 25% 100%; border-right: 1px solid var(--line); }
+.cascada-pista > i { position: absolute; top: 0; bottom: 0; border-radius: var(--radius-s); background: var(--chart-cost); }
+.cascada-fila.ingreso .cascada-pista > i { background: var(--chart-income); }
+.cascada-fila.total .cascada-pista > i { background: var(--ok); }
+.cascada-fila.total.negativo .cascada-pista > i { background: var(--danger-fill); }
+.cascada-val { font: 600 16px/1 var(--font-display); text-align: right; white-space: nowrap; color: var(--danger); }
+.cascada-fila.ingreso .cascada-val { color: var(--ok); }
+.cascada-fila.total { padding-top: var(--space-2); border-top: 2px solid var(--ink); }
+.cascada-fila.total .cascada-val { font-size: 20px; color: var(--ok); }
+.cascada-fila.total.negativo .cascada-val { color: var(--danger); }
+.cascada-cero { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 1px solid var(--ink); }
+
+/* ---------- Puntos contra el promedio ---------- */
+.puntos { display: flex; flex-direction: column; gap: 2px; }
+.puntos-fila { display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) 44px; gap: var(--space-3); align-items: center; min-height: 30px; }
+.puntos-rot { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.puntos-pista { position: relative; height: 100%; min-height: 22px; }
+.puntos-pista::before { content: ""; position: absolute; top: -2px; bottom: -2px; left: var(--prom); border-left: 1.5px dashed var(--ink); }
+.puntos-seg { position: absolute; top: 50%; height: 3px; transform: translateY(-50%); background: var(--chart-income); }
+.puntos-pto { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--chart-income); }
+.puntos-fila.abajo .puntos-seg, .puntos-fila.abajo .puntos-pto { background: var(--chart-cost); }
+.puntos-val { font: 600 15px/1 var(--font-display); text-align: right; }
+.puntos-cabeza { min-height: 18px; }
+.puntos-prom-txt { position: absolute; left: var(--prom); bottom: 2px; padding-left: 5px; font: 600 11.5px/1 var(--font-text); color: var(--ink); white-space: nowrap; }
+.puntos-escala { min-height: 20px; border-top: 1px solid var(--line); }
+.puntos-escala .puntos-pista::before { display: none; }
+.puntos-escala span { position: absolute; top: 4px; transform: translateX(-50%); font-size: 11px; color: var(--ink-3); }
+
+/* ---------- Barra apilada (composición de un total) ---------- */
+.barra-apilada { height: 8px; min-width: 60px; background: var(--surface-sunk); border-radius: var(--radius-s); overflow: hidden; }
+.barra-apilada > div { display: flex; height: 100%; gap: 1px; }
+.barra-apilada i { display: block; }
+.parte-comb { background: var(--chart-cost); }
+.parte-cons { background: var(--warn-fill); }
+.parte-sueldo { background: var(--chart-muted); }

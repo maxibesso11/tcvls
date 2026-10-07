@@ -105,8 +105,8 @@ mysql -u TU_USUARIO -p NOMBRE_BD < migracion_018_chofer_viaje.sql
 ```
 
 Aplicá únicamente las posteriores a tu versión. Si te falta desde la 016, arrancás
-en la 016; si te falta solo la 018, corrés solo esa. **Nunca** corras `init_db.sql`
-sobre la base de producción: ese script recrea todo desde cero y borra los datos.
+en la 016; si te falta solo la 018, corrés solo esa. **Nunca** intentes reinstalar
+la base de producción (`instalar.js` se niega si ya tiene tablas): se actualiza solo con migraciones.
 
 Las migraciones ya incluyen el relleno de los datos existentes (por ejemplo, la
 016 activa los módulos de tu empresa actual, y la 018 asigna a los viajes viejos

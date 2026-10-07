@@ -1,0 +1,14 @@
+/* componentes/patente.css
+   Ver guía del componente en el sistema de diseño. */
+
+/* ---------- Patente (Mercosur) ---------- */
+.patente { display: inline-flex; flex-direction: column; align-items: stretch; min-width: 88px; border: 1.5px solid var(--plate-ink); border-radius: var(--radius-s); background: var(--plate-bg); overflow: hidden; vertical-align: middle; line-height: 1; }
+.patente::before { content: ""; display: block; height: 5px; background: var(--plate-band); }
+.patente b { display: block; padding: 3px 7px 4px; font: 600 17px/18px var(--font-display); letter-spacing: 1.6px; color: var(--plate-ink); text-align: center; white-space: nowrap; }
+.patente-chica { min-width: 66px; }
+.patente-chica::before { height: 3px; }
+.patente-chica b { padding: 2px 5px 3px; font-size: 13.5px; line-height: 14px; letter-spacing: 1.1px; }
+.patente-grande { min-width: 150px; border-width: 2px; }
+.patente-grande::before { height: 9px; }
+.patente-grande b { padding: 5px 12px 7px; font-size: 32px; line-height: 32px; letter-spacing: 3px; }
+a .patente, .patente[href] { cursor: pointer; }

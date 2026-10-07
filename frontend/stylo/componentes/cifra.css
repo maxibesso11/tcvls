@@ -1,0 +1,19 @@
+/* componentes/cifra.css
+   Ver guía del componente en el sistema de diseño. */
+
+/* ---------- Cifra (KPI) ---------- */
+.cifra { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cifra-valor { font: 600 36px/36px var(--font-display); color: var(--ink); white-space: nowrap; }
+.cifra-valor small { font: 500 18px/1 var(--font-display); color: var(--ink-3); margin-left: 3px; }
+.cifra-xl .cifra-valor { font-size: 56px; line-height: 52px; letter-spacing: -.5px; }
+.cifra-delta { display: inline-flex; align-items: center; gap: 4px; font: 600 12.5px/16px var(--font-text); }
+.cifra-delta.sube { color: var(--ok); } .cifra-delta.baja { color: var(--danger); }
+.cifra-delta .tenue { font-weight: 400; }
+.cifra-traza { display: block; width: 100%; height: 28px; }
+.cifra-traza path { fill: none; stroke: var(--ink-2); stroke-width: 1.5; }
+.cifra-traza circle { fill: var(--ink); }
+
+/* Franja de pulso: cifras en fila separadas por reglas verticales */
+.pulso { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); }
+.pulso > .cifra { padding: var(--space-4) var(--space-5); border-left: 1px solid var(--line); }
+.pulso > .cifra:first-child { border-left: 0; }

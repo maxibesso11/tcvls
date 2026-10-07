@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# Script para crear la base de datos, el usuario MySQL y cargar
-# el esquema inicial. Ejecutar en la VPS con privilegios de MySQL:
+# Script para crear la base de datos vacía y el usuario MySQL. Ejecutar en la VPS con privilegios de MySQL:
 #   bash deploy/setup-db.sh
 # Pide la contraseña de root de MySQL.
 # ============================================================
@@ -25,8 +24,8 @@ GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 SQL
 
-echo "→ Cargando el esquema y los datos iniciales…"
-sudo mysql "${DB_NAME}" < backend/database/esquema/init_db.sql
-
-echo "✓ Base de datos lista. Usuario admin/admin123 y demo/demo123 creados."
-echo "  IMPORTANTE: cambiá esas contraseñas desde el panel de administración."
+echo "✓ Base y usuario de MySQL listos (la base está vacía)."
+echo "  Siguiente paso: instalar las tablas y crear el administrador de plataforma:"
+echo "    node backend/database/instalar.js"
+echo "  y después dar de alta al primer cliente: node backend/database/alta-cliente.js"
+echo "  (ver docs/operacion/ALTA_DE_CLIENTE.md)"

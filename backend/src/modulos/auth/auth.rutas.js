@@ -8,6 +8,8 @@ const {
 } = require('../../lib/seguridad/credenciales');
 const limite = require('../../lib/seguridad/limiteIntentos');
 const { requiereAutenticacion, requiereAutenticacionConCambioPendiente } = require('../../middleware/autenticacion');
+const { resolverEmpresaMultiempresa } = require('../../middleware/alcanceMultiempresa');
+const empresasAsignadasServicio = require('../admin/empresasAsignadas.servicio');
 const { responderError } = require('../../lib/errores');
 const { modulosActivosDe } = require('../../middleware/modulos');
 
@@ -61,10 +63,15 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
     }
     limite.registrarExito(req.ip, nombre_usuario);
+    // Para la bitácora (lib/auditoria.js): quién ingresó
+    req.auditoria = { id_usuario: usuario.id_usuario, nombre_usuario: usuario.nombre_usuario, rol: usuario.rol, id_empresa: usuario.id_empresa };
 
     const token = tokenDe(usuario);
 
     const modulos = await modulosActivos(usuario.id_empresa);
+    const empresas_asignadas = usuario.rol === 'ADMIN_MULTIEMPRESA'
+      ? await empresasAsignadasServicio.listar(usuario.id_usuario)
+      : undefined;
 
     res.json({
       token,
@@ -79,7 +86,8 @@ router.post('/login', async (req, res) => {
         cuit_empresa: usuario.cuit_empresa,
         tema: usuario.tema || 'verde',
         debe_cambiar_contrasena: Boolean(usuario.debe_cambiar_contrasena),
-        modulos
+        modulos,
+        ...(empresas_asignadas !== undefined ? { empresas_asignadas } : {})
       }
     });
   } catch (err) {
@@ -88,18 +96,39 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /api/auth/yo  — datos del usuario autenticado (para revalidar sesión)
-router.get('/yo', requiereAutenticacionConCambioPendiente, async (req, res) => {
+// resolverEmpresaMultiempresa (obligatorio: false) fija req.idEmpresaObjetivo
+// si el ADMIN_MULTIEMPRESA mandó X-Empresa-Id; si no mandó ninguna todavía
+// (primer login o F5 antes de elegir), sigue sin ella y el frontend muestra
+// el selector.
+router.get('/yo', requiereAutenticacionConCambioPendiente, resolverEmpresaMultiempresa({ obligatorio: false }), async (req, res) => {
   try {
     const [[usuario]] = await pool.query(
-      `SELECT u.id_usuario, u.nombre_usuario, u.correo, u.rol, u.id_empresa, u.tema, u.debe_cambiar_contrasena,
-              e.nombre AS nombre_empresa, e.iniciales AS iniciales_empresa, e.cuit AS cuit_empresa
+      `SELECT u.id_usuario, u.nombre_usuario, u.correo, u.rol, u.id_empresa, u.tema, u.debe_cambiar_contrasena
        FROM USUARIOS u
-       LEFT JOIN EMPRESAS e ON e.id_empresa = u.id_empresa
        WHERE u.id_usuario = ? AND u.activo = 1`,
       [req.usuario.id_usuario]
     );
     if (!usuario) return res.status(401).json({ error: 'Sesión inválida.' });
     usuario.debe_cambiar_contrasena = Boolean(usuario.debe_cambiar_contrasena);
+
+    if (usuario.rol === 'ADMIN_MULTIEMPRESA') {
+      usuario.id_empresa = req.idEmpresaObjetivo || null;
+      usuario.empresas_asignadas = await empresasAsignadasServicio.listar(usuario.id_usuario);
+    }
+
+    if (usuario.id_empresa) {
+      const [[empresa]] = await pool.query(
+        'SELECT nombre, iniciales, cuit FROM EMPRESAS WHERE id_empresa = ?', [usuario.id_empresa]
+      );
+      usuario.nombre_empresa = empresa ? empresa.nombre : null;
+      usuario.iniciales_empresa = empresa ? empresa.iniciales : null;
+      usuario.cuit_empresa = empresa ? empresa.cuit : null;
+    } else {
+      usuario.nombre_empresa = null;
+      usuario.iniciales_empresa = null;
+      usuario.cuit_empresa = null;
+    }
+
     usuario.modulos = await modulosActivos(usuario.id_empresa);
     res.json({ usuario });
   } catch (err) {
@@ -108,7 +137,7 @@ router.get('/yo', requiereAutenticacionConCambioPendiente, async (req, res) => {
 });
 
 // Temas válidos que el sistema reconoce (debe coincidir con el CSS y el frontend)
-const TEMAS_VALIDOS = ['verde', 'azul', 'violeta', 'borgona', 'grafito', 'oceano',
+const TEMAS_VALIDOS = ['tcv', 'verde', 'azul', 'violeta', 'borgona', 'grafito', 'oceano',
   'indigo', 'esmeralda', 'cobre', 'rosa', 'slate', 'bosque'];
 
 // PUT /api/auth/tema  { tema }  — cada usuario cambia su propia apariencia

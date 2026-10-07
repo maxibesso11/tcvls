@@ -187,15 +187,21 @@ class Generador:
                     'FIJA': round(random.uniform(600000, 1200000), 2)}[tipo]
             ch = {'nombre': nombre, 'cuil': c, 'tipo': tipo, 'remu': remu}
             filas.append(ch)
+            # Migración 029: remuneración mixta. remuneracion/tipo_remuneracion
+            # quedan solo como respaldo; el backend usa las columnas nuevas.
+            sueldo_fijo = remu if tipo == 'FIJA' else 'NULL'
+            variable_tipo = 'NULL' if tipo == 'FIJA' else f"'{tipo}'"
+            variable_valor = 'NULL' if tipo == 'FIJA' else remu
             valores.append(
                 f"(@emp, '{esc(nombre)}', '{c}', {random.randint(25,62)}, "
                 f"'{fecha_futura_o_pasada(30)}', '{fecha_futura_o_pasada(400)}', "
                 f"'{esc(random.choice(CIUDADES))} {random.randint(100,9999)}', "
                 f"'{random.randint(300,388)}-{random.randint(1000000,9999999)}', "
-                f"{remu}, '{tipo}')"
+                f"{remu}, '{tipo}', {sueldo_fijo}, {variable_tipo}, {variable_valor})"
             )
         self._insert('CHOFERES',
-                     'id_empresa, nombre, cuil, edad, ultima_jornada_descanso, vencimiento_carnet, domicilio, telefono, remuneracion, tipo_remuneracion',
+                     'id_empresa, nombre, cuil, edad, ultima_jornada_descanso, vencimiento_carnet, domicilio, telefono, '
+                     'remuneracion, tipo_remuneracion, sueldo_fijo_mensual, variable_tipo, variable_valor',
                      valores)
         # Guardar variables para enlazar por @ no es práctico; usamos subconsultas por cuil.
         return filas

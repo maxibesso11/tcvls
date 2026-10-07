@@ -9,6 +9,10 @@ const express = require('express');
 const pool = require('../../config/db');
 const { calcularPaginacion } = require('../../lib/paginacion');
 const { enviarResumenCuentaPDF } = require('./cuentasCorrientes.pdf');
+const {
+  listarLiquidables, liquidarSueldosFijosDelMes, obtenerLiquidacionesDelPeriodo, obtenerLiquidacion
+} = require('./liquidacionSueldos.servicio');
+const { enviarResumenLiquidacionesPDF, enviarReciboLiquidacionPDF } = require('./liquidacionSueldos.pdf');
 const { responderError } = require('../../lib/errores');
 const router = express.Router();
 
@@ -72,6 +76,78 @@ router.get('/', async (req, res) => {
       cuentas: cuentasPagina,
       paginacion: { pagina, por_pagina: porPagina, total, total_paginas: totalPaginas }
     });
+  } catch (err) {
+    responderError(res, err, req);
+  }
+});
+
+// ------------------------------------------------------------
+// GET /api/cuentas-corrientes/liquidar-sueldos-fijos?periodo=AAAA-MM
+// Vista previa: choferes con sueldo fijo cargado, su monto y si ya se
+// liquidaron para ese período. Para mostrar antes de confirmar la acción.
+// ------------------------------------------------------------
+router.get('/liquidar-sueldos-fijos', async (req, res) => {
+  try {
+    const choferes = await listarLiquidables(pool, req.usuario.id_empresa, req.query.periodo);
+    res.json(choferes);
+  } catch (err) {
+    responderError(res, err, req);
+  }
+});
+
+// ------------------------------------------------------------
+// POST /api/cuentas-corrientes/liquidar-sueldos-fijos  { periodo, id_choferes? }
+// Crea el movimiento del sueldo fijo mensual de cada chofer con
+// sueldo_fijo_mensual cargado. Correrla dos veces para el mismo período no
+// duplica nada (LIQUIDACIONES_SUELDO es único por chofer y período).
+// id_choferes es opcional: si viene, acota la liquidación a esos choferes
+// (elegidos en la vista previa); sin él, liquida a todos como antes.
+// ------------------------------------------------------------
+router.post('/liquidar-sueldos-fijos', async (req, res) => {
+  const conexion = await pool.getConnection();
+  try {
+    await conexion.beginTransaction();
+    const resultado = await liquidarSueldosFijosDelMes(
+      conexion, req.usuario.id_empresa, req.body.periodo, req.body.id_choferes);
+    await conexion.commit();
+    res.json(resultado);
+  } catch (err) {
+    try { await conexion.rollback(); } catch (e) { /* sin transacción */ }
+    responderError(res, err, req);
+  } finally {
+    conexion.release();
+  }
+});
+
+// ------------------------------------------------------------
+// GET /api/cuentas-corrientes/liquidacion-sueldos/periodo/:periodo/pdf
+// Resumen en PDF de todas las liquidaciones de un período (comprobante
+// interno, no fiscal).
+// ------------------------------------------------------------
+router.get('/liquidacion-sueldos/periodo/:periodo/pdf', async (req, res) => {
+  try {
+    const liquidaciones = await obtenerLiquidacionesDelPeriodo(pool, req.usuario.id_empresa, req.params.periodo);
+    if (liquidaciones.length === 0) {
+      return res.status(404).json({ error: 'No hay liquidaciones registradas para ese período.' });
+    }
+    const total = liquidaciones.reduce((a, l) => a + l.monto, 0);
+    const [[empresa]] = await pool.query('SELECT nombre FROM EMPRESAS WHERE id_empresa = ?', [req.usuario.id_empresa]);
+    enviarResumenLiquidacionesPDF(res, { periodo: req.params.periodo, liquidaciones, total }, (empresa && empresa.nombre) || 'Empresa');
+  } catch (err) {
+    responderError(res, err, req);
+  }
+});
+
+// ------------------------------------------------------------
+// GET /api/cuentas-corrientes/liquidacion-sueldos/:id/pdf
+// Recibo individual de una liquidación puntual (comprobante interno).
+// ------------------------------------------------------------
+router.get('/liquidacion-sueldos/:id/pdf', async (req, res) => {
+  try {
+    const liquidacion = await obtenerLiquidacion(pool, req.usuario.id_empresa, req.params.id);
+    if (!liquidacion) return res.status(404).json({ error: 'Liquidación no encontrada.' });
+    const [[empresa]] = await pool.query('SELECT nombre FROM EMPRESAS WHERE id_empresa = ?', [req.usuario.id_empresa]);
+    enviarReciboLiquidacionPDF(res, liquidacion, (empresa && empresa.nombre) || 'Empresa');
   } catch (err) {
     responderError(res, err, req);
   }

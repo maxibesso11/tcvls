@@ -1,0 +1,73 @@
+/* layout/responsive.css
+   Todos los cortes en un solo lugar: 1280 / 1100 / 900 / 640 px. Va último. */
+
+@media (max-width: 1280px) { .pulso.tablero { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pulso.tablero > .cifra:nth-child(4) { border-left: 0; } .pulso.tablero > .cifra:nth-child(n+4) { border-top: 1px solid var(--line); } }
+
+@media (max-width: 1100px) {
+  .grilla-2, .grilla-3, .grilla-2-iguales { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .app > .rail { position: fixed; left: 0; top: 0; z-index: 40; height: 100%; transform: translateX(-100%); transition: transform .2s; }
+  .app.menu-abierto > .rail { transform: none; box-shadow: var(--shadow-pop); }
+  .btn-menu { display: inline-flex; }
+  .rail-pestana { display: none; }
+  .barra-sup { padding: 8px 16px; flex-wrap: wrap; }
+  .barra-sup .segmentado, .usuario { display: none; }
+  .vista { padding: 16px; }
+  .semana { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .agenda-item { grid-template-columns: 52px auto minmax(0, 1fr); }
+  .agenda-item > :last-child { grid-column: 1 / -1; justify-self: start; }
+  .tramos-ref { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .barra-sup .espacio { display: none; }
+  .barra-sup .buscar { min-width: 0; max-width: none; }
+  .flota-fila { grid-template-columns: minmax(0, 1fr) auto; }
+  .flota-fila .pat { grid-column: 1 / -1; }
+  .alerta-texto strong { white-space: normal; }
+  .pulso.tablero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pulso.tablero > .cifra { border-left: 0; border-top: 1px solid var(--line); }
+  .pulso.tablero > .cifra:nth-child(even) { border-left: 1px solid var(--line); }
+  .pulso.tablero > .cifra:nth-child(-n+2) { border-top: 0; }
+  .pulso.tablero .cifra-xl .cifra-valor { font-size: 34px; line-height: 36px; }
+  .pulso > .cifra { padding: 14px 16px; }
+}
+
+@media (max-width: 900px) {
+  .tabla .col-opc { display: none; }
+  .cascada-fila { grid-template-columns: 96px minmax(0, 1fr) 64px; gap: var(--space-2); }
+  .puntos-fila { grid-template-columns: minmax(96px, 130px) minmax(0, 1fr) 40px; gap: var(--space-2); }
+}
+
+@media (max-width: 640px) {
+  .formulario { grid-template-columns: 1fr; }
+  .pulso > .cifra { border-left: 0; border-top: 1px solid var(--line); }
+  .pulso > .cifra:first-child { border-top: 0; }
+  .cifra-xl .cifra-valor { font-size: 44px; line-height: 44px; }
+  .cascada-fila { grid-template-columns: 84px minmax(0, 1fr) 70px; }
+  .cascada-val { font-size: 14px; }
+  /* Tabla de equipos apilada: cada equipo es un bloque, sin scroll lateral */
+  .tabla-equipos thead { display: none; }
+  .tabla-equipos tbody tr, .tabla-equipos tfoot tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); }
+  .tabla-equipos td, .tabla-equipos tfoot td { display: block; padding: 0; border: 0; text-align: left; }
+  .tabla-equipos td.col-equipo, .tabla-equipos tfoot td:first-child { grid-column: 1 / -1; }
+  .tabla-equipos td[data-rot]::before { content: attr(data-rot); display: block; font: 600 10.5px/14px var(--font-text); letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); }
+  .tabla-equipos td.col-opc { display: block; }
+  .tabla-equipos tfoot td:empty { display: none; }
+  .tabla-equipos tfoot tr { border-top: 2px solid var(--ink); }
+}
+
+/* Rail compacto (solo íconos), solo en escritorio: en ≤900px el rail es un cajón. */
+@media (min-width: 901px) {
+  .app.rail-compacto { grid-template-columns: 64px minmax(0, 1fr); }
+  .app.rail-compacto > .rail { width: 64px; overflow-x: hidden; }
+  .app.rail-compacto .rail-marca { justify-content: center; padding-inline: 0; }
+  .app.rail-compacto .rail-marca > div { display: none; }
+  .app.rail-compacto .rail-grupo { height: 1px; margin: 10px 14px; padding: 0; overflow: hidden; font-size: 0; background: var(--rail-raised); }
+  .app.rail-compacto .rail a { justify-content: center; gap: 0; padding: 9px 0; font-size: 0; }
+  .app.rail-compacto .rail a svg { width: 19px; height: 19px; }
+  .app.rail-compacto .rail a .cuenta { position: absolute; top: 1px; right: 3px; min-width: 16px; height: 15px; padding: 0 4px; font-size: 10px; line-height: 15px; }
+  .app.rail-compacto .rail-pie { display: none; }
+}

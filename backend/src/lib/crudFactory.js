@@ -53,7 +53,7 @@ function responderError(res, err) {
   return responderErrorGeneral(res, err);
 }
 
-function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, filtrosLike, filtroFecha, ordenable, hooks = {} }) {
+function crudFactory({ table, idField, fields, filtroEquipo, ambitoUnidad, filtrosExactos, filtrosLike, filtroFecha, ordenable, hooks = {} }) {
   const router = express.Router();
 
   // Listar (filtrado por empresa + filtros opcionales)
@@ -106,6 +106,10 @@ function crudFactory({ table, idField, fields, filtroEquipo, filtrosExactos, fil
           params.push(req.query.id_equipo, req.query.id_equipo);
         }
       }
+
+      // Vencimientos y mantenimientos: generales de la flota (sin unidad) o de una unidad
+      if (ambitoUnidad && req.query.ambito === 'general') condiciones.push('id_unidad IS NULL');
+      else if (ambitoUnidad && req.query.ambito === 'unidad') condiciones.push('id_unidad IS NOT NULL');
 
       sql += ` WHERE ${condiciones.join(' AND ')}`;
 

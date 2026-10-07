@@ -59,6 +59,8 @@ sudo docker compose ps                        # estado y salud
 sudo docker compose logs -f --tail 100 app    # logs de la app (Ctrl+C para salir)
 sudo docker compose restart app               # reiniciar la app
 sudo docker compose run --rm app node backend/database/migrar.js --estado   # migraciones
+sudo docker compose run --rm app node scripts/verificar-entorno.js          # verificar el entorno
+sudo docker compose run --rm app node backend/database/alta-cliente.js      # alta de un cliente (ver ALTA_DE_CLIENTE.md)
 sudo docker compose run --rm app node scripts/auditar-cuentas.js            # auditoría de cuentas
 sudo docker compose exec db sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot "$MYSQL_DATABASE"'  # consola SQL
 ```

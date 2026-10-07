@@ -63,14 +63,15 @@ function abrirModalResultado(viaje, siguienteEstado) {
 
   $('#modal-titulo').textContent = `Finalizar viaje · ${unidad}`;
   $('#modal-cuerpo').innerHTML = `
-    <div class="campo ancho-completo" style="font-size:13px;color:var(--texto-suave); padding:10px 12px; background:#faf9f5; border-radius:6px">
-      <div><strong>${esc(viaje.origen)}</strong> → <strong>${esc(viaje.destino)}</strong></div>
-      <div>Tarifa: ${fmtDinero(viaje.tarifa)} · ${viaje.tipo_tarifa}</div>
-      ${viaje.cantidad_cargada ? `<div>Cantidad cargada: ${viaje.cantidad_cargada}</div>` : ''}
-    </div>
-    <div class="campo ancho-completo">
-      <label for="res-valor">${unidad} *</label>
-      <input id="res-valor" type="number" step="any" min="0" required autofocus>
+    <div class="formulario">
+      <div class="campo ancho">
+        <span><strong>${esc(viaje.origen)}</strong> → <strong>${esc(viaje.destino)}</strong></span>
+        <span class="ayuda">Tarifa: ${fmtDinero(viaje.tarifa)} · ${viaje.tipo_tarifa}${viaje.cantidad_cargada ? ` · Cantidad cargada: ${fmtNum(viaje.cantidad_cargada)}` : ''}</span>
+      </div>
+      <div class="campo ancho">
+        <label for="res-valor">${unidad} *</label>
+        <input id="res-valor" type="number" step="any" min="0" required autofocus>
+      </div>
     </div>
   `;
   $('#modal-fondo').hidden = false;
@@ -81,7 +82,7 @@ async function guardarResultadoYAvanzar() {
   const { idViaje, estado, viaje } = modoAvanzarConResultado;
   const valor = parseFloat($('#res-valor').value);
   if (!Number.isFinite(valor) || valor <= 0) {
-    mostrarToast('Ingresa un valor mayor a cero', true);
+    mostrarToast('Ingresá un valor mayor a cero', true);
     return;
   }
 
@@ -119,7 +120,7 @@ function calcularMontosViaje(datos) {
 // se muestran con IVA, igual que como fueron imputados.
 function valorViajeFacturado(fila) {
   if (fila.estado !== 'FACTURADO') {
-    return '<span style="color:var(--texto-suave)">—</span>';
+    return '<span class="tenue">—</span>';
   }
   const { neto, conIVA } = calcularMontosViaje(fila);
   const sinIva = fila.modo_facturacion === 'SIN_FACTURAR';
@@ -127,7 +128,7 @@ function valorViajeFacturado(fila) {
   const detalle = sinIva ? 'sin IVA'
     : fila.modo_facturacion === 'FACTURA' ? 'Factura A · IVA incl.'
     : 'líquido producto · IVA incl.';
-  return `<strong>${fmtDinero(total)}</strong><br><span class="filtro-label">${detalle}</span>`;
+  return `<strong>${fmtDinero(total)}</strong><br><span class="tenue">${detalle}</span>`;
 }
 
 let _datosViajeFacturar = null;
@@ -137,33 +138,34 @@ function abrirModalFacturarViaje(datos) {
   // La factura A solo se ofrece si la facturación está habilitada en el sistema.
   const conFactura = moduloActivo('facturacion');
   const filaComision = comision > 0
-    ? `<div class="resumen-fila" style="display:flex;justify-content:space-between;padding:3px 0"><span>Comisión (${comision}%)</span><span>− ${fmtDinero(base - neto)}</span></div>`
+    ? `<tr><td>Comisión (${fmtNum(comision)} %)</td><td class="num">− ${fmtDinero(base - neto)}</td></tr>`
     : '';
 
   $('#modal-titulo').textContent = 'Facturar viaje';
   $('#modal-cuerpo').innerHTML = `
-    <p style="color:var(--texto-suave);font-size:14px;margin-bottom:16px">
-      Elegí cómo imputar este viaje en la cuenta del cliente <strong>${esc(datos.pagador || '')}</strong>.
-    </p>
-    <div style="background:var(--fondo-suave,#f5f5f5);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:14px">
-      <div class="resumen-fila" style="display:flex;justify-content:space-between;padding:3px 0"><span>Base del viaje</span><span>${fmtDinero(base)}</span></div>
-      ${filaComision}
-      <div class="resumen-fila" style="display:flex;justify-content:space-between;padding:3px 0;font-weight:600"><span>Neto (a cobrar)</span><span>${fmtDinero(neto)}</span></div>
-      <div class="resumen-fila" style="display:flex;justify-content:space-between;padding:3px 0"><span>+ IVA 21%</span><span>${fmtDinero(conIVA - neto)}</span></div>
-      <div class="resumen-fila" style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:6px;font-weight:700;border-top:1px solid var(--borde)"><span>Total con IVA</span><span>${fmtDinero(conIVA)}</span></div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px">
+    <p>Elegí cómo imputar este viaje en la cuenta del cliente <strong>${esc(datos.pagador || '')}</strong>.</p>
+    <div class="tabla-marco"><table class="tabla">
+      <tbody>
+        <tr><td>Base del viaje</td><td class="num">${fmtDinero(base)}</td></tr>
+        ${filaComision}
+        <tr><td class="fuerte">Neto (a cobrar)</td><td class="num fuerte">${fmtDinero(neto)}</td></tr>
+        <tr><td>+ IVA 21 %</td><td class="num">${fmtDinero(conIVA - neto)}</td></tr>
+      </tbody>
+      <tfoot><tr><td>Total con IVA</td><td class="num">${fmtDinero(conIVA)}</td></tr></tfoot>
+    </table></div>
+    <div class="grupo-titulo"></div>
+    <div class="acciones">
       ${conFactura ? `<button class="btn btn-primario" onclick="confirmarFacturarViaje('FACTURA')">Emitir factura A · ${fmtDinero(conIVA)}</button>` : ''}
-      <button class="btn ${conFactura ? 'btn-secundario' : 'btn-primario'}" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Facturado líquido producto (con IVA) · ${fmtDinero(conIVA)}</button>
-      <button class="btn btn-secundario" onclick="confirmarFacturarViaje('SIN_FACTURAR')">Continuar sin facturar (sin IVA) · ${fmtDinero(neto)}</button>
+      <button class="btn ${conFactura ? '' : 'btn-primario'}" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Facturar líquido producto (con IVA) · ${fmtDinero(conIVA)}</button>
+      <button class="btn" onclick="confirmarFacturarViaje('SIN_FACTURAR')">Continuar sin facturar (sin IVA) · ${fmtDinero(neto)}</button>
     </div>
-    <p style="color:var(--texto-suave);font-size:12px;margin-top:14px;line-height:1.5">
+    <p class="tenue">
       ${conFactura ? '<strong>Emitir factura A</strong> genera el comprobante formal e imputa el total en la cuenta.' : ''}
       <strong>Líquido producto</strong> imputa el total con IVA sin emitir comprobante.
       <strong>Sin facturar</strong> imputa solo el neto, sin IVA.
     </p>`;
-  $('#btn-guardar').style.display = 'none';
-  $('#btn-cancelar').style.display = '';
+  $('#btn-guardar').hidden = true;
+  $('#btn-cancelar').hidden = false;
   abrirModalGenerico();
 }
 

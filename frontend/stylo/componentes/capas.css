@@ -1,0 +1,10 @@
+/* componentes/capas.css
+   Toast, fondo de modal y menú flotante. Únicos elementos con shadow-pop. */
+
+/* Toast y modal */
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; padding: 10px 16px; background: var(--ink); color: var(--surface); border-radius: var(--radius-m); font-weight: 600; box-shadow: var(--shadow-pop); }
+.fondo-modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(15,27,45,.5); }
+.menu-flot { position: absolute; z-index: 30; min-width: 220px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); box-shadow: var(--shadow-pop); }
+.menu-flot button { display: flex; width: 100%; gap: 10px; align-items: center; padding: 8px 10px; border: 0; background: none; border-radius: var(--radius-m); font: 500 13.5px var(--font-text); color: var(--ink); cursor: pointer; text-align: left; }
+.menu-flot button:hover { background: var(--surface-sunk); }
+.rel { position: relative; }

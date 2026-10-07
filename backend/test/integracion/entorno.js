@@ -1,6 +1,7 @@
 // backend/test/integracion/entorno.js
 // Entorno de los tests de integración: recrea una base MySQL DESCARTABLE desde
-// esquema/init_db.sql (que ejecuta DROP DATABASE erp_3_abril) y levanta la app
+// esquema/esquema.sql + datos_prueba/datos_basicos.sql (precedidos de un
+// DROP DATABASE erp_3_abril) y levanta la app
 // en un puerto libre. Nunca apuntar a un servidor MySQL con datos reales.
 //
 // Variables: TEST_DB_HOST, TEST_DB_PORT, TEST_DB_USER, TEST_DB_PASSWORD y
@@ -13,7 +14,8 @@ const mysql = require('mysql2/promise');
 const HABILITADO = process.env.TEST_DB_PERMITIR_BORRADO === '1';
 const MOTIVO_OMISION = 'Definí TEST_DB_PERMITIR_BORRADO=1 y TEST_DB_* apuntando a un MySQL descartable';
 
-const RUTA_ESQUEMA = path.join(__dirname, '..', '..', 'database', 'esquema', 'init_db.sql');
+const RUTA_ESQUEMA = path.join(__dirname, '..', '..', 'database', 'esquema', 'esquema.sql');
+const RUTA_DATOS = path.join(__dirname, '..', '..', 'database', 'datos_prueba', 'datos_basicos.sql');
 
 // Las variables se fijan antes de cargar la app: config/db.js las lee al
 // cargarse y dotenv no pisa las que ya existen.
@@ -39,8 +41,10 @@ async function recrearBase() {
     multipleStatements: true
   });
   try {
+    await conexion.query('DROP DATABASE IF EXISTS erp_3_abril; CREATE DATABASE erp_3_abril CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; USE erp_3_abril;');
     await conexion.query(fs.readFileSync(RUTA_ESQUEMA, 'utf8'));
-    // init_db obliga a cambiar las contraseñas iniciales en el primer ingreso;
+    await conexion.query(fs.readFileSync(RUTA_DATOS, 'utf8'));
+    // Los datos de prueba obligan a cambiar las contraseñas iniciales en el primer ingreso;
     // los tests operan directo (ese flujo se prueba en seguridad.test.js).
     await conexion.query('UPDATE erp_3_abril.USUARIOS SET debe_cambiar_contrasena = 0');
   } finally {
@@ -63,8 +67,9 @@ async function levantar() {
 
   // opciones.token: usar ese token en lugar del de la sesión iniciada
   // (null = sin token). opciones.crudo: cuerpo tal cual, sin JSON.stringify.
+  // opciones.headers: cabeceras extra (ej. X-Empresa-Id para ADMIN_MULTIEMPRESA).
   async function api(metodo, url, cuerpo, opciones = {}) {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json', ...(opciones.headers || {}) };
     const tokenPedido = 'token' in opciones ? opciones.token : token;
     if (tokenPedido) headers.Authorization = `Bearer ${tokenPedido}`;
     const resp = await fetch(base + url, {

@@ -71,7 +71,7 @@ async function main() {
 
     if (!Number(existe)) {
       if (Number(tablas) === 0) {
-        throw new Error(`La base "${process.env.DB_NAME}" está vacía: para una instalación nueva se usa esquema/init_db.sql, no las migraciones.`);
+        throw new Error(`La base "${process.env.DB_NAME}" está vacía: para una instalación nueva se usa instalar.js (node backend/database/instalar.js), no las migraciones.`);
       }
       if (!REGISTRAR_HASTA) {
         throw new Error('La base no tiene el registro de migraciones (tabla MIGRACIONES). ' +

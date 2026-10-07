@@ -1,0 +1,36 @@
+/* componentes/tabla.css
+   Ver guía del componente en el sistema de diseño. */
+
+/* ---------- Tabla densa ---------- */
+.tabla-marco { overflow-x: auto; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tabla th { position: sticky; top: 0; z-index: 1; padding: 8px var(--space-3); background: var(--surface-sunk); border-bottom: 1px solid var(--line); text-align: left; font: 600 11px/14px var(--font-text); letter-spacing: .9px; text-transform: uppercase; color: var(--ink-2); white-space: nowrap; }
+.tabla th.num { text-align: right; }
+.tabla td { padding: 9px var(--space-3); border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tabla tbody tr:hover td { background: #f7f8f5; }
+.tabla tbody tr.clic { cursor: pointer; }
+.tabla tr.sel td { background: var(--surface-sunk); }
+.tabla td.fuerte { font-weight: 600; }
+.tabla tfoot td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0; }
+.tabla td.nowrap { white-space: nowrap; }
+/* Tablas sin scroll lateral: las celdas de texto se parten en vez de ensanchar la tabla */
+.tabla td { overflow-wrap: anywhere; }
+.tabla td.mono.nowrap, .tabla td.num { overflow-wrap: normal; }
+
+/* Detalle de un registro (modal «Ver detalle») */
+.ficha-datos.ficha-detalle { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-5); }
+.ficha-detalle .ficha-dato { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .ficha-detalle { grid-template-columns: 1fr; } }
+
+/* Celda de dos líneas: dato principal + detalle (en vez de una columna más) */
+.celda-doble { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.celda-doble b { font-weight: 600; }
+.celda-doble span { font-size: 12.5px; color: var(--ink-3); }
+
+/* Barra inline (dentro de celdas) */
+.barra { position: relative; height: 8px; min-width: 80px; background: var(--surface-sunk); border-radius: var(--radius-s); overflow: hidden; }
+.barra > i { position: absolute; inset: 0 auto 0 0; background: var(--chart-income); border-radius: var(--radius-s); }
+.barra.costo > i { background: var(--chart-cost); }
+.barra-doble { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; align-items: center; }
+.barra-doble .izq { direction: rtl; }
+.barra-doble .izq > i { inset: 0 0 0 auto; background: var(--chart-cost); }

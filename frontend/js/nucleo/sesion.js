@@ -8,26 +8,27 @@
 // ============================================================
 let SESION = null;
 
-// Catálogo de temas disponibles (debe coincidir con el CSS y el backend)
+// Catálogo de temas disponibles (debe coincidir con stylo/base/temas.css y el backend)
 const TEMAS = [
-  { id: 'verde',    nombre: 'Verde pizarra', sidebar: '#1d2f29', acento: '#e8a13c' },
-  { id: 'azul',     nombre: 'Azul noche',    sidebar: '#1a2940', acento: '#4f9dde' },
-  { id: 'violeta',  nombre: 'Violeta',       sidebar: '#2f2046', acento: '#a779e0' },
-  { id: 'borgona',  nombre: 'Borgoña',       sidebar: '#3c1d22', acento: '#d98f6b' },
-  { id: 'grafito',  nombre: 'Grafito',       sidebar: '#292a2d', acento: '#d6a85c' },
-  { id: 'oceano',   nombre: 'Océano',        sidebar: '#163b3f', acento: '#3bb3a8' },
-  { id: 'indigo',   nombre: 'Índigo',        sidebar: '#25264f', acento: '#7c83f8' },
-  { id: 'esmeralda',nombre: 'Esmeralda',     sidebar: '#133d2e', acento: '#2ecc8f' },
-  { id: 'cobre',    nombre: 'Cobre',         sidebar: '#3d271b', acento: '#e08a4b' },
-  { id: 'rosa',     nombre: 'Rosa',          sidebar: '#421d33', acento: '#e06b9e' },
-  { id: 'slate',    nombre: 'Pizarra azul',  sidebar: '#21282f', acento: '#6aa0c8' },
-  { id: 'bosque',   nombre: 'Bosque',        sidebar: '#1f3324', acento: '#9bc24a' }
+  { id: 'tcv', nombre: 'TCV', rail: '#16386b', rail2: '#1c4789', acento: '#38b6ff' },
+  { id: 'verde', nombre: 'Verde pizarra', rail: '#1d2f29', rail2: '#2b453c', acento: '#e8a13c' },
+  { id: 'azul', nombre: 'Azul noche', rail: '#1a2940', rail2: '#243959', acento: '#4f9dde' },
+  { id: 'violeta', nombre: 'Violeta', rail: '#2f2046', rail2: '#3f2b5e', acento: '#a779e0' },
+  { id: 'borgona', nombre: 'Borgoña', rail: '#3c1d22', rail2: '#542930', acento: '#d98f6b' },
+  { id: 'grafito', nombre: 'Grafito', rail: '#292a2d', rail2: '#3a3b40', acento: '#d6a85c' },
+  { id: 'oceano', nombre: 'Océano', rail: '#163b3f', rail2: '#1f5459', acento: '#3bb3a8' },
+  { id: 'indigo', nombre: 'Índigo', rail: '#25264f', rail2: '#303267', acento: '#7c83f8' },
+  { id: 'esmeralda', nombre: 'Esmeralda', rail: '#133d2e', rail2: '#1b5843', acento: '#2ecc8f' },
+  { id: 'cobre', nombre: 'Cobre', rail: '#3d271b', rail2: '#563726', acento: '#e08a4b' },
+  { id: 'rosa', nombre: 'Rosa', rail: '#421d33', rail2: '#5b2846', acento: '#e06b9e' },
+  { id: 'slate', nombre: 'Pizarra azul', rail: '#21282f', rail2: '#303a44', acento: '#6aa0c8' },
+  { id: 'bosque', nombre: 'Bosque', rail: '#1f3324', rail2: '#2c4934', acento: '#9bc24a' }
 ];
 
 // Aplica un tema al documento y lo cachea localmente (para evitar parpadeo
 // en la próxima carga, antes de revalidar la sesión con el servidor).
 function aplicarTema(tema) {
-  const valido = TEMAS.some(t => t.id === tema) ? tema : 'verde';
+  const valido = TEMAS.some(t => t.id === tema) ? tema : 'tcv';
   document.documentElement.dataset.tema = valido;
   localStorage.setItem('erp_tema', valido);
   if (SESION) SESION.tema = valido;
@@ -35,12 +36,14 @@ function aplicarTema(tema) {
 
 function mostrarLogin() {
   $('#clave-pantalla').hidden = true;
+  $('#multiempresa-selector-pantalla').hidden = true;
   $('#login-pantalla').hidden = false;
   $('#app-contenedor').hidden = true;
 }
 
 function mostrarApp() {
   $('#clave-pantalla').hidden = true;
+  $('#multiempresa-selector-pantalla').hidden = true;
   $('#login-pantalla').hidden = true;
   $('#app-contenedor').hidden = false;
 }
@@ -96,58 +99,62 @@ function moduloActivo(clave) {
 }
 
 // Oculta del menú lateral los enlaces de módulos no activos, y las etiquetas
-// de grupo (nav-group-label) que queden sin ningún enlace visible debajo.
+// de grupo (rail-grupo) que queden sin ningún enlace visible debajo.
 function aplicarModulosVisibles(modulos) {
   const activos = new Set(modulos);
   // Mostrar/ocultar cada enlace con data-vista según corresponda
-  document.querySelectorAll('#nav-datos .nav-link[data-vista]').forEach(a => {
+  document.querySelectorAll('#nav-datos > a[data-vista]').forEach(a => {
     const vista = a.dataset.vista;
-    const visible = vista === 'dashboard' || activos.has(vista);
-    a.style.display = visible ? '' : 'none';
+    a.hidden = !(vista === 'dashboard' || activos.has(vista));
   });
   // Ocultar etiquetas de grupo que no tengan enlaces visibles a continuación
-  document.querySelectorAll('#nav-datos .nav-group-label').forEach(label => {
+  document.querySelectorAll('#nav-datos > .rail-grupo').forEach(label => {
     let hayVisible = false;
     let el = label.nextElementSibling;
-    while (el && !el.classList.contains('nav-group-label')) {
-      if (el.classList.contains('nav-link') && el.style.display !== 'none') {
-        hayVisible = true; break;
-      }
+    while (el && !el.classList.contains('rail-grupo') && el.tagName === 'A') {
+      if (!el.hidden) { hayVisible = true; break; }
       el = el.nextElementSibling;
     }
-    label.style.display = hayVisible ? '' : 'none';
+    label.hidden = !hayVisible;
   });
 }
 
 function aplicarSesion(usuario) {
   SESION = usuario;
   // Apariencia elegida por el usuario
-  aplicarTema(usuario.tema || 'verde');
+  aplicarTema(usuario.tema || 'tcv');
   // Con contraseña temporal, primero hay que cambiarla
   if (usuario.debe_cambiar_contrasena) {
     mostrarCambioContrasena(true);
     return;
   }
   const esAdmin = usuario.rol === 'ADMIN';
-  // Iniciales del logo: las de la empresa, o derivadas del nombre, o "AD" para el admin
-  let iniciales;
-  if (esAdmin) {
-    iniciales = 'AD';
-  } else if (usuario.iniciales_empresa) {
-    iniciales = usuario.iniciales_empresa;
-  } else {
-    iniciales = derivarIniciales(usuario.nombre_empresa);
+  const esMultiempresa = usuario.rol === 'ADMIN_MULTIEMPRESA';
+  // ADMIN_MULTIEMPRESA todavía no eligió con cuál de sus empresas operar:
+  // mostrar el selector en vez del dashboard (ver vistas/multiempresa.js).
+  if (esMultiempresa && !usuario.id_empresa) {
+    renderSelectorEmpresaMultiempresa();
+    $('#login-pantalla').hidden = true;
+    $('#clave-pantalla').hidden = true;
+    $('#app-contenedor').hidden = true;
+    $('#multiempresa-selector-pantalla').hidden = false;
+    return;
   }
-  $('#brand-iniciales').textContent = iniciales;
-  // Nombre y rol en el pie del sidebar
-  $('#usuario-nombre').textContent = usuario.nombre_usuario;
-  $('#usuario-rol').textContent = usuario.rol === 'ADMIN' ? 'Administrador' : (usuario.nombre_empresa || 'Usuario');
+  $('#multiempresa-selector-pantalla').hidden = true;
+
+  // Nombre y rol en el pie del rail y en la barra superior
+  $('#usuario-barra').textContent = usuario.nombre_usuario;
+  $('#rol-barra').textContent = usuario.rol === 'ADMIN' ? 'Administrador' : (usuario.nombre_empresa || 'Usuario');
+  $('#avatar-usuario').textContent = (usuario.nombre_usuario || '?').trim().charAt(0).toUpperCase();
   $('#brand-empresa').textContent = usuario.rol === 'ADMIN' ? 'Administración' : (usuario.nombre_empresa || 'Empresa');
   $('#topbar-title').textContent = usuario.rol === 'ADMIN' ? 'Administración global' : (usuario.nombre_empresa || 'Gestión de transporte');
 
-  // Mostrar la navegación según el rol
+  // Mostrar la navegación según el rol. ADMIN_MULTIEMPRESA, con empresa ya
+  // elegida, opera igual que ADMIN_EMPRESA (ve nav-datos, no nav-admin).
   $('#nav-datos').hidden = esAdmin;
   $('#nav-admin').hidden = !esAdmin;
+  $('#nav-mi-empresa').hidden = usuario.rol !== 'ADMIN_EMPRESA';
+  $('#nav-mi-multiempresa').hidden = !esMultiempresa;
 
   // Aplicar la visibilidad de los módulos activos de la empresa
   aplicarModulosVisibles(usuario.modulos || []);
@@ -170,7 +177,7 @@ async function iniciarSesion() {
   const errorBox = $('#login-error');
   errorBox.hidden = true;
   if (!usuario || !clave) {
-    errorBox.textContent = 'Ingresa usuario y contraseña.';
+    errorBox.textContent = 'Ingresá usuario y contraseña.';
     errorBox.hidden = false;
     return;
   }
@@ -187,6 +194,7 @@ async function iniciarSesion() {
 
 function cerrarSesion() {
   API.setToken(null);
+  API.setEmpresaContexto(null);
   SESION = null;
   location.hash = '';
   mostrarLogin();
@@ -203,15 +211,25 @@ $('#btn-ver-clave').addEventListener('click', () => {
   const visible = input.type === 'text';
   input.type = visible ? 'password' : 'text';
   boton.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
-  boton.setAttribute('title', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
-  // Cambiar el ícono: ojo abierto / ojo tachado
-  $('#icono-ojo').innerHTML = visible
-    ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>'
-    : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+  boton.textContent = visible ? 'Mostrar contraseña' : 'Ocultar contraseña';
   input.focus();
 });
 
-$('#btn-salir').addEventListener('click', cerrarSesion);
+// Menú de usuario (avatar): Mi perfil, Apariencia (modal) y Cerrar sesión
+function cerrarMenuUsuario() {
+  $('#menu-usuario-lista').hidden = true;
+  $('#btn-usuario').setAttribute('aria-expanded', 'false');
+}
+$('#btn-usuario').addEventListener('click', () => {
+  const lista = $('#menu-usuario-lista');
+  lista.hidden = !lista.hidden;
+  $('#btn-usuario').setAttribute('aria-expanded', String(!lista.hidden));
+});
+document.addEventListener('click', e => { if (!e.target.closest('#menu-usuario')) cerrarMenuUsuario(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarMenuUsuario(); });
+$('#mi-perfil-menu').addEventListener('click', () => { cerrarMenuUsuario(); location.hash = 'mi-perfil'; });
+$('#apariencia-menu').addEventListener('click', () => { cerrarMenuUsuario(); abrirApariencia(); });
+$('#btn-salir').addEventListener('click', () => { cerrarMenuUsuario(); cerrarSesion(); });
 
 $('#clave-btn').addEventListener('click', guardarNuevaContrasena);
 $('#clave-repetir').addEventListener('keydown', e => { if (e.key === 'Enter') guardarNuevaContrasena(); });
@@ -224,5 +242,5 @@ window.addEventListener('cambio-contrasena-requerido', () => mostrarCambioContra
 window.addEventListener('sesion-expirada', () => {
   SESION = null;
   mostrarLogin();
-  mostrarToast('Tu sesión expiró. Inicia sesión nuevamente.', 'error');
+  mostrarToast('Tu sesión expiró. Iniciá sesión nuevamente.', true);
 });

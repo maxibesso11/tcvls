@@ -1,0 +1,14 @@
+/* componentes/composicion.css
+   Ver guía del componente en el sistema de diseño. */
+
+/* ---------- Composición del equipo (tractor + acoplado + chofer) ---------- */
+.composicion { display: flex; align-items: flex-end; gap: 0; }
+.comp-pieza { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.comp-silueta { display: block; height: 46px; }
+.comp-silueta .caja { fill: var(--surface-sunk); stroke: var(--ink); stroke-width: 1.5; }
+.comp-silueta .cabina { fill: var(--brand-navy); }
+.comp-silueta .rueda { fill: var(--ink); }
+.comp-silueta .llanta { fill: var(--surface); }
+.comp-pieza.actual .comp-silueta .caja { fill: var(--info-tint); }
+.comp-enganche { width: 14px; height: 3px; margin-bottom: 38px; background: var(--ink); }
+.comp-chofer { margin-left: var(--space-5); padding-left: var(--space-4); border-left: 1px solid var(--line); align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: 2px; }

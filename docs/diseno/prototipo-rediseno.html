@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>[hidden]{display:none!important}</style>
+<title>TCV LogiSuite Rediseño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: rail oscuro (tema del usuario) + barra superior + vista de trabajo sobre papel. Tokens del sistema de diseño TCV LogiSuite. Un solo aspecto claro, a propósito: el producto no tiene modo oscuro. */
+:root{color-scheme:light;--paper:#f3f4f1;--surface:#ffffff;--surface-sunk:#e8eae5;--line:#d6d9d2;--line-strong:#7f877f;--ink:#0f1b2d;--ink-2:#465163;--ink-3:#5b6676;--brand-navy:#16386b;--brand-cyan:#38b6ff;--rail:#16386b;--rail-raised:#1c4789;--rail-ink:#f4f6f8;--rail-ink-muted:#adbacf;--accent:#38b6ff;--on-accent:#0f1b2d;--accent-text:#006cab;--focus:#0f1b2d;--ok:#1c6a37;--ok-tint:#e1efe4;--warn:#7a4e00;--warn-tint:#fbecc6;--warn-fill:#f2a900;--danger:#b0251b;--danger-tint:#fbe2de;--danger-fill:#c8321f;--info:#0a5c93;--info-tint:#dcedf9;--plate-band:#1d4f9c;--plate-ink:#111418;--plate-bg:#ffffff;--chart-income:#16386b;--chart-cost:#d2691e;--chart-alt:#38b6ff;--chart-muted:#a3abb5;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--space-7:48px;--radius-s:2px;--radius-m:4px;--radius-l:8px;--shadow-pop:0 8px 24px rgba(15,27,45,0.18), 0 1px 2px rgba(15,27,45,0.12);--font-display:"Barlow Condensed", "Arial Narrow", sans-serif;--font-text:"Archivo", system-ui, sans-serif;--font-mono:"IBM Plex Mono", ui-monospace, monospace;}
+[data-tema="tcv"]{--rail:#16386b;--rail-raised:#1c4789;--accent:#38b6ff;--accent-text:#006cab;--on-accent:#0f1b2d;--rail-ink-muted:#adbacf;}
+[data-tema="verde"]{--rail:#1d2f29;--rail-raised:#2b453c;--accent:#e8a13c;--accent-text:#915c11;--on-accent:#0f1b2d;--rail-ink-muted:#a0b0ab;}
+[data-tema="azul"]{--rail:#1a2940;--rail-raised:#243959;--accent:#4f9dde;--accent-text:#206baa;--on-accent:#0f1b2d;--rail-ink-muted:#98a4b6;}
+[data-tema="violeta"]{--rail:#2f2046;--rail-raised:#3f2b5e;--accent:#a779e0;--accent-text:#8443d4;--on-accent:#0f1b2d;--rail-ink-muted:#a69bb5;}
+[data-tema="borgona"]{--rail:#3c1d22;--rail-raised:#542930;--accent:#d98f6b;--accent-text:#a2512a;--on-accent:#0f1b2d;--rail-ink-muted:#b39b9e;}
+[data-tema="grafito"]{--rail:#292a2d;--rail-raised:#3a3b40;--accent:#d6a85c;--accent-text:#866122;--on-accent:#0f1b2d;--rail-ink-muted:#a7a7aa;}
+[data-tema="oceano"]{--rail:#163b3f;--rail-raised:#1f5459;--accent:#3bb3a8;--accent-text:#26726b;--on-accent:#0f1b2d;--rail-ink-muted:#abc4c6;}
+[data-tema="indigo"]{--rail:#25264f;--rail-raised:#303267;--accent:#7c83f8;--accent-text:#4751f5;--on-accent:#0f1b2d;--rail-ink-muted:#a0a0b8;}
+[data-tema="esmeralda"]{--rail:#133d2e;--rail-raised:#1b5843;--accent:#2ecc8f;--accent-text:#1a7552;--on-accent:#0f1b2d;--rail-ink-muted:#aac7bd;}
+[data-tema="cobre"]{--rail:#3d271b;--rail-raised:#563726;--accent:#e08a4b;--accent-text:#9f531b;--on-accent:#0f1b2d;--rail-ink-muted:#b9a8a0;}
+[data-tema="rosa"]{--rail:#421d33;--rail-raised:#5b2846;--accent:#e06b9e;--accent-text:#bf286a;--on-accent:#0f1b2d;--rail-ink-muted:#b89dae;}
+[data-tema="slate"]{--rail:#21282f;--rail-raised:#303a44;--accent:#6aa0c8;--accent-text:#366c93;--on-accent:#0f1b2d;--rail-ink-muted:#9ea4ab;}
+[data-tema="bosque"]{--rail:#1f3324;--rail-raised:#2c4934;--accent:#9bc24a;--accent-text:#576f25;--on-accent:#0f1b2d;--rail-ink-muted:#a5b5aa;}
+
+
+/* =====================================================================
+   TCV LogiSuite — componentes (CSS puro, sin framework)
+   Lee las variables de tokens.css. Nombres en castellano, como el código.
+   ===================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 14px/20px var(--font-text); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.mono { font-family: var(--font-mono); font-size: 13px; }
+.rotulo { font: 600 11px/14px var(--font-text); letter-spacing: .9px; text-transform: uppercase; color: var(--ink-2); }
+.tenue { color: var(--ink-3); }
+
+/* ---------- Botón ---------- */
+.btn { display: inline-flex; align-items: center; gap: var(--space-2); height: 34px; padding: 0 var(--space-3); border: 1px solid var(--line-strong); border-radius: var(--radius-m); background: var(--surface); color: var(--ink); font: 600 13.5px/1 var(--font-text); cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--surface-sunk); }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn-primario { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-primario:hover { background: var(--accent); filter: brightness(.94); }
+.btn-tinta { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.btn-tinta:hover { background: var(--ink); filter: brightness(1.25); }
+.btn-fantasma { border-color: transparent; background: transparent; }
+.btn-peligro { background: var(--danger-fill); border-color: var(--danger-fill); color: #fff; }
+.btn-peligro:hover { background: var(--danger-fill); filter: brightness(.92); }
+.btn-chico { height: 28px; padding: 0 var(--space-2); font-size: 12.5px; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* ---------- Patente (Mercosur) ---------- */
+.patente { display: inline-flex; flex-direction: column; align-items: stretch; min-width: 88px; border: 1.5px solid var(--plate-ink); border-radius: var(--radius-s); background: var(--plate-bg); overflow: hidden; vertical-align: middle; line-height: 1; }
+.patente::before { content: ""; display: block; height: 5px; background: var(--plate-band); }
+.patente b { display: block; padding: 3px 7px 4px; font: 600 17px/18px var(--font-display); letter-spacing: 1.6px; color: var(--plate-ink); text-align: center; white-space: nowrap; }
+.patente-chica { min-width: 66px; }
+.patente-chica::before { height: 3px; }
+.patente-chica b { padding: 2px 5px 3px; font-size: 13.5px; line-height: 14px; letter-spacing: 1.1px; }
+.patente-grande { min-width: 150px; border-width: 2px; }
+.patente-grande::before { height: 9px; }
+.patente-grande b { padding: 5px 12px 7px; font-size: 32px; line-height: 32px; letter-spacing: 3px; }
+a .patente, .patente[href] { cursor: pointer; }
+
+/* ---------- Insignia (estado) ---------- */
+.insignia { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px; border-radius: var(--radius-s); background: var(--surface-sunk); color: var(--ink); font: 600 11px/1 var(--font-text); letter-spacing: .5px; text-transform: uppercase; white-space: nowrap; }
+.insignia::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.insignia.sin-punto::before { display: none; }
+.insignia.ok { background: var(--ok-tint); color: var(--ok); }
+.insignia.aviso { background: var(--warn-tint); color: var(--warn); }
+.insignia.peligro { background: var(--danger-tint); color: var(--danger); }
+.insignia.info { background: var(--info-tint); color: var(--info); }
+.insignia.marca { background: var(--brand-navy); color: #fff; }
+
+/* ---------- Cifra (KPI) ---------- */
+.cifra { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cifra-valor { font: 600 36px/36px var(--font-display); color: var(--ink); white-space: nowrap; }
+.cifra-valor small { font: 500 18px/1 var(--font-display); color: var(--ink-3); margin-left: 3px; }
+.cifra-xl .cifra-valor { font-size: 56px; line-height: 52px; letter-spacing: -.5px; }
+.cifra-delta { display: inline-flex; align-items: center; gap: 4px; font: 600 12.5px/16px var(--font-text); }
+.cifra-delta.sube { color: var(--ok); } .cifra-delta.baja { color: var(--danger); }
+.cifra-delta .tenue { font-weight: 400; }
+.cifra-traza { display: block; width: 100%; height: 28px; }
+.cifra-traza path { fill: none; stroke: var(--ink-2); stroke-width: 1.5; }
+.cifra-traza circle { fill: var(--ink); }
+
+/* Franja de pulso: cifras en fila separadas por reglas verticales */
+.pulso { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); }
+.pulso > .cifra { padding: var(--space-4) var(--space-5); border-left: 1px solid var(--line); }
+.pulso > .cifra:first-child { border-left: 0; }
+
+/* ---------- Hoja (panel) ---------- */
+.hoja { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); min-width: 0; }
+.hoja-cabecera { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); }
+.hoja-titulo { margin: 0; font: 600 20px/22px var(--font-display); letter-spacing: .3px; }
+.hoja-sub { font-size: 12.5px; color: var(--ink-3); }
+.hoja-cuerpo { padding: var(--space-4); }
+.hoja-pie { padding: var(--space-2) var(--space-4); border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); }
+.hoja-pie a, .link { color: var(--accent-text); font-weight: 600; text-decoration: none; }
+.hoja-pie a:hover, .link:hover { text-decoration: underline; }
+
+/* ---------- Tabla densa ---------- */
+.tabla-marco { overflow-x: auto; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tabla th { position: sticky; top: 0; z-index: 1; padding: 8px var(--space-3); background: var(--surface-sunk); border-bottom: 1px solid var(--line); text-align: left; font: 600 11px/14px var(--font-text); letter-spacing: .9px; text-transform: uppercase; color: var(--ink-2); white-space: nowrap; }
+.tabla th.num { text-align: right; }
+.tabla td { padding: 9px var(--space-3); border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tabla tbody tr:hover td { background: #f7f8f5; }
+.tabla tbody tr.clic { cursor: pointer; }
+.tabla tr.sel td { background: var(--surface-sunk); }
+.tabla td.fuerte { font-weight: 600; }
+.tabla tfoot td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0; }
+
+/* Barra inline (dentro de celdas) */
+.barra { position: relative; height: 8px; min-width: 80px; background: var(--surface-sunk); border-radius: var(--radius-s); overflow: hidden; }
+.barra > i { position: absolute; inset: 0 auto 0 0; background: var(--chart-income); border-radius: var(--radius-s); }
+.barra.costo > i { background: var(--chart-cost); }
+.barra-doble { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; align-items: center; }
+.barra-doble .izq { direction: rtl; }
+.barra-doble .izq > i { inset: 0 0 0 auto; background: var(--chart-cost); }
+
+/* ---------- Tabs ---------- */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tab { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 10px var(--space-3) 11px; border: 0; background: none; color: var(--ink-2); font: 600 13.5px/1 var(--font-text); cursor: pointer; white-space: nowrap; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); }
+.tab[aria-selected="true"]::after { content: ""; position: absolute; left: var(--space-3); right: var(--space-3); bottom: -1px; height: 3px; background: var(--accent-text); }
+.tab .cuenta { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--surface-sunk); color: var(--ink-2); font-size: 11px; line-height: 18px; text-align: center; }
+.tab .cuenta.peligro { background: var(--danger-fill); color: #fff; }
+
+/* Segmentado (períodos, filtros rápidos) */
+.segmentado { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius-m); overflow: hidden; }
+.segmentado button { height: 30px; padding: 0 var(--space-3); border: 0; border-left: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font: 600 12.5px/1 var(--font-text); cursor: pointer; }
+.segmentado button:first-child { border-left: 0; }
+.segmentado button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+
+/* ---------- Campo ---------- */
+.campo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.campo label { font: 600 12.5px/16px var(--font-text); color: var(--ink-2); }
+.campo input, .campo select, .campo textarea, .entrada { height: 36px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-m); background: var(--surface); color: var(--ink); font: 400 14px/20px var(--font-text); width: 100%; }
+.campo textarea { height: auto; min-height: 72px; padding: 8px 10px; }
+.campo input::placeholder, .entrada::placeholder { color: var(--ink-3); }
+.campo .ayuda { font-size: 12.5px; color: var(--ink-3); }
+.campo.error input, .campo.error select { border-color: var(--danger); box-shadow: inset 0 0 0 1px var(--danger); }
+.campo.error .ayuda { color: var(--danger); }
+.formulario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); }
+.formulario .ancho { grid-column: 1 / -1; }
+.formulario fieldset { grid-column: 1 / -1; margin: var(--space-2) 0 0; padding: var(--space-3) 0 0; border: 0; border-top: 1px solid var(--line); display: contents; }
+.grupo-titulo { grid-column: 1 / -1; margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--line); }
+
+/* ---------- Alerta (fila con cuenta regresiva) ---------- */
+.alertas { list-style: none; margin: 0; padding: 0; }
+.alerta { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: var(--space-3); padding: 8px var(--space-4); border-bottom: 1px solid var(--line); }
+.alerta:last-child { border-bottom: 0; }
+.alerta-dias { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 40px; border-radius: var(--radius-s); background: var(--surface-sunk); color: var(--ink); font: 600 20px/1 var(--font-display); }
+.alerta-dias small { font: 600 9.5px/1 var(--font-text); letter-spacing: .6px; text-transform: uppercase; margin-top: 2px; }
+.alerta.vencida .alerta-dias { background: var(--danger-fill); color: #fff; }
+.alerta.pronto .alerta-dias { background: var(--warn-fill); color: var(--ink); }
+.alerta-texto { min-width: 0; }
+.alerta-texto strong { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alerta-texto span { font-size: 12.5px; color: var(--ink-3); }
+
+/* ---------- Composición del equipo (tractor + acoplado + chofer) ---------- */
+.composicion { display: flex; align-items: flex-end; gap: 0; }
+.comp-pieza { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.comp-silueta { display: block; height: 46px; }
+.comp-silueta .caja { fill: var(--surface-sunk); stroke: var(--ink); stroke-width: 1.5; }
+.comp-silueta .cabina { fill: var(--brand-navy); }
+.comp-silueta .rueda { fill: var(--ink); }
+.comp-silueta .llanta { fill: var(--surface); }
+.comp-pieza.actual .comp-silueta .caja { fill: var(--info-tint); }
+.comp-enganche { width: 14px; height: 3px; margin-bottom: 38px; background: var(--ink); }
+.comp-chofer { margin-left: var(--space-5); padding-left: var(--space-4); border-left: 1px solid var(--line); align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+
+/* ---------- Rail (navegación lateral) ---------- */
+.rail { display: flex; flex-direction: column; width: 232px; min-height: 100%; background: var(--rail); color: var(--rail-ink); }
+.rail-marca { display: flex; align-items: center; gap: 10px; padding: 16px 16px 14px; }
+.rail-marca img { width: 32px; height: 32px; }
+.rail-marca b { display: block; font: 600 17px/18px var(--font-display); letter-spacing: .4px; }
+.rail-marca span { font-size: 11.5px; color: var(--rail-ink-muted); }
+.rail-grupo { padding: 14px 16px 6px; font: 600 10.5px/14px var(--font-text); letter-spacing: 1.1px; text-transform: uppercase; color: var(--rail-ink-muted); }
+.rail a { position: relative; display: flex; align-items: center; gap: 10px; margin: 1px 8px; padding: 7px 10px; border-radius: var(--radius-m); color: var(--rail-ink); font: 500 13.5px/18px var(--font-text); text-decoration: none; }
+.rail a svg { width: 17px; height: 17px; flex: none; opacity: .85; }
+.rail a:hover { background: var(--rail-raised); }
+.rail a[aria-current="page"] { background: var(--rail-raised); font-weight: 600; }
+.rail a[aria-current="page"]::before { content: ""; position: absolute; left: -8px; top: 6px; bottom: 6px; width: 3px; border-radius: 0 2px 2px 0; background: var(--accent); }
+.rail a .cuenta { margin-left: auto; min-width: 20px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: var(--on-accent); font: 700 11px/18px var(--font-text); text-align: center; }
+.rail :focus-visible { outline-color: var(--accent); }
+
+/* ---------- Ficha (cabecera de detalle) ---------- */
+.ficha-cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4) var(--space-5); padding: var(--space-5); background: var(--surface); border: 1px solid var(--line); border-bottom: 0; border-radius: var(--radius-m) var(--radius-m) 0 0; }
+.ficha-datos { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); }
+.ficha-dato { display: flex; flex-direction: column; gap: 2px; }
+.ficha-dato b { font-weight: 600; }
+.ficha-tabs { background: var(--surface); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 var(--radius-m) var(--radius-m); padding: 0 var(--space-3); }
+
+/* ---------- Modal ---------- */
+.modal { width: min(640px, 100%); background: var(--surface); border-radius: var(--radius-l); box-shadow: var(--shadow-pop); overflow: hidden; }
+.modal-cabecera { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--line); }
+.modal-cabecera h2 { margin: 0; font: 600 22px/24px var(--font-display); }
+.modal-cuerpo { padding: var(--space-5); max-height: 70vh; overflow: auto; }
+.modal-pie { display: flex; justify-content: flex-end; gap: var(--space-2); padding: var(--space-3) var(--space-5); background: var(--paper); border-top: 1px solid var(--line); }
+
+/* ---------- Vacío ---------- */
+.vacio { padding: var(--space-6) var(--space-4); text-align: center; color: var(--ink-3); }
+
+@media (max-width: 640px) {
+  .formulario { grid-template-columns: 1fr; }
+  .pulso > .cifra { border-left: 0; border-top: 1px solid var(--line); }
+  .pulso > .cifra:first-child { border-top: 0; }
+  .cifra-xl .cifra-valor { font-size: 44px; line-height: 44px; }
+}
+
+/* Layout: rail oscuro fijo a la izquierda + barra superior + vista de trabajo sobre papel. */
+html, body { height: 100%; }
+body { background: var(--paper); color: var(--ink); }
+.app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100%; }
+.app > .rail { position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.rail-pie { margin-top: auto; padding: 12px 16px 16px; border-top: 1px solid var(--rail-raised); display: flex; flex-direction: column; gap: 8px; }
+.rail-pie label { font: 600 10.5px/14px var(--font-text); letter-spacing: 1.1px; text-transform: uppercase; color: var(--rail-ink-muted); }
+.rail-pie select { height: 30px; background: var(--rail-raised); color: var(--rail-ink); border: 1px solid var(--rail-ink-muted); border-radius: var(--radius-m); padding: 0 6px; font: 500 13px var(--font-text); }
+.rail-marca button { all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.rail-marca svg { width: 32px; height: 32px; flex: none; }
+
+.principal { min-width: 0; display: flex; flex-direction: column; }
+.barra-sup { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.barra-sup .buscar { position: relative; flex: 1; max-width: 420px; }
+.barra-sup .buscar svg { position: absolute; left: 10px; top: 9px; width: 16px; height: 16px; color: var(--ink-3); }
+.barra-sup .buscar input { padding-left: 34px; height: 34px; background: var(--paper); }
+.barra-sup .espacio { flex: 1; }
+.btn-menu { display: none; }
+.campana { position: relative; }
+.campana .punto { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--danger-fill); color: #fff; font: 700 10.5px/18px var(--font-text); text-align: center; }
+.usuario { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+.usuario b { font-size: 13px; } .usuario span { font-size: 11.5px; color: var(--ink-3); }
+
+.vista { padding: 24px; display: flex; flex-direction: column; gap: 24px; max-width: 1440px; width: 100%; }
+.vista-cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.vista-cab h1 { margin: 0; font: 600 30px/32px var(--font-display); letter-spacing: .2px; text-wrap: balance; }
+.vista-cab p { margin: 4px 0 0; color: var(--ink-2); max-width: 70ch; }
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.migas { font-size: 12.5px; color: var(--ink-3); margin-bottom: 6px; }
+.migas button { all: unset; cursor: pointer; color: var(--accent-text); font-weight: 600; }
+.migas button:hover { text-decoration: underline; }
+
+.grilla-2 { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.grilla-2-iguales { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.grilla-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.pila { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+.aviso-proto { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; background: var(--info-tint); color: var(--info); border-radius: var(--radius-m); font-size: 13px; }
+.aviso-proto b { color: var(--ink); }
+
+/* Estado de flota: una fila por equipo */
+.flota-fila { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.flota-fila:hover { background: #f7f8f5; }
+.flota-fila:last-child { border-bottom: 0; }
+.flota-fila .pat { display: flex; gap: 4px; }
+.flota-fila .det { min-width: 0; }
+.flota-fila .det b { display: block; font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flota-fila .det span { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.progreso { height: 4px; background: var(--surface-sunk); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.progreso i { display: block; height: 100%; background: var(--info); }
+
+/* Gráficos SVG */
+.grafico { display: block; width: 100%; height: auto; }
+.grafico text { font: 500 11px var(--font-text); fill: var(--ink-2); }
+.grafico .valor { font: 600 13px var(--font-display); fill: var(--ink); letter-spacing: .2px; }
+.grafico .eje { stroke: var(--line); }
+.grafico .base { stroke: var(--ink); stroke-width: 1; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--ink-2); }
+.leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* Antigüedad de saldos */
+.tramos { display: flex; height: 34px; border-radius: var(--radius-s); overflow: hidden; gap: 2px; }
+.tramos > div { display: flex; align-items: center; padding: 0 8px; font: 600 12px var(--font-text); white-space: nowrap; overflow: hidden; min-width: 0; }
+.tramos-ref { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.tramos-ref div { display: flex; flex-direction: column; gap: 2px; }
+.tramos-ref b { font: 600 20px/22px var(--font-display); }
+
+/* Lista de unidades: patente grande como protagonista */
+.unidades { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.unidad-ficha { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.unidad-ficha:hover { border-color: var(--line-strong); }
+.unidad-ficha .fila { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.unidad-ficha .modelo { font: 600 18px/20px var(--font-display); }
+.unidad-ficha .datos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.unidad-ficha .datos b { display: block; font: 600 17px/20px var(--font-display); }
+.unidad-ficha .datos span { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+.marcas { display: flex; flex-wrap: wrap; gap: 6px; min-height: 22px; }
+.filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.filtros .entrada { width: 240px; max-width: 100%; }
+
+/* Ficha */
+.ficha-pila { display: flex; flex-direction: column; }
+.ficha-cuerpo { padding-top: 24px; display: flex; flex-direction: column; gap: 24px; }
+
+/* Cubiertas: esquema de ejes */
+.ejes { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 20px 8px; }
+.ejes-chasis { position: relative; display: flex; flex-direction: column; gap: 26px; padding: 18px 0; }
+.ejes-chasis::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 30px; transform: translateX(-50%); background: var(--surface-sunk); border: 1px solid var(--line-strong); border-radius: 3px; }
+.eje { position: relative; display: grid; grid-template-columns: auto 80px auto; align-items: center; }
+.eje::before { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 4px; transform: translateY(-50%); background: var(--ink); }
+.eje .lado { position: relative; display: flex; gap: 4px; }
+.eje .rotulo-eje { position: relative; text-align: center; font: 600 10.5px var(--font-text); letter-spacing: .8px; color: var(--ink-2); background: var(--surface-sunk); padding: 2px 0; z-index: 1; }
+.cubierta { width: 30px; height: 62px; border-radius: 6px; border: 2px solid var(--ink); background: var(--ink); cursor: pointer; padding: 0; position: relative; display: flex; align-items: flex-end; justify-content: center; }
+.cubierta::after { content: ""; position: absolute; inset: 6px 7px; border-radius: 2px; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(255,255,255,.18) 5px 7px); }
+.cubierta.estado-nueva { background: var(--ok); border-color: var(--ok); }
+.cubierta.estado-buena { background: #2f4a6e; border-color: #2f4a6e; }
+.cubierta.estado-recapada { background: #6b7685; border-color: #6b7685; }
+.cubierta.estado-cambiar { background: var(--danger-fill); border-color: var(--danger-fill); }
+.cubierta.vacia { background: var(--surface); border-style: dashed; border-color: var(--line-strong); }
+.cubierta.vacia::after { display: none; }
+.cubierta[aria-pressed="true"] { outline: 3px solid var(--warn-fill); outline-offset: 2px; }
+.cubierta-detalle { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cubierta-detalle div span { display: block; }
+.vida { display: grid; grid-template-columns: minmax(0, 1fr) 56px; gap: 8px; align-items: center; }
+
+/* Agenda */
+.semana { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.semana:last-child { border-bottom: 0; }
+.semana h3 { margin: 0; font: 600 17px/20px var(--font-display); }
+.semana .items { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.agenda-item { display: grid; grid-template-columns: 64px 92px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13.5px; }
+.agenda-item .fecha { font: 600 14px var(--font-display); color: var(--ink-2); }
+
+/* Temas */
+.temas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.tema { display: flex; flex-direction: column; gap: 8px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); cursor: pointer; font: inherit; color: inherit; text-align: left; }
+.tema[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.tema-muestra { height: 54px; border-radius: var(--radius-s); display: flex; align-items: flex-end; padding: 6px; gap: 4px; }
+.tema-muestra i { width: 26px; height: 8px; border-radius: 2px; }
+.tema b { font-size: 13px; }
+
+/* Matriz de módulos */
+.matriz td.m { text-align: center; }
+.matriz .pto { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink-3); }
+.matriz .pto.on { background: var(--ink); border-color: var(--ink); }
+.matriz th.rot { writing-mode: vertical-rl; transform: rotate(180deg); height: 120px; vertical-align: bottom; text-align: left; padding: 8px 6px; }
+
+/* Flujo de estado de viaje */
+.flujo { display: flex; gap: 0; }
+.flujo span { flex: 1; height: 6px; background: var(--surface-sunk); margin-right: 2px; }
+.flujo span.on { background: var(--ink); }
+
+/* Toast y modal */
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; padding: 10px 16px; background: var(--ink); color: var(--surface); border-radius: var(--radius-m); font-weight: 600; box-shadow: var(--shadow-pop); }
+.fondo-modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(15,27,45,.5); }
+.menu-flot { position: absolute; z-index: 30; min-width: 220px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); box-shadow: var(--shadow-pop); }
+.menu-flot button { display: flex; width: 100%; gap: 10px; align-items: center; padding: 8px 10px; border: 0; background: none; border-radius: var(--radius-m); font: 500 13.5px var(--font-text); color: var(--ink); cursor: pointer; text-align: left; }
+.menu-flot button:hover { background: var(--surface-sunk); }
+.rel { position: relative; }
+
+@media (max-width: 1100px) {
+  .grilla-2, .grilla-3, .grilla-2-iguales { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .app > .rail { position: fixed; left: 0; top: 0; z-index: 40; height: 100%; transform: translateX(-100%); transition: transform .2s; }
+  .app.menu-abierto > .rail { transform: none; box-shadow: var(--shadow-pop); }
+  .btn-menu { display: inline-flex; }
+  .barra-sup { padding: 8px 16px; flex-wrap: wrap; }
+  .barra-sup .segmentado, .usuario { display: none; }
+  .vista { padding: 16px; }
+  .semana { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .agenda-item { grid-template-columns: 52px auto minmax(0, 1fr); }
+  .agenda-item > :last-child { grid-column: 1 / -1; justify-self: start; }
+  .tramos-ref { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+.pulso.tablero { grid-template-columns: minmax(250px, 1.7fr) repeat(5, minmax(0, 1fr)); }
+.pulso.tablero .cifra-xl .cifra-valor { font-size: 50px; line-height: 48px; }
+@media (max-width: 1280px) { .pulso.tablero { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pulso.tablero > .cifra:nth-child(4) { border-left: 0; } .pulso.tablero > .cifra:nth-child(n+4) { border-top: 1px solid var(--line); } }
+@media (max-width: 900px) {
+  .barra-sup .espacio { display: none; }
+  .barra-sup .buscar { min-width: 0; max-width: none; }
+  .flota-fila { grid-template-columns: minmax(0, 1fr) auto; }
+  .flota-fila .pat { grid-column: 1 / -1; }
+  .alerta-texto strong { white-space: normal; }
+  .pulso.tablero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pulso.tablero > .cifra { border-left: 0; border-top: 1px solid var(--line); }
+  .pulso.tablero > .cifra:nth-child(even) { border-left: 1px solid var(--line); }
+  .pulso.tablero > .cifra:nth-child(-n+2) { border-top: 0; }
+  .pulso.tablero .cifra-xl .cifra-valor { font-size: 34px; line-height: 36px; }
+  .pulso > .cifra { padding: 14px 16px; }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="rail" id="rail" aria-label="Navegación principal"></nav>
+<div class="principal"><header class="barra-sup" id="barra-sup"></header><main class="vista" id="vista"></main></div>
+</div>
+<div class="fondo-modal" id="modal" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<script>
+// ===== Datos de ejemplo (ficticios) =====
+let _s = 7;
+function rnd() { _s = (_s * 16807) % 2147483647; return (_s - 1) / 2147483646; }
+function entre(a, b) { return Math.round(a + rnd() * (b - a)); }
+
+const HOY = new Date(2026, 9, 2);
+function masDias(d) { const x = new Date(HOY); x.setDate(x.getDate() + d); return x; }
+function fFecha(d) { return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+function fCorta(d) { return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }); }
+
+const UNIDADES = [
+  { id: 1, patente: 'AE 412 KD', modelo: 'Scania R450', anio: 2019, tipo: 'PRINCIPAL', estado: 'Operativa', km: 612400 },
+  { id: 2, patente: 'AD 233 FL', modelo: 'Volvo FH 460', anio: 2018, tipo: 'PRINCIPAL', estado: 'Operativa', km: 704150 },
+  { id: 3, patente: 'AF 518 GT', modelo: 'Mercedes-Benz Actros 2045', anio: 2021, tipo: 'PRINCIPAL', estado: 'Operativa', km: 398720 },
+  { id: 4, patente: 'AC 907 RM', modelo: 'Iveco Stralis 480', anio: 2017, tipo: 'PRINCIPAL', estado: 'Operativa', km: 811300 },
+  { id: 5, patente: 'OQR 518', modelo: 'Scania G410', anio: 2015, tipo: 'PRINCIPAL', estado: 'Operativa', km: 1022800 },
+  { id: 6, patente: 'AG 115 PL', modelo: 'Volvo FH 540', anio: 2023, tipo: 'PRINCIPAL', estado: 'Operativa', km: 168900 },
+  { id: 7, patente: 'AB 640 JX', modelo: 'Mercedes-Benz Axor 2041', anio: 2016, tipo: 'PRINCIPAL', estado: 'En taller', km: 934500 },
+  { id: 8, patente: 'AE 078 NS', modelo: 'Scania R500', anio: 2020, tipo: 'PRINCIPAL', estado: 'Operativa', km: 522060 },
+  { id: 9, patente: 'AF 090 BT', modelo: 'Batea Helvética 3 ejes', anio: 2020, tipo: 'SECUNDARIA', estado: 'Operativa' },
+  { id: 10, patente: 'KLM 774', modelo: 'Acoplado Randon 3 ejes', anio: 2012, tipo: 'SECUNDARIA', estado: 'Operativa' },
+  { id: 11, patente: 'AD 512 WB', modelo: 'Batea Montenegro 3 ejes', anio: 2018, tipo: 'SECUNDARIA', estado: 'Operativa' },
+  { id: 12, patente: 'AC 331 HH', modelo: 'Semirremolque Vulcano', anio: 2017, tipo: 'SECUNDARIA', estado: 'Operativa' },
+  { id: 13, patente: 'NHT 209', modelo: 'Batea Helvética 3 ejes', anio: 2014, tipo: 'SECUNDARIA', estado: 'Operativa' },
+  { id: 14, patente: 'AG 220 KQ', modelo: 'Batea Bonano 3 ejes', anio: 2023, tipo: 'SECUNDARIA', estado: 'Operativa' },
+  { id: 15, patente: 'AB 702 DD', modelo: 'Tanque Fruehauf', anio: 2016, tipo: 'SECUNDARIA', estado: 'Operativa' },
+  { id: 16, patente: 'AE 455 TR', modelo: 'Batea Montenegro 3 ejes', anio: 2020, tipo: 'SECUNDARIA', estado: 'Operativa' }
+];
+const CHOFERES = [
+  { id: 1, nombre: 'Ramón Ledesma', cuil: '20-28456123-7', carnet: 21, descanso: 3, esquema: 'Mixto · $ 1.000.000 + 10%' },
+  { id: 2, nombre: 'Sergio Funes', cuil: '20-30112987-4', carnet: 140, descanso: 9, esquema: 'Variable · 20%' },
+  { id: 3, nombre: 'Claudia Ferreyra', cuil: '27-31876540-2', carnet: 260, descanso: 2, esquema: 'Variable · $ 95/km' },
+  { id: 4, nombre: 'Walter Gómez', cuil: '20-25998132-5', carnet: -4, descanso: 5, esquema: 'Fijo · $ 1.650.000' },
+  { id: 5, nombre: 'Diego Bustos', cuil: '20-33450218-9', carnet: 88, descanso: 13, esquema: 'Variable · 18%' },
+  { id: 6, nombre: 'Hernán Quiroga', cuil: '20-29004176-1', carnet: 310, descanso: 1, esquema: 'Mixto · $ 900.000 + 8%' },
+  { id: 7, nombre: 'Matías Peralta', cuil: '20-35670021-3', carnet: 45, descanso: 6, esquema: 'Variable · 20%' },
+  { id: 8, nombre: 'Julio Correa', cuil: '20-27765409-0', carnet: 190, descanso: 0, esquema: 'Variable · $ 90/km' }
+];
+const EQUIPOS = [
+  { id: 1, codigo: 'EQ-01', p: 1, s: 9, chofer: 1, desde: '12/08/2026', tara: 15200, bruto: 45000 },
+  { id: 2, codigo: 'EQ-02', p: 2, s: 10, chofer: 2, desde: '03/02/2026', tara: 15900, bruto: 45000 },
+  { id: 3, codigo: 'EQ-03', p: 3, s: 11, chofer: 3, desde: '21/06/2025', tara: 15400, bruto: 45000 },
+  { id: 4, codigo: 'EQ-04', p: 4, s: 12, chofer: 4, desde: '09/11/2025', tara: 16100, bruto: 45000 },
+  { id: 5, codigo: 'EQ-05', p: 5, s: 13, chofer: 5, desde: '30/04/2026', tara: 15700, bruto: 45000 },
+  { id: 6, codigo: 'EQ-06', p: 6, s: 14, chofer: 6, desde: '15/01/2026', tara: 15100, bruto: 45000 },
+  { id: 7, codigo: 'EQ-07', p: 8, s: 16, chofer: 7, desde: '02/09/2026', tara: 15300, bruto: 45000 }
+];
+const HISTORIAL = {
+  1: [{ desde: '12/08/2026', hasta: 'actual', p: 1, s: 9, chofer: 'Ramón Ledesma', motivo: 'Cambio de chofer' },
+      { desde: '04/03/2026', hasta: '11/08/2026', p: 1, s: 9, chofer: 'Julio Correa', motivo: 'Cambio de batea' },
+      { desde: '10/10/2025', hasta: '03/03/2026', p: 1, s: 15, chofer: 'Julio Correa', motivo: 'Alta del equipo' }]
+};
+
+const CLIENTES = [
+  { id: 1, nombre: 'Agroindustrias del Centro SA', cuit: '30-71234567-9', tipo: 'CLIENTE', plazo: 30, ingresos: 21400000, saldo: 9800000, tramos: [5200000, 3100000, 1500000, 0] },
+  { id: 2, nombre: 'Transportadora La Fortaleza', cuit: '30-70988123-4', tipo: 'CLIENTE · PROVEEDOR', plazo: 30, ingresos: 12800000, saldo: 3240000, tramos: [0, 0, 1900000, 1340000] },
+  { id: 3, nombre: 'Cooperativa Agrícola Ucacha', cuit: '30-50012233-1', tipo: 'CLIENTE', plazo: 45, ingresos: 9600000, saldo: 4100000, tramos: [4100000, 0, 0, 0] },
+  { id: 4, nombre: 'Acopio Los Cóndores SRL', cuit: '30-71566002-8', tipo: 'CLIENTE', plazo: 30, ingresos: 7300000, saldo: 2650000, tramos: [1450000, 1200000, 0, 0] },
+  { id: 5, nombre: 'Molinos Río Segundo SA', cuit: '30-69871100-5', tipo: 'CLIENTE', plazo: 60, ingresos: 4900000, saldo: 2300000, tramos: [2300000, 0, 0, 0] },
+  { id: 6, nombre: 'Fertil Sur SA', cuit: '30-71900412-6', tipo: 'CLIENTE', plazo: 30, ingresos: 1900000, saldo: 0, tramos: [0, 0, 0, 0] },
+  { id: 7, nombre: 'Estación de servicio Ruta 9 Km 563', cuit: '30-54668997-9', tipo: 'PROVEEDOR', plazo: null, ingresos: 0, saldo: -5120000, tramos: [0, 0, 0, 0] },
+  { id: 8, nombre: 'Neumáticos Córdoba SRL', cuit: '30-71200455-2', tipo: 'PROVEEDOR', plazo: null, ingresos: 0, saldo: -1340000, tramos: [0, 0, 0, 0] }
+];
+
+// Resultado del mes por equipo (base: septiembre 2026)
+const RESULTADOS = {
+  1: { ingresos: 9420000, combustible: 3510000, consumos: 640000, sueldo: 1940000, km: 14200, litros: 5960 },
+  2: { ingresos: 6150000, combustible: 3380000, consumos: 1720000, sueldo: 1230000, km: 12100, litros: 5540 },
+  3: { ingresos: 10380000, combustible: 3640000, consumos: 410000, sueldo: 1310000, km: 15800, litros: 6080 },
+  4: { ingresos: 7020000, combustible: 3460000, consumos: 1160000, sueldo: 1650000, km: 12700, litros: 5810 },
+  5: { ingresos: 5680000, combustible: 3020000, consumos: 1890000, sueldo: 1020000, km: 10400, litros: 5100 },
+  6: { ingresos: 11240000, combustible: 3720000, consumos: 260000, sueldo: 1800000, km: 16600, litros: 6110 },
+  7: { ingresos: 8030000, combustible: 3290000, consumos: 520000, sueldo: 1610000, km: 13300, litros: 5520 }
+};
+const ADMIN_MES = 3150000, SIN_EQUIPO_MES = 880000;
+const HIST_MESES = ['Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep'];
+const HIST_RESULTADO = [9.1, 11.6, 10.2, 12.8, 13.9, 15.6];  // millones
+const HIST_INGRESOS = [48.2, 51.0, 49.6, 53.8, 54.1, 57.9];
+const HIST_COSTOS = [39.1, 39.4, 39.4, 41.0, 40.2, 42.3];
+const HIST_KML = [2.31, 2.35, 2.29, 2.44, 2.48, 2.41];
+
+const LUGARES = ['Córdoba', 'Rosario', 'Villa María', 'Río Cuarto', 'Pto. San Martín', 'Bahía Blanca', 'San Francisco', 'Marcos Juárez', 'Bell Ville', 'Ucacha'];
+const CARGAS = ['Soja', 'Maíz', 'Trigo', 'Fertilizante', 'Girasol', 'Harina de soja'];
+const ESTADOS = ['EN CURSO', 'EN DESTINO', 'FINALIZADO', 'FACTURADO'];
+const VIAJES = [];
+(function () {
+  let id = 1284;
+  const actual = { 1: ['EN CURSO', 'Córdoba', 'Rosario', 62], 2: ['EN DESTINO', 'Villa María', 'Pto. San Martín', 100], 3: ['EN CURSO', 'Ucacha', 'Bahía Blanca', 28], 4: null, 5: ['EN CURSO', 'Marcos Juárez', 'Rosario', 81], 6: ['EN DESTINO', 'Río Cuarto', 'Córdoba', 100], 7: ['EN CURSO', 'San Francisco', 'Rosario', 44] };
+  EQUIPOS.forEach(e => {
+    for (let k = 0; k < 4; k++) {
+      const o = LUGARES[entre(0, 9)]; let d = LUGARES[entre(0, 9)]; if (d === o) d = 'Rosario';
+      const tipo = ['POR TONELADA', 'POR KM', 'UNICA'][entre(0, 2)];
+      const cli = CLIENTES[entre(0, 5)];
+      const valor = entre(1400, 3200) * 1000;
+      VIAJES.push({ id: id++, equipo: e.id, p: e.p, s: e.s, chofer: e.chofer, fecha: masDias(-entre(4, 40)), origen: o, destino: d, carga: CARGAS[entre(0, 5)], tipo, valor, cliente: cli.nombre, estado: k < 2 ? 'FACTURADO' : 'FINALIZADO', remito: '0003-' + String(entre(10000000, 99999999)) });
+    }
+    const a = actual[e.id];
+    if (a) VIAJES.push({ id: id++, equipo: e.id, p: e.p, s: e.s, chofer: e.chofer, fecha: masDias(-entre(0, 2)), origen: a[1], destino: a[2], avance: a[3], carga: CARGAS[entre(0, 5)], tipo: 'POR TONELADA', valor: entre(1800, 3100) * 1000, cliente: CLIENTES[entre(0, 4)].nombre, estado: a[0], remito: '0003-' + String(entre(10000000, 99999999)) });
+  });
+  VIAJES.sort((a, b) => b.fecha - a.fecha);
+})();
+
+// Mantenimientos, vencimientos y cubiertas por unidad
+const MANT = [], VENC = [], CUB = [], GASTOS = [];
+UNIDADES.forEach(u => {
+  const plan = u.tipo === 'PRINCIPAL'
+    ? [['Cambio de aceite y filtros', 'Cada 30.000 km'], ['Frenos: pastillas y regulación', 'Cada 60.000 km'], ['Alineación y balanceo', 'Cada 40.000 km'], ['Engrase general', 'Cada 15 días']]
+    : [['Rodamientos y mazas', 'Cada 80.000 km'], ['Frenos y pulmones', 'Cada 60.000 km'], ['Engrase de quinta rueda y ejes', 'Cada 15 días']];
+  plan.forEach(([c, per]) => {
+    const prox = entre(-6, 70) + (u.id % 3) * 4;
+    MANT.push({ unidad: u.id, concepto: c, periodicidad: per, ultimo: masDias(prox - entre(30, 120)), proximo: masDias(prox), dias: prox, vida: Math.max(4, Math.min(100, 100 - Math.round(prox / 0.9))) });
+  });
+  const docs = u.tipo === 'PRINCIPAL' ? ['RTO (revisión técnica)', 'Seguro de responsabilidad civil', 'RUTA – registro de transporte', 'Matafuegos'] : ['RTO (revisión técnica)', 'Seguro de carga', 'Habilitación SENASA'];
+  docs.forEach(c => { const d = entre(-3, 160); VENC.push({ unidad: u.id, concepto: c, fecha: masDias(d), dias: d }); });
+  const pos = u.tipo === 'PRINCIPAL'
+    ? [['1', ['I'], ['D']], ['2', ['IE', 'II'], ['DI', 'DE']]]
+    : [['1', ['IE', 'II'], ['DI', 'DE']], ['2', ['IE', 'II'], ['DI', 'DE']], ['3', ['IE', 'II'], ['DI', 'DE']]];
+  const est = ['nueva', 'buena', 'buena', 'buena', 'recapada', 'recapada', 'cambiar'];
+  let n = 1;
+  pos.forEach(([eje, izq, der]) => [...izq, ...der].forEach(lado => {
+    const e = est[entre(0, 6)];
+    CUB.push({ unidad: u.id, eje, lado, posicion: eje + lado, id: `${u.patente.replace(/ /g, '')}-${String(n++).padStart(2, '0')}`, estado: e, marca: ['Bridgestone R268', 'Michelin X Multi', 'Pirelli FR85', 'Fate Sansón'][entre(0, 3)], colocada: masDias(-entre(30, 600)), surco: e === 'nueva' ? entre(14, 16) : e === 'cambiar' ? entre(2, 3) : entre(6, 11) });
+  }));
+  CUB.push({ unidad: u.id, eje: 'aux', lado: '', posicion: 'Auxilio', id: `${u.patente.replace(/ /g, '')}-AX`, estado: 'recapada', marca: 'Fate Sansón', colocada: masDias(-400), surco: 9 });
+  for (let k = 0; k < 6; k++) {
+    const comb = u.tipo === 'PRINCIPAL' && k < 4;
+    GASTOS.push({ unidad: u.id, fecha: masDias(-entre(1, 30)), tipo: comb ? 'Combustible' : 'Consumo', concepto: comb ? `${entre(380, 620)} L gasoil · Ruta ${[9, 19, 158, 36][entre(0, 3)]}` : ['Filtro de aire', 'Lubricante 15W40 x 20 L', 'Lámparas y fichas', 'Pulmón de freno', 'Lonas y cintas'][entre(0, 4)], proveedor: comb ? 'Estación de servicio Ruta 9 Km 563' : 'Repuestos Camioneros SRL', monto: comb ? entre(780, 1250) * 1000 : entre(40, 420) * 1000, comprobante: `FA ${String(entre(1, 9)).padStart(4, '0')}-${String(entre(10000, 99999)).padStart(8, '0')}` });
+  }
+});
+GASTOS.sort((a, b) => b.fecha - a.fecha);
+
+const ALERTAS = [];
+CLIENTES.forEach(c => { if (c.tramos[2] + c.tramos[3] > 0) ALERTAS.push({ tipo: 'cobro', prioridad: 1, dias: c.tramos[3] ? -38 : -9, titulo: `Cobro vencido · ${c.nombre}`, detalle: `Saldo vencido ${'$'} ${(c.tramos[2] + c.tramos[3]).toLocaleString('es-AR')} · plazo ${c.plazo} días`, accion: 'Ver cuenta', ir: ['cuentas'] }); });
+VENC.filter(v => v.dias <= 20).forEach(v => ALERTAS.push({ tipo: 'venc', prioridad: 2, dias: v.dias, unidad: v.unidad, titulo: v.concepto, detalle: `Vencimiento documental · ${fFecha(v.fecha)}`, accion: 'Renovar', ir: ['unidad', v.unidad, 'vencimientos'] }));
+MANT.filter(m => m.dias <= 10).forEach(m => ALERTAS.push({ tipo: 'mant', prioridad: 3, dias: m.dias, unidad: m.unidad, titulo: m.concepto, detalle: `Mantenimiento · ${m.periodicidad.toLowerCase()}`, accion: 'Registrar', ir: ['unidad', m.unidad, 'mantenimiento'] }));
+CHOFERES.filter(c => c.carnet <= 30).forEach(c => ALERTAS.push({ tipo: 'carnet', prioridad: 4, dias: c.carnet, titulo: `Carnet de ${c.nombre}`, detalle: 'Licencia nacional de conducir profesional', accion: 'Ver chofer', ir: ['choferes'] }));
+CHOFERES.filter(c => c.descanso >= 12).forEach(c => ALERTAS.push({ tipo: 'descanso', prioridad: 5, dias: null, sin: c.descanso, titulo: `Descanso de ${c.nombre}`, detalle: `${c.descanso} días sin jornada de descanso`, accion: 'Ver chofer', ir: ['choferes'] }));
+ALERTAS.sort((a, b) => a.prioridad - b.prioridad || (a.dias ?? 0) - (b.dias ?? 0));
+
+const EMPRESAS = [
+  { id: 1, nombre: '3 de Abril SAS', cuit: '30-71654321-0', usuarios: 6, activa: true, cert: 210, mods: [1,1,1,1,1,1,1,1,1,1], actividad: 'hace 4 min' },
+  { id: 2, nombre: 'Logística Besso SRL', cuit: '30-71788990-3', usuarios: 3, activa: true, cert: 24, mods: [1,1,1,1,1,0,1,1,0,0], actividad: 'hace 2 h' },
+  { id: 3, nombre: 'Fletes del Sur SA', cuit: '30-70456781-2', usuarios: 4, activa: true, cert: 96, mods: [1,1,1,1,1,1,1,0,1,0], actividad: 'ayer' },
+  { id: 4, nombre: 'Transportes Calchín', cuit: '20-25113456-8', usuarios: 1, activa: true, cert: null, mods: [1,1,1,1,0,0,0,0,0,0], actividad: 'hace 3 días' },
+  { id: 5, nombre: 'Demo comercial', cuit: '30-00000000-0', usuarios: 2, activa: false, cert: null, mods: [1,1,1,1,1,1,1,1,1,1], actividad: 'hace 3 semanas' }
+];
+const MODULOS_CAT = ['Viajes', 'Equipos', 'Unidades', 'Choferes', 'Mantenim.', 'Cubiertas', 'Combustible', 'Facturación', 'Cuentas', 'Stock'];
+
+const TEMAS = [{"id": "tcv", "name": "TCV", "rail": "#16386b", "rail2": "#1c4789", "accent": "#38b6ff", "accent_text": "#006cab", "on_accent": "#0f1b2d", "rail_muted": "#adbacf"}, {"id": "verde", "name": "Verde pizarra", "rail": "#1d2f29", "rail2": "#2b453c", "accent": "#e8a13c", "accent_text": "#915c11", "on_accent": "#0f1b2d", "rail_muted": "#a0b0ab"}, {"id": "azul", "name": "Azul noche", "rail": "#1a2940", "rail2": "#243959", "accent": "#4f9dde", "accent_text": "#206baa", "on_accent": "#0f1b2d", "rail_muted": "#98a4b6"}, {"id": "violeta", "name": "Violeta", "rail": "#2f2046", "rail2": "#3f2b5e", "accent": "#a779e0", "accent_text": "#8443d4", "on_accent": "#0f1b2d", "rail_muted": "#a69bb5"}, {"id": "borgona", "name": "Borgoña", "rail": "#3c1d22", "rail2": "#542930", "accent": "#d98f6b", "accent_text": "#a2512a", "on_accent": "#0f1b2d", "rail_muted": "#b39b9e"}, {"id": "grafito", "name": "Grafito", "rail": "#292a2d", "rail2": "#3a3b40", "accent": "#d6a85c", "accent_text": "#866122", "on_accent": "#0f1b2d", "rail_muted": "#a7a7aa"}, {"id": "oceano", "name": "Océano", "rail": "#163b3f", "rail2": "#1f5459", "accent": "#3bb3a8", "accent_text": "#26726b", "on_accent": "#0f1b2d", "rail_muted": "#abc4c6"}, {"id": "indigo", "name": "Índigo", "rail": "#25264f", "rail2": "#303267", "accent": "#7c83f8", "accent_text": "#4751f5", "on_accent": "#0f1b2d", "rail_muted": "#a0a0b8"}, {"id": "esmeralda", "name": "Esmeralda", "rail": "#133d2e", "rail2": "#1b5843", "accent": "#2ecc8f", "accent_text": "#1a7552", "on_accent": "#0f1b2d", "rail_muted": "#aac7bd"}, {"id": "cobre", "name": "Cobre", "rail": "#3d271b", "rail2": "#563726", "accent": "#e08a4b", "accent_text": "#9f531b", "on_accent": "#0f1b2d", "rail_muted": "#b9a8a0"}, {"id": "rosa", "name": "Rosa", "rail": "#421d33", "rail2": "#5b2846", "accent": "#e06b9e", "accent_text": "#bf286a", "on_accent": "#0f1b2d", "rail_muted": "#b89dae"}, {"id": "slate", "name": "Pizarra azul", "rail": "#21282f", "rail2": "#303a44", "accent": "#6aa0c8", "accent_text": "#366c93", "on_accent": "#0f1b2d", "rail_muted": "#9ea4ab"}, {"id": "bosque", "name": "Bosque", "rail": "#1f3324", "rail2": "#2c4934", "accent": "#9bc24a", "accent_text": "#576f25", "on_accent": "#0f1b2d", "rail_muted": "#a5b5aa"}];
+
+// ===== Utilidades =====
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const dinero = n => (n < 0 ? '−$ ' : '$ ') + Math.abs(Math.round(n)).toLocaleString('es-AR');
+const millones = n => (n < 0 ? '−$ ' : '$ ') + (Math.abs(n) / 1e6).toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' M';
+const num = (n, d = 0) => Number(n).toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const U = id => UNIDADES.find(u => u.id === id);
+const CH = id => CHOFERES.find(c => c.id === id);
+const pat = (id, t = 'chica') => { const u = U(id); return u ? `<span class="patente ${t ? 'patente-' + t : ''}"><b>${esc(u.patente)}</b></span>` : ''; };
+const equipoDeUnidad = id => EQUIPOS.find(e => e.p === id || e.s === id);
+const ESTADO_CLASE = { 'EN CURSO': 'info', 'EN DESTINO': 'aviso', 'FINALIZADO': 'ok', 'FACTURADO': 'marca' };
+const insEstado = e => `<span class="insignia ${ESTADO_CLASE[e]}">${e}</span>`;
+
+const I = {
+  tablero: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  viajes: '<path d="M4 19c4-1 4-6 8-7s5-6 8-7"/><circle cx="4" cy="19" r="1.8"/><circle cx="20" cy="5" r="1.8"/>',
+  equipos: '<rect x="2" y="7" width="9" height="8"/><path d="M11 10h4l2 3v2h-6M15 7h7v8"/><circle cx="6" cy="17" r="1.6"/><circle cx="18" cy="17" r="1.6"/>',
+  unidades: '<rect x="3" y="6" width="11" height="10"/><path d="M14 9h4l3 4v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',
+  choferes: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+  agenda: '<rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  gastos: '<path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M14 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3"/>',
+  stock: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+  facturacion: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6M9 14h6M9 18h3"/>',
+  cuentas: '<path d="M4 4h12a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z"/><path d="M8 9h7M8 13h5"/>',
+  config: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  panorama: '<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>',
+  empresas: '<path d="M3 21V8l6-4v17M9 21V10l12 3v8M3 21h18"/>',
+  usuarios: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.3-5 6.5-5s5.7 1.5 6.5 5M16 4.5a3.5 3.5 0 0 1 0 7M18 15c2 .6 3.2 2.2 3.5 5"/>',
+  buscar: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  campana: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  mas: '<path d="M12 5v14M5 12h14"/>',
+  cerrar: '<path d="M6 6l12 12M18 6L6 18"/>',
+  editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  flecha: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  pdf: '<path d="M6 3h9l3 3v15H6z"/><path d="M12 10v7M9 14l3 3 3-3"/>'
+};
+const ico = (n, s = 16) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
+
+// ===== Estado =====
+const st = { rol: 'operativo', vista: 'tablero', id: null, tab: 'resumen', periodo: 'mes', tema: 'tcv', filtroViajes: 'activos', filtroUnidades: 'todas', busca: '', gastosTab: 'Combustible', cubSel: null };
+const PERIODOS = { mes: { f: 1, txt: 'Septiembre 2026', ant: 'vs agosto' }, trimestre: { f: 2.96, txt: '3° trimestre 2026', ant: 'vs 2° trimestre' }, anio: { f: 9.4, txt: 'Enero–septiembre 2026', ant: 'vs mismo período 2025' } };
+function P() { return PERIODOS[st.periodo]; }
+function ir(vista, id = null, tab = null) {
+  st.vista = vista; st.id = id; st.tab = tab || (vista === 'unidad' ? 'resumen' : st.tab); st.cubSel = null;
+  $('.app').classList.remove('menu-abierto');
+  render(); window.scrollTo(0, 0);
+  try { history.replaceState(null, '', '#' + [vista, id, vista === 'unidad' ? st.tab : null].filter(Boolean).join('.')); } catch (e) {}
+}
+function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2600); }
+
+// ===== Cálculos =====
+function resultadosEquipos() {
+  const f = P().f;
+  return EQUIPOS.map(e => {
+    const r = RESULTADOS[e.id];
+    const ingresos = r.ingresos * f, costos = (r.combustible + r.consumos + r.sueldo) * f;
+    return { e, ingresos, combustible: r.combustible * f, consumos: r.consumos * f, sueldo: r.sueldo * f, costos, resultado: ingresos - costos, kml: r.km / r.litros, costoKm: (r.combustible + r.consumos + r.sueldo) / r.km, km: r.km * f };
+  }).sort((a, b) => b.resultado - a.resultado);
+}
+function totales() {
+  const rs = resultadosEquipos(), f = P().f;
+  const t = rs.reduce((a, r) => ({ ingresos: a.ingresos + r.ingresos, combustible: a.combustible + r.combustible, consumos: a.consumos + r.consumos, sueldo: a.sueldo + r.sueldo, km: a.km + r.km }), { ingresos: 0, combustible: 0, consumos: 0, sueldo: 0, km: 0 });
+  t.admin = ADMIN_MES * f; t.sinEquipo = SIN_EQUIPO_MES * f;
+  t.costos = t.combustible + t.consumos + t.sueldo + t.admin + t.sinEquipo;
+  t.neto = t.ingresos - t.costos; t.margen = t.neto / t.ingresos * 100;
+  const litros = Object.values(RESULTADOS).reduce((a, r) => a + r.litros, 0), km = Object.values(RESULTADOS).reduce((a, r) => a + r.km, 0);
+  t.kml = km / litros;
+  t.porCobrar = CLIENTES.filter(c => c.saldo > 0).reduce((a, c) => a + c.saldo, 0);
+  t.vencido = CLIENTES.reduce((a, c) => a + c.tramos[2] + c.tramos[3], 0);
+  return t;
+}
+
+// ===== Gráficos =====
+function traza(serie, w = 120, h = 28) {
+  const mn = Math.min(...serie), mx = Math.max(...serie), dx = w / (serie.length - 1);
+  const y = v => h - 3 - (v - mn) / ((mx - mn) || 1) * (h - 6);
+  const d = serie.map((v, i) => `${i ? 'L' : 'M'}${(i * dx).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  return `<svg class="cifra-traza" viewBox="-3 0 ${w + 6} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" vector-effect="non-scaling-stroke"/><circle cx="${w}" cy="${y(serie.at(-1)).toFixed(1)}" r="2.5"/></svg>`;
+}
+function cifra(rotulo, valor, delta, bueno, comp, serie, xl) {
+  const d = delta == null ? '' : `<span class="cifra-delta ${bueno ? 'sube' : 'baja'}">${delta} <span class="tenue">${comp || P().ant}</span></span>`;
+  return `<div class="cifra ${xl ? 'cifra-xl' : ''}"><span class="rotulo">${rotulo}</span><span class="cifra-valor">${valor}</span>${d}${serie ? traza(serie) : ''}</div>`;
+}
+function cascada(t) {
+  const pasos = [['Ingresos', t.ingresos, 'in'], ['Combustible', -t.combustible], ['Consumos', -t.consumos], ['Sueldos', -t.sueldo], ['Administración', -t.admin], ['Sin equipo', -t.sinEquipo], ['Resultado', t.neto, 'tot']];
+  const W = 720, H = 250, top = 28, bot = 46, padL = 8, n = pasos.length, bw = (W - padL * 2) / n;
+  const sc = v => (H - bot) - v / t.ingresos * (H - top - bot);
+  let acc = 0, out = '';
+  [0.25, .5, .75, 1].forEach(g => { out += `<line class="eje" x1="0" x2="${W}" y1="${sc(t.ingresos * g)}" y2="${sc(t.ingresos * g)}"/>`; });
+  pasos.forEach(([nom, v, tipo], i) => {
+    let y0, y1, fill;
+    if (tipo === 'in') { y0 = 0; y1 = v; acc = v; fill = 'var(--chart-income)'; }
+    else if (tipo === 'tot') { y0 = 0; y1 = v; fill = v >= 0 ? 'var(--ok)' : 'var(--danger-fill)'; }
+    else { y0 = acc + v; y1 = acc; acc += v; fill = 'var(--chart-cost)'; }
+    const x = padL + i * bw + bw * 0.16, w = bw * 0.68, yt = sc(Math.max(y0, y1)), yb = sc(Math.min(y0, y1));
+    out += `<rect x="${x}" y="${yt}" width="${w}" height="${Math.max(1.5, yb - yt)}" fill="${fill}" rx="2"/>`;
+    if (i < n - 1 && tipo !== 'tot') out += `<line x1="${x + w}" x2="${x + bw}" y1="${sc(acc)}" y2="${sc(acc)}" stroke="var(--ink-3)" stroke-dasharray="3 3"/>`;
+    out += `<text class="valor" x="${x + w / 2}" y="${yt - 7}" text-anchor="middle">${tipo ? millones(v) : '−' + millones(-v).slice(2)}</text>`;
+    out += `<text x="${x + w / 2}" y="${H - bot + 18}" text-anchor="middle">${nom}</text>`;
+    if (!tipo) out += `<text x="${x + w / 2}" y="${H - bot + 33}" text-anchor="middle" style="fill:var(--ink-3)">${num(-v / t.ingresos * 100, 0)}%</text>`;
+  });
+  out += `<line class="base" x1="0" x2="${W}" y1="${sc(0)}" y2="${sc(0)}"/>`;
+  return `<div class="tabla-marco"><svg class="grafico" viewBox="0 0 ${W} ${H}" style="min-width:560px" role="img" aria-label="Cascada del resultado">${out}</svg></div>`;
+}
+function columnasMeses(ing, cos, alto = 200) {
+  const W = 1100, H = alto, top = 16, bot = 26, mx = Math.max(...ing, ...cos) * 1.1, n = ing.length, gw = W / n;
+  const sc = v => (H - bot) - v / mx * (H - top - bot);
+  let out = '';
+  [.33, .66, 1].forEach(g => out += `<line class="eje" x1="0" x2="${W}" y1="${sc(mx * g / 1.1)}" y2="${sc(mx * g / 1.1)}"/>`);
+  ing.forEach((v, i) => {
+    const x = i * gw + gw * .2, w = gw * .28;
+    out += `<rect x="${x}" y="${sc(v)}" width="${w}" height="${sc(0) - sc(v)}" fill="var(--chart-income)" rx="2"/>`;
+    out += `<rect x="${x + w + 3}" y="${sc(cos[i])}" width="${w}" height="${sc(0) - sc(cos[i])}" fill="var(--chart-cost)" rx="2"/>`;
+    out += `<text x="${x + w + 1.5}" y="${H - 8}" text-anchor="middle">${HIST_MESES[i]}</text>`;
+  });
+  out += `<line class="base" x1="0" x2="${W}" y1="${sc(0)}" y2="${sc(0)}"/>`;
+  return `<div class="tabla-marco"><svg class="grafico" viewBox="0 0 ${W} ${H}" style="min-width:560px" role="img" aria-label="Ingresos y costos por mes">${out}</svg></div>`;
+}
+function puntosKml(rs) {
+  const prom = rs.reduce((a, r) => a + r.kml, 0) / rs.length;
+  const mn = 1.9, mx = 2.9, W = 520, rowH = 30, padL = 170, padR = 50, H = rs.length * rowH + 34;
+  const x = v => padL + (v - mn) / (mx - mn) * (W - padL - padR);
+  let out = '';
+  [2.0, 2.2, 2.4, 2.6, 2.8].forEach(v => out += `<line class="eje" x1="${x(v)}" x2="${x(v)}" y1="4" y2="${H - 24}"/><text x="${x(v)}" y="${H - 8}" text-anchor="middle">${num(v, 1)}</text>`);
+  out += `<line x1="${x(prom)}" x2="${x(prom)}" y1="0" y2="${H - 24}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${x(prom) + 4}" y="12" style="fill:var(--ink);font-weight:600">promedio ${num(prom, 2)}</text>`;
+  [...rs].sort((a, b) => b.kml - a.kml).forEach((r, i) => {
+    const y = 26 + i * rowH, malo = r.kml < prom;
+    out += `<text x="0" y="${y + 4}">${esc(U(r.e.p).patente)} · ${esc(CH(r.e.chofer).nombre.split(' ')[1])}</text>`;
+    out += `<line x1="${x(prom)}" x2="${x(r.kml)}" y1="${y}" y2="${y}" stroke="${malo ? 'var(--chart-cost)' : 'var(--chart-income)'}" stroke-width="3"/>`;
+    out += `<circle cx="${x(r.kml)}" cy="${y}" r="5" fill="${malo ? 'var(--chart-cost)' : 'var(--chart-income)'}"/>`;
+    out += `<text class="valor" x="${W - padR + 8}" y="${y + 4}">${num(r.kml, 2)}</text>`;
+  });
+  return `<div class="tabla-marco"><svg class="grafico" viewBox="0 0 ${W} ${H}" style="min-width:440px" role="img" aria-label="Rendimiento por equipo contra el promedio">${out}</svg></div>`;
+}
+
+// ===== Piezas =====
+function alertaHTML(a) {
+  const cls = a.dias == null ? 'vencida' : a.dias < 0 ? 'vencida' : a.dias <= 7 ? 'pronto' : '';
+  const dias = a.dias == null ? `${a.sin}<small>sin desc.</small>` : `${a.dias < 0 ? '−' + Math.abs(a.dias) : a.dias}<small>días</small>`;
+  const titulo = a.unidad ? `${esc(a.titulo)} · ${pat(a.unidad)}` : esc(a.titulo);
+  return `<li class="alerta ${cls}"><div class="alerta-dias">${dias}</div><div class="alerta-texto"><strong>${titulo}</strong><span>${esc(a.detalle)}</span></div><button class="btn btn-chico" data-ir='${JSON.stringify(a.ir)}'>${a.accion}</button></li>`;
+}
+function hoja(titulo, sub, cuerpo, extra = '', pie = '') {
+  return `<section class="hoja"><header class="hoja-cabecera"><div><h2 class="hoja-titulo">${titulo}</h2>${sub ? `<div class="hoja-sub">${sub}</div>` : ''}</div>${extra}</header>${cuerpo}${pie ? `<footer class="hoja-pie">${pie}</footer>` : ''}</section>`;
+}
+function cabecera(titulo, sub, acciones = '', migas = '') {
+  return `<div class="vista-cab"><div>${migas ? `<div class="migas">${migas}</div>` : ''}<h1>${titulo}</h1>${sub ? `<p>${sub}</p>` : ''}</div><div class="acciones">${acciones}</div></div>`;
+}
+function siluetaTractor() { return '<svg class="comp-silueta" viewBox="0 0 92 46" width="92" height="46" aria-hidden="true"><rect class="caja" x="2" y="8" width="44" height="26" rx="2"/><path class="cabina" d="M48 12h22l14 12v10H48z"/><circle class="rueda" cx="16" cy="38" r="7"/><circle class="llanta" cx="16" cy="38" r="2.5"/><circle class="rueda" cx="70" cy="38" r="7"/><circle class="llanta" cx="70" cy="38" r="2.5"/></svg>'; }
+function siluetaAcoplado() { return '<svg class="comp-silueta" viewBox="0 0 120 46" width="120" height="46" aria-hidden="true"><rect class="caja" x="2" y="6" width="116" height="28" rx="2"/><circle class="rueda" cx="74" cy="38" r="7"/><circle class="llanta" cx="74" cy="38" r="2.5"/><circle class="rueda" cx="92" cy="38" r="7"/><circle class="llanta" cx="92" cy="38" r="2.5"/><circle class="rueda" cx="110" cy="38" r="7"/><circle class="llanta" cx="110" cy="38" r="2.5"/></svg>'; }
+function composicion(e, actual) {
+  const ch = CH(e.chofer);
+  return `<div class="composicion" style="flex-wrap:wrap;row-gap:12px">
+    <button class="comp-pieza ${actual === e.p ? 'actual' : ''}" style="all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px" data-ir='["unidad",${e.p}]'>${siluetaTractor()}${pat(e.p, '')}</button>
+    <div class="comp-enganche"></div>
+    <button class="comp-pieza ${actual === e.s ? 'actual' : ''}" style="all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px" data-ir='["unidad",${e.s}]'>${siluetaAcoplado()}${pat(e.s, '')}</button>
+    <div class="comp-chofer"><span class="rotulo">Chofer</span><b>${esc(ch.nombre)}</b><span class="tenue" style="font-size:12.5px">Desde ${e.desde} · ${esc(ch.esquema)}</span></div></div>`;
+}
+function tabla(cols, filas, opts = {}) {
+  const th = cols.map(c => `<th class="${c.num ? 'num' : ''}">${c.t}</th>`).join('');
+  const tb = filas.length ? filas.map(f => `<tr class="${f.clic ? 'clic' : ''}" ${f.clic ? `data-ir='${JSON.stringify(f.clic)}'` : ''}>${f.c.map((v, i) => `<td class="${cols[i].num ? 'num' : ''} ${cols[i].fuerte ? 'fuerte' : ''}">${v}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${cols.length}"><div class="vacio">${opts.vacio || 'Sin registros.'}</div></td></tr>`;
+  return `<div class="tabla-marco"><table class="tabla">${opts.caption ? `<caption class="sr">${opts.caption}</caption>` : ''}<thead><tr>${th}</tr></thead><tbody>${tb}</tbody>${opts.pie || ''}</table></div>`;
+}
+
+// ===== Vistas operativas =====
+function vTablero() {
+  const t = totales(), rs = resultadosEquipos(), p = P();
+  const activos = VIAJES.filter(v => v.estado === 'EN CURSO' || v.estado === 'EN DESTINO');
+  const pulso = `<div class="pulso tablero">
+    ${cifra(`Resultado neto · ${p.txt}`, millones(t.neto), '▲ 12,3%', true, null, HIST_RESULTADO, true)}
+    ${cifra('Ingresos', millones(t.ingresos), '▲ 7,0%', true, null, HIST_INGRESOS)}
+    ${cifra('Costos', millones(t.costos), '▲ 5,2%', false, null, HIST_COSTOS)}
+    ${cifra('Margen', `${num(t.margen, 1)}<small>%</small>`, '▲ 2,1 pp', true)}
+    ${cifra('Por cobrar', millones(t.porCobrar), `${millones(t.vencido)} vencido`, false, ' ')}
+    ${cifra('Rendimiento', `${num(t.kml, 2)}<small>km/L</small>`, '▼ 0,07', false, null, HIST_KML)}
+  </div>`;
+  const flota = EQUIPOS.map(e => {
+    const v = activos.find(x => x.equipo === e.id);
+    const est = v ? insEstado(v.estado) : '<span class="insignia ok">Disponible</span>';
+    const det = v ? `${esc(v.origen)} → ${esc(v.destino)} · ${esc(v.carga)}` : 'Sin viaje asignado';
+    return `<div class="flota-fila" data-ir='["unidad",${e.p}]'><div class="pat">${pat(e.p)}${pat(e.s)}</div><div class="det"><b>${esc(CH(e.chofer).nombre)}</b><span>${det}</span>${v && v.estado === 'EN CURSO' ? `<div class="progreso"><i style="width:${v.avance}%"></i></div>` : ''}</div>${est}</div>`;
+  }).join('') + `<div class="flota-fila" data-ir='["unidad",7]'><div class="pat">${pat(7)}</div><div class="det"><b>Sin chofer</b><span>Embrague · taller Mecánica Bustos, Villa María</span></div><span class="insignia peligro">En taller</span></div>`;
+  const maxI = Math.max(...rs.map(r => r.ingresos));
+  const ranking = tabla(
+    [{ t: 'Equipo' }, { t: 'Chofer' }, { t: 'Costos ← → Ingresos' }, { t: 'Resultado', num: 1 }, { t: 'Costo/km', num: 1 }],
+    rs.map(r => ({ clic: ['unidad', r.e.p], c: [
+      `<span style="display:inline-flex;gap:4px">${pat(r.e.p)}${pat(r.e.s)}</span>`, esc(CH(r.e.chofer).nombre),
+      `<div class="barra-doble" style="min-width:180px" title="Costos ${dinero(r.costos)} · Ingresos ${dinero(r.ingresos)}"><div class="barra izq costo"><i style="width:${r.costos / maxI * 100}%"></i></div><div class="barra"><i style="width:${r.ingresos / maxI * 100}%"></i></div></div>`,
+      `<b style="color:${r.resultado >= 0 ? 'var(--ok)' : 'var(--danger)'}">${dinero(r.resultado)}</b>`, dinero(r.costoKm)] })),
+    { pie: `<tfoot><tr><td colspan="3">Flota (${rs.length} equipos)</td><td class="num">${dinero(rs.reduce((a, r) => a + r.resultado, 0))}</td><td></td></tr></tfoot>` });
+  const tot = CLIENTES.reduce((a, c) => a.map((v, i) => v + c.tramos[i]), [0, 0, 0, 0]), sum = tot.reduce((a, b) => a + b, 0);
+  const colT = ['var(--ok-tint)', 'var(--warn-tint)', 'var(--warn-fill)', 'var(--danger-fill)'], txtT = ['var(--ok)', 'var(--warn)', 'var(--ink)', '#fff'];
+  const nomT = ['0–30 días', '31–60 días', '61–90 días', 'Más de 90'];
+  const cobranza = `<div class="hoja-cuerpo"><div class="tramos">${tot.map((v, i) => v ? `<div style="flex:${v};background:${colT[i]};color:${txtT[i]}">${Math.round(v / sum * 100)}%</div>` : '').join('')}</div>
+    <div class="tramos-ref">${tot.map((v, i) => `<div><span class="rotulo">${nomT[i]}</span><b style="color:${i >= 2 ? 'var(--danger)' : 'var(--ink)'}">${millones(v)}</b></div>`).join('')}</div></div>
+    ${tabla([{ t: 'Cliente' }, { t: 'Participación' }, { t: 'Ingresos', num: 1 }, { t: 'Saldo', num: 1 }],
+      CLIENTES.filter(c => c.ingresos).map(c => ({ clic: ['cuentas'], c: [esc(c.nombre), `<div class="barra" style="width:120px"><i style="width:${c.ingresos / CLIENTES[0].ingresos * 100}%"></i></div>`, dinero(c.ingresos * p.f), c.tramos[2] + c.tramos[3] ? `<span style="color:var(--danger);font-weight:600">${dinero(c.saldo)}</span>` : dinero(c.saldo)] })))}`;
+  return `${cabecera('Tablero', `${p.txt} · comparado ${p.ant.replace('vs ', 'con ')}. Los importes son sin IVA.`, `<button class="btn" data-accion="exportar">${ico('pdf')}Exportar</button><button class="btn btn-primario" data-accion="nuevo-viaje">${ico('mas')}Nuevo viaje</button>`)}
+    ${pulso}
+    <div class="grilla-2">
+      ${hoja('Requiere atención', `${ALERTAS.length} pendientes · ordenadas por urgencia`, `<ul class="alertas">${ALERTAS.slice(0, 7).map(alertaHTML).join('')}</ul>`, `<button class="btn btn-chico" data-ir='["agenda"]'>Ver agenda</button>`, `y ${ALERTAS.length - 7} más — <a href="#" data-ir='["agenda"]'>ver todas en la agenda</a>`)}
+      ${hoja('Estado de la flota', `${activos.length} de ${EQUIPOS.length} equipos con viaje · utilización ${Math.round(activos.length / EQUIPOS.length * 100)}%`, flota, `<button class="btn btn-chico" data-ir='["viajes"]'>Ver viajes</button>`)}
+    </div>
+    ${hoja('De dónde sale el resultado', 'Ingresos de viajes finalizados y facturados, menos cada rubro de costo. El porcentaje es sobre ingresos.', `<div class="hoja-cuerpo">${cascada(t)}<div class="leyenda" style="margin-top:8px"><span><i style="background:var(--chart-income)"></i>Ingresos</span><span><i style="background:var(--chart-cost)"></i>Costos</span><span><i style="background:var(--ok)"></i>Resultado neto</span></div></div>`)}
+    ${hoja('Rentabilidad por equipo', 'Ingresos menos combustible, consumos generales y sueldo del chofer. Tocá una fila para abrir la unidad.', ranking)}
+    <div class="grilla-2-iguales">
+      ${hoja('Cobranzas', 'Antigüedad del saldo de clientes según su plazo de pago', cobranza)}
+      ${hoja('Combustible', 'Km por litro de cada equipo contra el promedio de la flota', `<div class="hoja-cuerpo">${puntosKml(rs)}<div class="leyenda" style="margin-top:6px"><span><i style="background:var(--chart-income)"></i>Sobre el promedio</span><span><i style="background:var(--chart-cost)"></i>Debajo: revisar consumo</span></div></div>`)}
+    </div>`;
+}
+
+function vUnidades() {
+  const f = st.filtroUnidades, q = st.busca.toLowerCase();
+  const lista = UNIDADES.filter(u => (f === 'todas' || (f === 'tractores' ? u.tipo === 'PRINCIPAL' : f === 'acoplados' ? u.tipo === 'SECUNDARIA' : alertasUnidad(u.id).length)) && (!q || (u.patente + u.modelo).toLowerCase().includes(q)));
+  const seg = [['todas', 'Todas'], ['tractores', 'Tractores'], ['acoplados', 'Acoplados y bateas'], ['alerta', 'Con alertas']].map(([k, t]) => `<button aria-pressed="${f === k}" data-filtro-u="${k}">${t}</button>`).join('');
+  return `${cabecera('Unidades', 'Cada unidad tiene su ficha con equipo, chofer, mantenimiento, cubiertas, vencimientos, gastos y viajes.', `<button class="btn btn-primario" data-accion="nueva-unidad">${ico('mas')}Nueva unidad</button>`)}
+    <div class="filtros"><input class="entrada" id="buscar-unidad" placeholder="Buscar por patente o modelo" value="${esc(st.busca)}"><div class="segmentado">${seg}</div></div>
+    <div class="unidades">${lista.map(tarjetaUnidad).join('') || '<div class="vacio">Ninguna unidad coincide con la búsqueda.</div>'}</div>`;
+}
+function alertasUnidad(id) { return [...VENC.filter(v => v.unidad === id && v.dias <= 15), ...MANT.filter(m => m.unidad === id && m.dias <= 7)]; }
+function tarjetaUnidad(u) {
+  const e = equipoDeUnidad(u.id), al = alertasUnidad(u.id), venc = al.filter(a => a.dias < 0).length;
+  const viaje = e && VIAJES.find(v => v.equipo === e.id && (v.estado === 'EN CURSO' || v.estado === 'EN DESTINO'));
+  const r = e && RESULTADOS[e.id];
+  const cub = CUB.filter(c => c.unidad === u.id && c.estado === 'cambiar').length;
+  return `<button class="unidad-ficha" data-ir='["unidad",${u.id}]'>
+    <div class="fila">${pat(u.id, '')}<span class="insignia sin-punto">${u.tipo === 'PRINCIPAL' ? 'Tractor' : 'Acoplado'}</span></div>
+    <div><div class="modelo">${esc(u.modelo)}</div><div class="tenue" style="font-size:12.5px">${u.anio}${u.km ? ' · ' + num(u.km) + ' km' : ''} · ${e ? `${e.codigo} con ${pat(e.p === u.id ? e.s : e.p)}` : 'sin equipo'}</div></div>
+    <div class="marcas">${u.estado === 'En taller' ? '<span class="insignia peligro">En taller</span>' : viaje ? insEstado(viaje.estado) : '<span class="insignia ok">Disponible</span>'}${venc ? `<span class="insignia peligro">${venc} vencido${venc > 1 ? 's' : ''}</span>` : al.length ? `<span class="insignia aviso">${al.length} por vencer</span>` : ''}${cub ? `<span class="insignia aviso">${cub} cubierta${cub > 1 ? 's' : ''} a cambiar</span>` : ''}</div>
+    <div class="datos"><div><span>Chofer</span><b>${e ? esc(CH(e.chofer).nombre.split(' ')[1]) : '—'}</b></div><div><span>Km/L</span><b>${r && u.tipo === 'PRINCIPAL' ? num(r.km / r.litros, 2) : '—'}</b></div><div><span>Resultado</span><b>${r ? millones(r.ingresos - r.combustible - r.consumos - r.sueldo) : '—'}</b></div></div>
+  </button>`;
+}
+
+const TABS_UNIDAD = [['resumen', 'Resumen'], ['equipo', 'Equipo'], ['mantenimiento', 'Mantenimiento'], ['cubiertas', 'Cubiertas'], ['vencimientos', 'Vencimientos'], ['gastos', 'Gastos'], ['viajes', 'Viajes']];
+function vUnidad() {
+  const u = U(st.id), e = equipoDeUnidad(u.id), ch = e && CH(e.chofer), r = e && RESULTADOS[e.id];
+  const viaje = e && VIAJES.find(v => v.equipo === e.id && (v.estado === 'EN CURSO' || v.estado === 'EN DESTINO'));
+  const cuenta = {
+    mantenimiento: MANT.filter(m => m.unidad === u.id && m.dias < 0).length,
+    cubiertas: CUB.filter(c => c.unidad === u.id && c.estado === 'cambiar').length,
+    vencimientos: VENC.filter(v => v.unidad === u.id && v.dias < 0).length
+  };
+  const tabs = TABS_UNIDAD.map(([k, t]) => `<button class="tab" role="tab" aria-selected="${st.tab === k}" data-tab="${k}">${t}${cuenta[k] ? ` <span class="cuenta peligro">${cuenta[k]}</span>` : ''}</button>`).join('');
+  const cab = `<header class="ficha-cabecera">${pat(u.id, 'grande')}
+    <div style="flex:1;min-width:220px"><div style="font:600 28px/30px var(--font-display)">${esc(u.modelo)} · ${u.anio}</div>
+    <div class="marcas" style="margin-top:8px"><span class="insignia sin-punto">${u.tipo === 'PRINCIPAL' ? 'Tractor' : 'Acoplado / batea'}</span>${u.estado === 'En taller' ? '<span class="insignia peligro">En taller</span>' : '<span class="insignia ok">Operativa</span>'}${viaje ? `<span class="insignia info">${viaje.estado === 'EN CURSO' ? 'En viaje a' : 'En destino:'} ${esc(viaje.destino)}</span>` : ''}</div></div>
+    <div class="ficha-datos"><div class="ficha-dato"><span class="rotulo">Equipo</span><b>${e ? e.codigo : '—'}</b></div><div class="ficha-dato"><span class="rotulo">Chofer</span><b>${ch ? esc(ch.nombre) : '—'}</b></div>${u.km ? `<div class="ficha-dato"><span class="rotulo">Odómetro</span><b>${num(u.km)} km</b></div>` : ''}${r && u.tipo === 'PRINCIPAL' ? `<div class="ficha-dato"><span class="rotulo">Km/L · mes</span><b>${num(r.km / r.litros, 2)}</b></div>` : ''}</div>
+    <div class="acciones"><button class="btn" data-accion="editar-unidad">${ico('editar')}Editar</button><div class="rel"><button class="btn btn-primario" data-accion="registrar">${ico('mas')}Registrar</button></div></div></header>`;
+  const cuerpo = { resumen: tResumen, equipo: tEquipo, mantenimiento: tMant, cubiertas: tCubiertas, vencimientos: tVenc, gastos: tGastos, viajes: tViajes }[st.tab](u, e);
+  return `${cabecera('', '', '', `<button data-ir='["unidades"]'>Unidades</button> / ${esc(u.patente)}`).replace('<h1></h1>', '')}
+    <div class="ficha-pila">${cab}<nav class="ficha-tabs"><div class="tabs" role="tablist" style="border:0">${tabs}</div></nav>
+    <div class="ficha-cuerpo">${cuerpo}</div></div>`;
+}
+function tResumen(u, e) {
+  const r = e && RESULTADOS[e.id], f = P().f;
+  const prox = [...VENC.filter(v => v.unidad === u.id).map(v => ({ tipo: 'venc', prioridad: 2, dias: v.dias, titulo: v.concepto, detalle: `Vencimiento · ${fFecha(v.fecha)}`, accion: 'Renovar', ir: ['unidad', u.id, 'vencimientos'] })),
+    ...MANT.filter(m => m.unidad === u.id).map(m => ({ tipo: 'mant', prioridad: 3, dias: m.dias, titulo: m.concepto, detalle: `Mantenimiento · ${m.periodicidad.toLowerCase()}`, accion: 'Registrar', ir: ['unidad', u.id, 'mantenimiento'] }))].sort((a, b) => a.dias - b.dias).slice(0, 5);
+  const pulso = r ? `<div class="pulso">
+    ${cifra(`Resultado del equipo · ${P().txt}`, millones((r.ingresos - r.combustible - r.consumos - r.sueldo) * f), '▲ 9,4%', true)}
+    ${cifra('Ingresos', millones(r.ingresos * f), '▲ 6,1%', true)}
+    ${cifra('Costos', millones((r.combustible + r.consumos + r.sueldo) * f), '▲ 3,0%', false)}
+    ${cifra('Costo por km', dinero((r.combustible + r.consumos + r.sueldo) / r.km), '▼ $ 12', true)}
+    ${cifra('Km recorridos', num(r.km * f), null)}
+  </div>` : `<div class="aviso-proto">Esta unidad no está en ningún equipo: sus gastos se imputan como "gastos de unidades sin equipo" en el resultado general.</div>`;
+  const gU = GASTOS.filter(g => g.unidad === u.id), rubros = {};
+  gU.forEach(g => rubros[g.tipo] = (rubros[g.tipo] || 0) + g.monto);
+  const totG = Object.values(rubros).reduce((a, b) => a + b, 0);
+  return `${pulso}
+    <div class="grilla-2">
+      ${hoja('Próximos vencimientos y servicios', 'Documentación y mantenimiento de esta unidad', `<ul class="alertas">${prox.map(alertaHTML).join('')}</ul>`, '', `<a href="#" data-tab-ir="vencimientos">Ver todos los vencimientos</a>`)}
+      <div class="pila">
+        ${e ? hoja('Equipo actual', `${e.codigo} · tara ${num(e.tara)} kg · bruto ${num(e.bruto)} kg`, `<div class="hoja-cuerpo">${composicion(e, u.id)}</div>`) : ''}
+        ${hoja('Gastos del mes', `${gU.length} comprobantes`, `<div class="hoja-cuerpo" style="display:flex;flex-direction:column;gap:10px">${Object.entries(rubros).map(([k, v]) => `<div style="display:grid;grid-template-columns:110px minmax(0,1fr) 110px;gap:10px;align-items:center"><span>${k}</span><div class="barra costo"><i style="width:${v / totG * 100}%"></i></div><b class="num">${dinero(v)}</b></div>`).join('')}</div>`)}
+      </div>
+    </div>
+    ${r ? hoja('Ingresos y costos', 'Últimos seis meses del equipo', `<div class="hoja-cuerpo">${columnasMeses(HIST_INGRESOS.map(v => v / 7.3), HIST_COSTOS.map(v => v / 7.8))}<div class="leyenda"><span><i style="background:var(--chart-income)"></i>Ingresos (M$)</span><span><i style="background:var(--chart-cost)"></i>Costos (M$)</span></div></div>`) : ''}`;
+}
+function tEquipo(u, e) {
+  if (!e) return `<div class="hoja vacio">Esta unidad no forma parte de ningún equipo.<br><br><button class="btn btn-primario" data-accion="armar-equipo">${ico('mas')}Armar un equipo con esta unidad</button></div>`;
+  const h = HISTORIAL[e.id] || [{ desde: e.desde, hasta: 'actual', p: e.p, s: e.s, chofer: CH(e.chofer).nombre, motivo: 'Alta del equipo' }];
+  return `${hoja(`Composición de ${e.codigo}`, 'Tocá una pieza para abrir su ficha', `<div class="hoja-cuerpo">${composicion(e, u.id)}</div>`, `<div class="acciones"><button class="btn btn-chico" data-accion="copiar-equipo">Copiar equipo</button><button class="btn btn-chico btn-tinta" data-accion="cambiar-comp">Cambiar chofer o acoplado</button></div>`)}
+    ${hoja('Historial de composiciones', 'Los viajes conservan la composición vigente en su fecha', tabla([{ t: 'Desde' }, { t: 'Hasta' }, { t: 'Tractor' }, { t: 'Acoplado' }, { t: 'Chofer' }, { t: 'Motivo' }], h.map(x => ({ c: [x.desde, x.hasta === 'actual' ? '<span class="insignia ok">Vigente</span>' : x.hasta, pat(x.p), pat(x.s), esc(x.chofer), `<span class="tenue">${x.motivo}</span>`] }))))}`;
+}
+function tMant(u) {
+  const m = MANT.filter(x => x.unidad === u.id).sort((a, b) => a.dias - b.dias);
+  return hoja('Plan de mantenimiento', 'La barra muestra cuánto del intervalo ya se consumió', tabla(
+    [{ t: 'Concepto' }, { t: 'Periodicidad' }, { t: 'Último' }, { t: 'Próximo' }, { t: 'Intervalo consumido' }, { t: '' }],
+    m.map(x => ({ c: [`<b>${esc(x.concepto)}</b>`, esc(x.periodicidad), fFecha(x.ultimo), `${fFecha(x.proximo)}<br><span style="font-size:12px;color:${x.dias < 0 ? 'var(--danger)' : x.dias <= 7 ? 'var(--warn)' : 'var(--ink-3)'};font-weight:600">${x.dias < 0 ? `vencido hace ${-x.dias} días` : `en ${x.dias} días`}</span>`,
+      `<div class="vida"><div class="barra ${x.vida > 85 ? 'costo' : ''}"><i style="width:${x.vida}%"></i></div><span class="num tenue">${x.vida}%</span></div>`, `<button class="btn btn-chico" data-accion="registrar-mant">Registrar hecho</button>`] }))),
+    `<button class="btn btn-chico btn-primario" data-accion="nuevo-mant">${ico('mas')}Agregar al plan</button>`);
+}
+function tCubiertas(u) {
+  const cs = CUB.filter(c => c.unidad === u.id), sel = cs.find(c => c.posicion === st.cubSel) || cs.find(c => c.estado === 'cambiar') || cs[0];
+  const ejes = [...new Set(cs.filter(c => c.eje !== 'aux').map(c => c.eje))];
+  const btn = c => `<button class="cubierta estado-${c.estado}" aria-pressed="${sel === c}" data-cub="${c.posicion}" title="${c.posicion} · ${c.estado}" aria-label="Cubierta ${c.posicion}, ${c.estado}"></button>`;
+  const esquema = `<div class="ejes"><span class="rotulo" style="margin-bottom:6px">${u.tipo === 'PRINCIPAL' ? 'Frente' : 'Enganche'}</span><div class="ejes-chasis">${ejes.map(eje => {
+      const l = cs.filter(c => c.eje === eje && c.lado.startsWith('I')).sort((a, b) => a.lado < b.lado ? -1 : 1).reverse();
+      const rr = cs.filter(c => c.eje === eje && c.lado.startsWith('D')).sort((a, b) => a.lado < b.lado ? -1 : 1);
+      return `<div class="eje"><div class="lado">${l.map(btn).join('')}</div><div class="rotulo-eje">EJE ${eje}</div><div class="lado">${rr.map(btn).join('')}</div></div>`;
+    }).join('')}</div><div style="margin-top:16px;display:flex;align-items:center;gap:10px"><span class="rotulo">Auxilio</span>${btn(cs.find(c => c.eje === 'aux'))}</div></div>`;
+  const nombres = { nueva: 'Nueva', buena: 'En uso', recapada: 'Recapada', cambiar: 'Para cambiar' };
+  const det = `<div class="hoja-cuerpo" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><span class="rotulo">Posición ${sel.posicion}</span><div style="font:600 22px/24px var(--font-display)">${esc(sel.id)}</div></div><span class="insignia ${sel.estado === 'cambiar' ? 'peligro' : sel.estado === 'nueva' ? 'ok' : ''}">${nombres[sel.estado]}</span></div>
+    <div class="cubierta-detalle"><div><span class="rotulo">Marca y modelo</span><span>${esc(sel.marca)}</span></div><div><span class="rotulo">Colocada</span><span>${fFecha(sel.colocada)}</span></div><div><span class="rotulo">Profundidad de surco</span><span><b style="font:600 20px var(--font-display)">${sel.surco} mm</b></span></div><div><span class="rotulo">Mínimo legal</span><span>1,6 mm (recomendado cambiar a 3 mm)</span></div></div>
+    <div class="acciones"><button class="btn btn-tinta btn-chico" data-accion="rotar">Rotar / mover</button><button class="btn btn-chico" data-accion="baja-cub">Dar de baja</button></div></div>`;
+  return `<div class="aviso-proto"><span>${ico('flecha')}</span><span><b>Propuesta:</b> el esquema usa una columna nueva <code>posicion</code> en cubiertas. Hoy solo se guarda COLOCADA o AUXILIO; las que no tengan posición se listan como "sin ubicar".</span></div>
+    <div class="grilla-2-iguales">
+      ${hoja('Esquema de ejes', `${cs.length - 1} colocadas + auxilio · tocá una cubierta`, esquema, '', `<span class="leyenda"><span><i style="background:var(--ok)"></i>Nueva</span><span><i style="background:#2f4a6e"></i>En uso</span><span><i style="background:#6b7685"></i>Recapada</span><span><i style="background:var(--danger-fill)"></i>Para cambiar</span></span>`)}
+      ${hoja('Cubierta seleccionada', '', det)}
+    </div>
+    ${hoja('Todas las cubiertas', '', tabla([{ t: 'Posición' }, { t: 'Identificador' }, { t: 'Marca' }, { t: 'Surco', num: 1 }, { t: 'Colocada' }, { t: 'Estado' }], cs.map(c => ({ c: [c.posicion, `<span class="mono">${c.id}</span>`, esc(c.marca), c.surco + ' mm', fFecha(c.colocada), `<span class="insignia ${c.estado === 'cambiar' ? 'peligro' : c.estado === 'nueva' ? 'ok' : ''}">${nombres[c.estado]}</span>`] }))))}`;
+}
+function tVenc(u) {
+  const v = VENC.filter(x => x.unidad === u.id).sort((a, b) => a.dias - b.dias);
+  return hoja('Documentación', 'Se avisa 15 días antes de cada vencimiento', `<ul class="alertas">${v.map(x => alertaHTML({ dias: x.dias, titulo: x.concepto, detalle: `Vence el ${fFecha(x.fecha)}`, accion: 'Renovar', ir: ['unidad', u.id, 'vencimientos'] })).join('')}</ul>`, `<button class="btn btn-chico btn-primario" data-accion="nuevo-venc">${ico('mas')}Agregar vencimiento</button>`);
+}
+function tGastos(u) {
+  const g = GASTOS.filter(x => x.unidad === u.id);
+  const tot = g.reduce((a, x) => a + x.monto, 0);
+  return hoja('Gastos de la unidad', 'Cargas de combustible del equipo y consumos generales imputados a esta unidad', tabla(
+    [{ t: 'Fecha' }, { t: 'Rubro' }, { t: 'Concepto' }, { t: 'Proveedor' }, { t: 'Comprobante' }, { t: 'Monto', num: 1 }],
+    g.map(x => ({ c: [fFecha(x.fecha), `<span class="insignia sin-punto">${x.tipo}</span>`, esc(x.concepto), esc(x.proveedor), `<span class="mono">${x.comprobante}</span>`, dinero(x.monto)] })),
+    { pie: `<tfoot><tr><td colspan="5">Total del período</td><td class="num">${dinero(tot)}</td></tr></tfoot>` }), `<button class="btn btn-chico btn-primario" data-accion="nuevo-gasto">${ico('mas')}Cargar gasto</button>`);
+}
+function tViajes(u) {
+  const v = VIAJES.filter(x => x.p === u.id || x.s === u.id);
+  return hoja('Viajes con esta unidad', 'Según la composición vigente en la fecha de cada viaje', tablaViajes(v));
+}
+function tablaViajes(v) {
+  return tabla([{ t: 'N°' }, { t: 'Fecha' }, { t: 'Equipo' }, { t: 'Ruta' }, { t: 'Carga' }, { t: 'Pagador' }, { t: 'Estado' }, { t: 'Valor', num: 1 }, { t: '' }],
+    v.map(x => ({ c: [`<span class="mono">#${x.id}</span>`, fCorta(x.fecha), `<span style="display:inline-flex;gap:4px">${pat(x.p)}${pat(x.s)}</span>`, `<b>${esc(x.origen)} → ${esc(x.destino)}</b>`, esc(x.carga), esc(x.cliente), insEstado(x.estado), dinero(x.valor),
+      x.estado === 'FACTURADO' ? '' : `<button class="btn btn-chico ${x.estado === 'FINALIZADO' ? 'btn-primario' : 'btn-tinta'}" data-avanzar="${x.id}">${x.estado === 'FINALIZADO' ? 'Facturar' : 'Avanzar'}</button>`] })), { vacio: 'No hay viajes en este estado.' });
+}
+
+function vViajes() {
+  const f = st.filtroViajes;
+  const cuenta = k => VIAJES.filter(v => k === 'activos' ? (v.estado === 'EN CURSO' || v.estado === 'EN DESTINO') : k === 'todos' ? true : v.estado === k).length;
+  const lista = VIAJES.filter(v => f === 'activos' ? (v.estado === 'EN CURSO' || v.estado === 'EN DESTINO') : f === 'todos' ? true : v.estado === f);
+  const tabs = [['activos', 'Activos'], ['FINALIZADO', 'Para facturar'], ['FACTURADO', 'Facturados'], ['todos', 'Todos']].map(([k, t]) => `<button class="tab" aria-selected="${f === k}" data-filtro-v="${k}">${t} <span class="cuenta">${cuenta(k)}</span></button>`).join('');
+  const flujo = `<div class="pulso">${ESTADOS.map(e => cifra(e === 'FINALIZADO' ? 'Finalizados · a facturar' : e === 'FACTURADO' ? 'Facturados en el mes' : e.toLowerCase().replace(/^./, c => c.toUpperCase()), String(VIAJES.filter(v => v.estado === e).length), null)).join('')}</div>`;
+  return `${cabecera('Viajes', 'Cada viaje avanza EN CURSO → EN DESTINO → FINALIZADO → FACTURADO. Al finalizar se liquida al chofer; al facturar se imputa al pagador.', `<button class="btn btn-primario" data-accion="nuevo-viaje">${ico('mas')}Nuevo viaje</button>`)}
+    ${flujo}
+    <section class="hoja"><div class="tabs" role="tablist" style="padding:0 12px">${tabs}</div>${tablaViajes(lista)}</section>`;
+}
+
+function vAgenda() {
+  const items = [...VENC.map(v => ({ ...v, clase: 'Vencimiento' })), ...MANT.map(m => ({ ...m, fecha: m.proximo, clase: 'Mantenimiento' }))].filter(x => x.dias <= 45).sort((a, b) => a.dias - b.dias);
+  const grupos = [['Vencidos', x => x.dias < 0], ['Esta semana', x => x.dias >= 0 && x.dias <= 7], ['Próxima semana', x => x.dias > 7 && x.dias <= 14], ['En 15 a 30 días', x => x.dias > 14 && x.dias <= 30], ['En 31 a 45 días', x => x.dias > 30]];
+  const carnets = CHOFERES.filter(c => c.carnet <= 60).sort((a, b) => a.carnet - b.carnet);
+  return `${cabecera('Agenda de flota', 'Vencimientos documentales, mantenimientos y licencias de los próximos 45 días, en un solo lugar.', `<button class="btn" data-accion="exportar">${ico('pdf')}Exportar</button>`)}
+    <div class="pulso">${cifra('Vencidos', String(items.filter(x => x.dias < 0).length), null)}${cifra('Esta semana', String(items.filter(x => x.dias >= 0 && x.dias <= 7).length), null)}${cifra('Próximos 30 días', String(items.filter(x => x.dias > 7 && x.dias <= 30).length), null)}${cifra('Carnets a renovar', String(carnets.length), null)}</div>
+    <div class="grilla-2">
+      ${hoja('Unidades', 'Agrupado por semana', grupos.map(([g, fn]) => { const xs = items.filter(fn); return xs.length ? `<div class="semana"><div><h3 style="color:${g === 'Vencidos' ? 'var(--danger)' : 'var(--ink)'}">${g}</h3><span class="tenue" style="font-size:12.5px">${xs.length} pendientes</span></div><div class="items">${xs.map(x => `<div class="agenda-item"><span class="fecha">${fCorta(x.fecha)}</span>${pat(x.unidad)}<span>${esc(x.concepto)} <span class="tenue">· ${x.clase.toLowerCase()}</span></span><button class="btn btn-chico" data-ir='["unidad",${x.unidad},"${x.clase === 'Vencimiento' ? 'vencimientos' : 'mantenimiento'}"]'>Abrir</button></div>`).join('')}</div></div>` : ''; }).join(''))}
+      ${hoja('Choferes', 'Licencias profesionales y descansos', `<ul class="alertas">${[...carnets.map(c => ({ dias: c.carnet, titulo: `Carnet de ${c.nombre}`, detalle: 'Licencia nacional de conducir profesional', accion: 'Ver chofer', ir: ['choferes'] })), ...CHOFERES.filter(c => c.descanso >= 12).map(c => ({ dias: null, sin: c.descanso, titulo: `Descanso de ${c.nombre}`, detalle: `${c.descanso} días sin jornada de descanso`, accion: 'Ver chofer', ir: ['choferes'] }))].map(alertaHTML).join('')}</ul>`)}
+    </div>`;
+}
+
+function vEquipos() {
+  return `${cabecera('Equipos', 'Un equipo es un tractor + un acoplado + un chofer. Los cambios quedan en el historial y los viajes conservan su composición.', `<button class="btn btn-primario" data-accion="nuevo-equipo">${ico('mas')}Armar equipo</button>`)}
+    <div class="grilla-2-iguales">${EQUIPOS.map(e => hoja(e.codigo, `Tara ${num(e.tara)} kg · bruto ${num(e.bruto)} kg`, `<div class="hoja-cuerpo">${composicion(e)}</div>`, `<button class="btn btn-chico" data-ir='["unidad",${e.p},"equipo"]'>Historial</button>`)).join('')}</div>`;
+}
+function vChoferes() {
+  return `${cabecera('Choferes', 'Remuneración, licencia, descansos y saldo de cada chofer. La cuenta corriente del chofer se ve desde su ficha.', `<button class="btn btn-tinta" data-accion="liquidar">Liquidar sueldos fijos del mes</button><button class="btn btn-primario" data-accion="nuevo-chofer">${ico('mas')}Nuevo chofer</button>`)}
+    <section class="hoja">${tabla([{ t: 'Chofer' }, { t: 'CUIL' }, { t: 'Equipo actual' }, { t: 'Remuneración' }, { t: 'Carnet' }, { t: 'Último descanso' }, { t: 'Viajes del mes', num: 1 }],
+      CHOFERES.map(c => { const e = EQUIPOS.find(x => x.chofer === c.id); return { c: [`<b>${esc(c.nombre)}</b>`, `<span class="mono">${c.cuil}</span>`, e ? `<span style="display:inline-flex;gap:4px">${pat(e.p)}${pat(e.s)}</span>` : '<span class="tenue">Sin equipo</span>', esc(c.esquema), c.carnet < 0 ? `<span class="insignia peligro">Vencido</span>` : c.carnet <= 30 ? `<span class="insignia aviso">En ${c.carnet} días</span>` : `<span class="tenue">En ${c.carnet} días</span>`, c.descanso >= 12 ? `<span class="insignia peligro">Hace ${c.descanso} días</span>` : `Hace ${c.descanso} días`, VIAJES.filter(v => v.chofer === c.id).length] }; }))}</section>`;
+}
+function vGastos() {
+  const tabs = ['Combustible', 'Consumo', 'Administrativos'];
+  const nom = { Combustible: 'Combustible', Consumo: 'Consumos generales', Administrativos: 'Gastos administrativos' };
+  const adm = [['Estudio contable Rivarola & Asoc.', 'Honorarios septiembre', 980000], ['ARCA', 'Ingresos brutos – anticipo', 1240000], ['Seguros La Segunda', 'Póliza flota (cuota 9/12)', 930000]];
+  const lista = st.gastosTab === 'Administrativos'
+    ? tabla([{ t: 'Fecha' }, { t: 'Proveedor' }, { t: 'Concepto' }, { t: 'Monto', num: 1 }], adm.map((a, i) => ({ c: [fFecha(masDias(-3 - i * 6)), esc(a[0]), esc(a[1]), dinero(a[2])] })))
+    : tabla([{ t: 'Fecha' }, { t: 'Unidad' }, { t: 'Concepto' }, { t: 'Proveedor' }, { t: 'Comprobante' }, { t: 'Monto', num: 1 }], GASTOS.filter(g => g.tipo === st.gastosTab).slice(0, 18).map(g => ({ clic: ['unidad', g.unidad, 'gastos'], c: [fFecha(g.fecha), pat(g.unidad), esc(g.concepto), esc(g.proveedor), `<span class="mono">${g.comprobante}</span>`, dinero(g.monto)] })));
+  return `${cabecera('Gastos', 'Combustible, consumos generales y gastos administrativos, con el comprobante del proveedor para el IVA compras.', `<button class="btn btn-primario" data-accion="nuevo-gasto">${ico('mas')}Cargar ${nom[st.gastosTab].toLowerCase()}</button>`)}
+    <section class="hoja"><div class="tabs" role="tablist" style="padding:0 12px">${tabs.map(t => `<button class="tab" aria-selected="${st.gastosTab === t}" data-gtab="${t}">${nom[t]}</button>`).join('')}</div>${lista}</section>`;
+}
+function vCuentas() {
+  return `${cabecera('Cuentas', 'Clientes y proveedores con su saldo. Una misma empresa puede ser cliente y proveedor: se ve en una sola cuenta.', `<button class="btn" data-accion="exportar">${ico('pdf')}Resumen PDF</button><button class="btn btn-primario" data-accion="nueva-cuenta">${ico('mas')}Nueva cuenta</button>`)}
+    <div class="pulso">${cifra('Clientes nos deben', millones(CLIENTES.filter(c => c.saldo > 0).reduce((a, c) => a + c.saldo, 0)), null)}${cifra('Vencido', millones(CLIENTES.reduce((a, c) => a + c.tramos[2] + c.tramos[3], 0)), null)}${cifra('Debemos a proveedores', millones(-CLIENTES.filter(c => c.saldo < 0).reduce((a, c) => a + c.saldo, 0)), null)}</div>
+    <section class="hoja">${tabla([{ t: 'Cuenta' }, { t: 'CUIT' }, { t: 'Tipo' }, { t: 'Plazo' }, { t: 'Antigüedad del saldo' }, { t: 'Saldo', num: 1 }],
+      CLIENTES.map(c => { const s = c.tramos.reduce((a, b) => a + b, 0); return { c: [`<b>${esc(c.nombre)}</b>`, `<span class="mono">${c.cuit}</span>`, `<span class="insignia sin-punto">${c.tipo}</span>`, c.plazo ? c.plazo + ' días' : '—', s ? `<div class="tramos" style="height:10px;width:160px">${c.tramos.map((v, i) => v ? `<div style="flex:${v};padding:0;background:${['var(--ok)', 'var(--warn-fill)', 'var(--chart-cost)', 'var(--danger-fill)'][i]}"></div>` : '').join('')}</div>` : '<span class="tenue">—</span>', `<b style="color:${c.saldo < 0 ? 'var(--ink-2)' : c.tramos[2] + c.tramos[3] ? 'var(--danger)' : 'var(--ink)'}">${dinero(c.saldo)}</b>${c.saldo < 0 ? '<br><span class="tenue" style="font-size:12px">a pagar</span>' : ''}`] }; }))}</section>`;
+}
+function vFacturacion() {
+  const fs = VIAJES.filter(v => v.estado === 'FACTURADO').slice(0, 10).map((v, i) => ({ nro: `0003-${String(1284 - i).padStart(8, '0')}`, fecha: v.fecha, cli: v.cliente, neto: v.valor, viaje: v.id, est: i === 1 ? 'Borrador' : 'Emitida' }));
+  return `${cabecera('Facturación', 'Facturas A y notas de crédito con CAE de ARCA.', `<button class="btn" data-accion="facturar-viaje">Facturar un viaje</button><button class="btn btn-primario" data-accion="factura-manual">${ico('mas')}Factura manual</button>`)}
+    <div class="pulso">${cifra('Facturado en el mes', millones(fs.reduce((a, f) => a + f.neto * 1.21, 0)), '▲ 4,8%', true)}${cifra('IVA débito', millones(fs.reduce((a, f) => a + f.neto * .21, 0)), null)}${cifra('Viajes por facturar', String(VIAJES.filter(v => v.estado === 'FINALIZADO').length), null)}${cifra('Sin CAE', '1', null)}</div>
+    <section class="hoja">${tabla([{ t: 'Comprobante' }, { t: 'Fecha' }, { t: 'Receptor' }, { t: 'Viaje' }, { t: 'Neto', num: 1 }, { t: 'IVA', num: 1 }, { t: 'Total', num: 1 }, { t: 'Estado' }, { t: '' }],
+      fs.map(f => ({ c: [`<b>Factura A</b> <span class="mono">${f.nro}</span>`, fCorta(f.fecha), esc(f.cli), `<span class="mono">#${f.viaje}</span>`, dinero(f.neto), dinero(f.neto * .21), `<b>${dinero(f.neto * 1.21)}</b>`, `<span class="insignia ${f.est === 'Emitida' ? 'ok' : 'aviso'}">${f.est}</span>`, `<button class="btn btn-chico" data-accion="pdf">${ico('pdf')}PDF</button>`] })))}</section>`;
+}
+function vStock() {
+  const items = [['Cubierta 295/80 R22.5 nueva', 'Depósito Villa María', 4, 690000], ['Filtro de gasoil', 'Depósito Villa María', 12, 38000], ['Lubricante 15W40 x 205 L', 'Depósito Villa María', 2, 1150000], ['Pulmón de freno', 'Equipo EQ-03', 1, 185000], ['Lona de batea', 'Depósito Córdoba', 3, 420000]];
+  return `${cabecera('Stock', 'Elementos en depósito y su valuación. Un depósito puede ser un lugar físico o un equipo.', `<button class="btn btn-primario" data-accion="nuevo-stock">${ico('mas')}Agregar elemento</button>`)}
+    <section class="hoja">${tabla([{ t: 'Elemento' }, { t: 'Depósito' }, { t: 'Cantidad', num: 1 }, { t: 'Valuación unit.', num: 1 }, { t: 'Total', num: 1 }], items.map(i => ({ c: [`<b>${i[0]}</b>`, i[1], i[2], dinero(i[3]), dinero(i[2] * i[3])] })), { pie: `<tfoot><tr><td colspan="4">Valuación total</td><td class="num">${dinero(items.reduce((a, i) => a + i[2] * i[3], 0))}</td></tr></tfoot>` })}</section>`;
+}
+function vConfig() {
+  const tab = ['apariencia', 'usuarios', 'fiscal', 'arca'].includes(st.tab) ? st.tab : 'apariencia';
+  const tabs = [['apariencia', 'Apariencia'], ['usuarios', 'Usuarios'], ['fiscal', 'Datos fiscales'], ['arca', 'Certificado ARCA']].map(([k, t]) => `<button class="tab" aria-selected="${tab === k}" data-ctab="${k}">${t}</button>`).join('');
+  const cuerpo = {
+    apariencia: hoja('Tema de color', 'Cambia el menú lateral y el color de acento. Se guarda en tu cuenta.', `<div class="hoja-cuerpo"><div class="temas">${TEMAS.map(t => `<button class="tema" aria-pressed="${st.tema === t.id}" data-tema="${t.id}"><div class="tema-muestra" style="background:${t.rail}"><i style="background:${t.accent}"></i><i style="background:${t.rail2}"></i></div><b>${t.name}${t.id === 'tcv' ? ' · predeterminado' : ''}</b></button>`).join('')}</div></div>`),
+    usuarios: hoja('Usuarios de la empresa', '', tabla([{ t: 'Usuario' }, { t: 'Nombre' }, { t: 'Rol' }, { t: 'Último ingreso' }, { t: 'Estado' }], [['betti', 'Betiana Ríos', 'ADMIN_EMPRESA', 'hoy 08:12'], ['mbesso', 'Maxi Besso', 'OPERADOR', 'hoy 10:41'], ['tallerVM', 'Taller Villa María', 'OPERADOR', 'ayer'], ['contable', 'Estudio Rivarola', 'OPERADOR', 'hace 6 días']].map(u => ({ c: [`<span class="mono">${u[0]}</span>`, `<b>${u[1]}</b>`, `<span class="insignia sin-punto">${u[2]}</span>`, u[3], '<span class="insignia ok">Activo</span>'] }))), `<button class="btn btn-chico btn-primario" data-accion="nuevo-usuario">${ico('mas')}Invitar usuario</button>`),
+    fiscal: hoja('Datos fiscales', 'Aparecen en el encabezado de tus facturas', `<div class="hoja-cuerpo"><div class="formulario"><div class="campo ancho"><label for="cf1">Razón social</label><input id="cf1" value="3 de Abril SAS"></div><div class="campo"><label for="cf2">CUIT</label><input id="cf2" value="30-71654321-0"></div><div class="campo"><label for="cf3">Condición frente al IVA</label><select id="cf3"><option>RESPONSABLE INSCRIPTO</option></select></div><div class="campo"><label for="cf4">N° de Ingresos Brutos</label><input id="cf4" value="901-234567-8"></div><div class="campo"><label for="cf5">Punto de venta</label><input id="cf5" type="number" value="3"></div></div></div>`, `<button class="btn btn-chico btn-primario" data-accion="guardar">Guardar cambios</button>`),
+    arca: hoja('Certificado ARCA', 'Necesario para pedir el CAE de cada factura', `<div class="hoja-cuerpo" style="display:flex;flex-direction:column;gap:12px"><div class="ficha-datos"><div class="ficha-dato"><span class="rotulo">Estado</span><b><span class="insignia ok">Vigente</span></b></div><div class="ficha-dato"><span class="rotulo">Vence</span><b>30/04/2027</b></div><div class="ficha-dato"><span class="rotulo">Ambiente</span><b>Producción</b></div></div><div class="aviso-proto">Te avisamos en la agenda 30 días antes del vencimiento.</div></div>`, `<button class="btn btn-chico" data-accion="subir-cert">Reemplazar certificado</button>`)
+  }[tab];
+  return `${cabecera('Configuración', '3 de Abril SAS · lo que antes estaba en "Mi empresa", "Apariencia" y "Cambiar contraseña".', `<button class="btn" data-accion="clave">Cambiar contraseña</button>`)}
+    <section class="hoja" style="padding:0 12px"><div class="tabs" role="tablist" style="border:0">${tabs}</div></section>${cuerpo}`;
+}
+
+// ===== Administración global =====
+function vPanorama() {
+  const act = EMPRESAS.filter(e => e.activa);
+  return `${cabecera('Panorama', 'Estado de todas las empresas de la plataforma.', `<button class="btn btn-primario" data-accion="nueva-empresa">${ico('mas')}Nueva empresa</button>`)}
+    <div class="pulso">${cifra('Empresas activas', String(act.length), `${EMPRESAS.length - act.length} inactiva`, false, ' ')}${cifra('Usuarios', String(EMPRESAS.reduce((a, e) => a + e.usuarios, 0)), '▲ 3 este mes', true, ' ')}${cifra('Certificados por vencer', '1', 'en 30 días', false, ' ')}${cifra('Sin certificado ARCA', String(EMPRESAS.filter(e => e.activa && !e.cert).length), 'no pueden facturar', false, ' ')}</div>
+    ${hoja('Módulos por empresa', 'Punto lleno: módulo activo. Desactivar un módulo no borra sus datos.', `<div class="tabla-marco"><table class="tabla matriz"><thead><tr><th>Empresa</th>${MODULOS_CAT.map(m => `<th class="rot">${m}</th>`).join('')}</tr></thead><tbody>${EMPRESAS.map(e => `<tr class="clic" data-ir='["empresas"]'><td><b>${esc(e.nombre)}</b>${e.activa ? '' : ' <span class="insignia">Inactiva</span>'}</td>${e.mods.map((m, i) => `<td class="m"><span class="pto ${m ? 'on' : ''}" title="${MODULOS_CAT[i]}: ${m ? 'activo' : 'inactivo'}"></span></td>`).join('')}</tr>`).join('')}</tbody></table></div>`)}
+    ${hoja('Actividad', '', tabla([{ t: 'Empresa' }, { t: 'CUIT' }, { t: 'Usuarios', num: 1 }, { t: 'Certificado ARCA' }, { t: 'Última actividad' }], EMPRESAS.map(e => ({ clic: ['empresas'], c: [`<b>${esc(e.nombre)}</b>`, `<span class="mono">${e.cuit}</span>`, e.usuarios, e.cert == null ? '<span class="insignia peligro">Sin cargar</span>' : e.cert <= 30 ? `<span class="insignia aviso">Vence en ${e.cert} días</span>` : `<span class="insignia ok">Vigente</span>`, e.actividad] }))))}`;
+}
+function vEmpresas() {
+  const e = EMPRESAS[1];
+  return `${cabecera(esc(e.nombre), `CUIT ${e.cuit} · ${e.usuarios} usuarios`, `<button class="btn">${ico('editar')}Editar datos</button><button class="btn btn-tinta" data-accion="entrar-empresa">Operar como esta empresa</button>`, `<button data-ir='["panorama"]'>Panorama</button> / Empresas`)}
+    <div class="grilla-2-iguales">
+      ${hoja('Módulos', 'Las dependencias se validan al guardar', `<div class="hoja-cuerpo" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${MODULOS_CAT.map((m, i) => `<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="mod${i}" ${e.mods[i] ? 'checked' : ''} ${i < 2 ? 'disabled' : ''}> ${m}${i < 2 ? ' <span class="tenue" style="font-size:12px">(siempre)</span>' : ''}</label>`).join('')}</div>`, `<button class="btn btn-chico btn-primario" data-accion="guardar">Guardar</button>`)}
+      ${hoja('Certificado ARCA', '', `<div class="hoja-cuerpo"><div class="ficha-datos"><div class="ficha-dato"><span class="rotulo">Estado</span><b><span class="insignia aviso">Vence en 24 días</span></b></div><div class="ficha-dato"><span class="rotulo">Punto de venta</span><b>2</b></div></div></div>`, `<button class="btn btn-chico" data-accion="subir-cert">Cargar nuevo</button>`)}
+    </div>
+    ${hoja('Usuarios', '', tabla([{ t: 'Usuario' }, { t: 'Rol' }, { t: 'Estado' }], [['mbesso', 'ADMIN_EMPRESA'], ['oficina', 'OPERADOR'], ['chofer01', 'OPERADOR']].map(u => ({ c: [`<span class="mono">${u[0]}</span>`, `<span class="insignia sin-punto">${u[1]}</span>`, '<span class="insignia ok">Activo</span>'] }))))}`;
+}
+function vUsuarios() {
+  const us = [['admin', 'Administrador global', 'ADMIN', '—'], ['betti', 'Betiana Ríos', 'ADMIN_EMPRESA', '3 de Abril SAS'], ['mbesso', 'Maxi Besso', 'ADMIN_MULTIEMPRESA', '3 de Abril SAS, Logística Besso SRL'], ['fsur', 'Fernanda Sosa', 'ADMIN_EMPRESA', 'Fletes del Sur SA'], ['demo', 'Usuario demo', 'OPERADOR', 'Demo comercial']];
+  return `${cabecera('Usuarios', 'Todos los usuarios de la plataforma, con su rol y sus empresas.', `<button class="btn btn-primario" data-accion="nuevo-usuario">${ico('mas')}Nuevo usuario</button>`)}
+    <section class="hoja">${tabla([{ t: 'Usuario' }, { t: 'Nombre' }, { t: 'Rol' }, { t: 'Empresas' }], us.map(u => ({ c: [`<span class="mono">${u[0]}</span>`, `<b>${u[1]}</b>`, `<span class="insignia ${u[2] === 'ADMIN' ? 'marca' : 'sin-punto'}">${u[2]}</span>`, u[3]] })))}</section>`;
+}
+
+// ===== Rail y render =====
+const NAV_OP = [['Operación', [['tablero', 'Tablero'], ['viajes', 'Viajes', () => VIAJES.filter(v => v.estado === 'EN CURSO' || v.estado === 'EN DESTINO').length], ['equipos', 'Equipos']]],
+  ['Flota', [['unidades', 'Unidades'], ['choferes', 'Choferes'], ['agenda', 'Agenda', () => ALERTAS.filter(a => a.tipo !== 'cobro').length]]],
+  ['Costos', [['gastos', 'Gastos'], ['stock', 'Stock']]],
+  ['Finanzas', [['facturacion', 'Facturación'], ['cuentas', 'Cuentas']]],
+  ['Empresa', [['config', 'Configuración']]]];
+const NAV_ADMIN = [['Plataforma', [['panorama', 'Panorama'], ['empresas', 'Empresas'], ['usuarios', 'Usuarios']]]];
+const ISO = '<svg viewBox="0 0 120 120" aria-hidden="true"><rect x="6" y="6" width="108" height="108" rx="24" fill="#16386b"/><path d="M28 86 Q49 86 62 68 T96 42" fill="none" stroke="#38b6ff" stroke-width="7" stroke-linecap="round"/><circle cx="28" cy="86" r="6" fill="#f7fafd"/><path d="M89 33 L103 42 L89 51 Z" fill="#38b6ff"/></svg>';
+function rail() {
+  const nav = st.rol === 'admin' ? NAV_ADMIN : NAV_OP;
+  const activa = st.vista === 'unidad' ? 'unidades' : st.vista;
+  return `<div class="rail-marca">${ISO}<div><b>${st.rol === 'admin' ? 'TCV LogiSuite' : '3 de Abril SAS'}</b><span>${st.rol === 'admin' ? 'Administración global' : 'TCV LogiSuite'}</span></div></div>
+    ${nav.map(([g, items]) => `<div class="rail-grupo">${g}</div>${items.map(([k, t, c]) => `<a href="#${k}" data-ir='["${k}"]' ${activa === k ? 'aria-current="page"' : ''}>${ico(k === 'config' ? 'config' : k, 17)}${t}${c ? `<span class="cuenta">${c()}</span>` : ''}</a>`).join('')}`).join('')}
+    <div class="rail-pie"><label for="sel-rol">Prototipo · ver como</label><select id="sel-rol"><option value="operativo" ${st.rol === 'operativo' ? 'selected' : ''}>Usuario de empresa</option><option value="admin" ${st.rol === 'admin' ? 'selected' : ''}>Administrador global</option></select></div>`;
+}
+function barraSup() {
+  const per = [['mes', 'Mes'], ['trimestre', 'Trimestre'], ['anio', 'Año']].map(([k, t]) => `<button aria-pressed="${st.periodo === k}" data-periodo="${k}">${t}</button>`).join('');
+  return `<button class="btn btn-fantasma btn-menu" id="btn-menu" aria-label="Abrir menú">${ico('menu', 20)}</button>
+    <div class="buscar">${ico('buscar')}<input class="entrada" id="buscar-global" placeholder="Buscar patente, chofer, remito o cuenta" aria-label="Buscar"></div>
+    <div class="espacio"></div>
+    ${st.rol === 'operativo' ? `<div class="segmentado" role="group" aria-label="Período">${per}</div>` : ''}
+    <button class="btn btn-fantasma campana" data-ir='["agenda"]' aria-label="Alertas">${ico('campana', 18)}<span class="punto">${ALERTAS.length}</span></button>
+    <div class="usuario"><b>${st.rol === 'admin' ? 'admin' : 'Betiana Ríos'}</b><span>${st.rol === 'admin' ? 'ADMIN' : 'ADMIN_EMPRESA'}</span></div>`;
+}
+const VISTAS = { tablero: vTablero, unidades: vUnidades, unidad: vUnidad, viajes: vViajes, agenda: vAgenda, equipos: vEquipos, choferes: vChoferes, gastos: vGastos, cuentas: vCuentas, facturacion: vFacturacion, stock: vStock, config: vConfig, panorama: vPanorama, empresas: vEmpresas, usuarios: vUsuarios };
+function render() {
+  $('#rail').innerHTML = rail();
+  $('#barra-sup').innerHTML = barraSup();
+  $('#vista').innerHTML = (VISTAS[st.vista] || vTablero)();
+  document.documentElement.setAttribute('data-tema', st.tema);
+}
+function modal(titulo, cuerpo, ok = 'Guardar') {
+  const m = $('#modal');
+  m.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-tit"><div class="modal-cabecera"><h2 id="m-tit">${titulo}</h2><button class="btn btn-fantasma btn-chico" data-cerrar aria-label="Cerrar">${ico('cerrar')}</button></div><div class="modal-cuerpo">${cuerpo}</div><div class="modal-pie"><button class="btn btn-fantasma" data-cerrar>Cancelar</button><button class="btn btn-primario" data-ok>${ok}</button></div></div>`;
+  m.hidden = false; m.querySelector('input,select')?.focus();
+}
+function formUnidad(extra) {
+  const u = U(st.id);
+  return `<div class="formulario"><div class="campo ancho"><label for="fm-u">Unidad</label><select id="fm-u" disabled><option>${esc(u.patente)} — ${esc(u.modelo)}</option></select><span class="ayuda">Viene precargada desde la ficha.</span></div>${extra}</div>`;
+}
+
+function abrirRegistro(k) {
+    const f = { mant: ['Registrar mantenimiento', '<div class="campo ancho"><label for="fm-c">Concepto</label><input id="fm-c" placeholder="Ej. cambio de aceite y filtros"></div><div class="campo"><label for="fm-p">Periodicidad</label><input id="fm-p" placeholder="Cada 30.000 km"></div><div class="campo"><label for="fm-v">Próximo vencimiento</label><input id="fm-v" type="date"></div>'],
+      cub: ['Registrar cubierta', '<div class="campo"><label for="fm-i">Identificador</label><input id="fm-i"></div><div class="campo"><label for="fm-pos">Posición</label><select id="fm-pos"><option>1I</option><option>1D</option><option>2IE</option><option>2II</option><option>2DI</option><option>2DE</option><option>Auxilio</option></select></div>'],
+      venc: ['Agregar vencimiento', '<div class="campo ancho"><label for="fm-c">Concepto</label><input id="fm-c" placeholder="Ej. RTO, seguro, RUTA"></div><div class="campo"><label for="fm-v">Fecha de vencimiento</label><input id="fm-v" type="date"></div>'],
+      gasto: ['Cargar gasto', '<div class="campo"><label for="fm-r">Rubro</label><select id="fm-r"><option>Combustible</option><option>Consumo general</option></select></div><div class="campo"><label for="fm-m">Monto ($)</label><input id="fm-m" type="number"></div><div class="campo ancho"><label for="fm-c">Concepto</label><input id="fm-c"></div>'] }[k];
+    modal(f[0], formUnidad(f[1]));
+}
+document.addEventListener('click', ev => {
+  const t = ev.target.closest('[data-ir],[data-tab],[data-tab-ir],[data-periodo],[data-filtro-u],[data-filtro-v],[data-gtab],[data-ctab],[data-tema],[data-cub],[data-avanzar],[data-accion],[data-cerrar],[data-ok],[data-reg],#btn-menu');
+  const menu = $('#menu-reg'); if (menu && !ev.target.closest('#menu-reg')) menu.remove();
+  if (!t) return;
+  if (t.id === 'btn-menu') { $('.app').classList.toggle('menu-abierto'); return; }
+  if (t.dataset.ir) { ev.preventDefault(); const [v, id, tab] = JSON.parse(t.dataset.ir); ir(v, id ?? null, tab); return; }
+  if (t.dataset.tab) { st.tab = t.dataset.tab; st.cubSel = null; render(); return; }
+  if (t.dataset.tabIr) { ev.preventDefault(); st.tab = t.dataset.tabIr; render(); return; }
+  if (t.dataset.periodo) { st.periodo = t.dataset.periodo; render(); return; }
+  if (t.dataset.filtroU) { st.filtroUnidades = t.dataset.filtroU; render(); return; }
+  if (t.dataset.filtroV) { st.filtroViajes = t.dataset.filtroV; render(); return; }
+  if (t.dataset.gtab) { st.gastosTab = t.dataset.gtab; render(); return; }
+  if (t.dataset.ctab) { st.tab = t.dataset.ctab; render(); return; }
+  if (t.dataset.tema) { st.tema = t.dataset.tema; try { localStorage.setItem('tcv-tema', st.tema); } catch (e) {} render(); toast('Apariencia actualizada.'); return; }
+  if (t.dataset.cub) { st.cubSel = t.dataset.cub; render(); return; }
+  if (t.dataset.cerrar !== undefined) { $('#modal').hidden = true; return; }
+  if (t.dataset.ok !== undefined) { $('#modal').hidden = true; toast('Guardado (prototipo: no se envía nada).'); return; }
+  if (t.dataset.avanzar) {
+    const v = VIAJES.find(x => x.id === Number(t.dataset.avanzar)), i = ESTADOS.indexOf(v.estado);
+    if (v.estado === 'FINALIZADO') { modal(`Facturar viaje #${v.id}`, `<div class="formulario"><div class="campo ancho"><label>Viaje</label><input disabled value="${esc(v.origen)} → ${esc(v.destino)} · ${dinero(v.valor)}"></div><div class="campo ancho"><label for="fm-imp">Cómo imputarlo en la cuenta de ${esc(v.cliente)}</label><select id="fm-imp"><option>Emitir Factura A con CAE</option><option>Imputar sin IVA</option><option>Líquido producto</option></select></div></div>`, 'Facturar'); return; }
+    if (v.estado === 'EN DESTINO') { modal(`Finalizar viaje #${v.id}`, `<div class="formulario"><div class="campo ancho"><label>Ruta</label><input disabled value="${esc(v.origen)} → ${esc(v.destino)} · tarifa ${v.tipo}"></div><div class="campo ancho"><label for="fm-res">Toneladas descargadas</label><input id="fm-res" type="number" step="any" value="29.4"><span class="ayuda">Al finalizar se genera la liquidación al chofer.</span></div></div>`, 'Finalizar viaje'); return; }
+    v.estado = ESTADOS[i + 1]; render(); toast(`Viaje #${v.id} avanzado a ${v.estado}.`); return;
+  }
+  if (t.dataset.reg) { $('#menu-reg')?.remove(); abrirRegistro(t.dataset.reg); return; }
+  const a = t.dataset.accion;
+  if (a === 'registrar') {
+    const r = t.getBoundingClientRect(), m = document.createElement('div');
+    m.id = 'menu-reg'; m.className = 'menu-flot'; m.style.cssText = `position:fixed;top:${r.bottom + 6}px;left:${Math.max(8, r.right - 230)}px`;
+    m.innerHTML = '<button data-reg="mant">Mantenimiento</button><button data-reg="cub">Cubierta</button><button data-reg="venc">Vencimiento</button><button data-reg="gasto">Gasto o carga de combustible</button>';
+    document.body.appendChild(m); return;
+  }
+  const atajo = { 'nuevo-mant': 'mant', 'registrar-mant': 'mant', 'nuevo-venc': 'venc', 'nuevo-gasto': 'gasto', 'rotar': 'cub' }[a];
+  if (atajo && st.vista === 'unidad') { abrirRegistro(atajo); return; }
+  if (a === 'nuevo-viaje') { modal('Nuevo viaje', `<div class="formulario"><div class="campo"><label for="nv-f">Fecha de origen</label><input id="nv-f" type="datetime-local" value="2026-10-02T07:30"></div><div class="campo"><label for="nv-e">Equipo</label><select id="nv-e">${EQUIPOS.map(e => `<option>${U(e.p).patente} / ${U(e.s).patente} · ${CH(e.chofer).nombre}</option>`).join('')}</select></div><div class="campo"><label for="nv-o">Origen</label><input id="nv-o" value="Villa María"></div><div class="campo"><label for="nv-d">Destino</label><input id="nv-d" placeholder="Ej. Pto. San Martín"></div><div class="campo"><label for="nv-t">Tarifa ($)</label><input id="nv-t" type="number"></div><div class="campo"><label for="nv-tt">Tipo de tarifa</label><select id="nv-tt"><option>POR TONELADA</option><option>POR KM</option><option>UNICA</option></select></div><div class="campo ancho"><label for="nv-p">Pagador</label><select id="nv-p">${CLIENTES.slice(0, 6).map(c => `<option>${esc(c.nombre)}</option>`).join('')}</select></div></div>`, 'Crear viaje'); return; }
+  if (a === 'liquidar') { modal('Liquidar sueldos fijos del mes', `<div class="campo"><label for="lq-p">Período</label><input id="lq-p" type="month" value="2026-09"></div><div style="margin-top:12px">${tabla([{ t: '' }, { t: 'Chofer' }, { t: 'Sueldo fijo', num: 1 }], CHOFERES.filter(c => /Fijo|Mixto/.test(c.esquema)).map(c => ({ c: ['<input type="checkbox" checked aria-label="Incluir">', esc(c.nombre), c.esquema.match(/\$ [\d.]+/)[0]] })))}</div>`, 'Liquidar'); return; }
+  toast('Acción de ejemplo: en el sistema real abre su formulario.');
+});
+document.addEventListener('input', ev => {
+  if (ev.target.id === 'buscar-unidad') { st.busca = ev.target.value; const pos = ev.target.selectionStart; render(); const el = $('#buscar-unidad'); el.focus(); el.setSelectionRange(pos, pos); }
+});
+document.addEventListener('change', ev => { if (ev.target.id === 'sel-rol') { st.rol = ev.target.value; ir(st.rol === 'admin' ? 'panorama' : 'tablero'); } });
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') { $('#modal').hidden = true; $('.app').classList.remove('menu-abierto'); $('#menu-reg')?.remove(); }
+  if (ev.key === 'Enter' && ev.target.id === 'buscar-global') {
+    const q = ev.target.value.trim().toLowerCase(), u = UNIDADES.find(x => x.patente.toLowerCase().replace(/ /g, '').includes(q.replace(/ /g, '')));
+    if (u && q) ir('unidad', u.id); else { st.busca = ev.target.value; ir('unidades'); }
+  }
+});
+try { st.tema = localStorage.getItem('tcv-tema') || 'tcv'; } catch (e) {}
+(function () {
+  const h = (location.hash || '').slice(1).split('.');
+  if (h[0] && VISTAS[h[0]]) { st.vista = h[0]; if (h[1]) st.id = Number(h[1]); if (h[2]) st.tab = h[2]; if (['panorama', 'empresas', 'usuarios'].includes(h[0])) st.rol = 'admin'; }
+  if (st.vista === 'unidad' && !U(st.id)) st.vista = 'unidades';
+})();
+render();
+
+</script>
+</body>
+</html>

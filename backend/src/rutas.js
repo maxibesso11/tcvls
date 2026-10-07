@@ -5,13 +5,17 @@
 const crudFactory = require('./lib/crudFactory');
 const tablas = require('./modulos/tablas');
 const { requiereAutenticacion, requiereEmpresa } = require('./middleware/autenticacion');
+const { resolverEmpresaMultiempresa } = require('./middleware/alcanceMultiempresa');
 const { requiereModulo } = require('./middleware/modulos');
 const pool = require('./config/db');
+const auditoria = require('./lib/auditoria');
 
 const authRouter = require('./modulos/auth/auth.rutas');
 const asesoriaRouter = require('./modulos/asesoria/asesoria.rutas');
 const adminRouter = require('./modulos/admin/admin.rutas');
 const certificadosRouter = require('./modulos/admin/certificados.rutas');
+const empresaRouter = require('./modulos/empresa/empresa.rutas');
+const multiempresaRouter = require('./modulos/multiempresa/multiempresa.rutas');
 const stockRouter = require('./modulos/stock/stock.rutas');
 const dashboardRouter = require('./modulos/dashboard/dashboard.rutas');
 const cuentasCorrientesRouter = require('./modulos/cuentas/cuentasCorrientes.rutas');
@@ -19,6 +23,9 @@ const facturacionRouter = require('./modulos/facturacion/facturacion.rutas');
 const equiposRouter = require('./modulos/equipos/equipos.rutas');
 
 function montarRutasApi(app) {
+  // Bitácora de actividad: registra ingresos y cambios de todas las rutas de abajo
+  app.use('/api', auditoria.auditar);
+
   // Rutas públicas de autenticación (login)
   app.use('/api/auth', authRouter);
 
@@ -29,9 +36,18 @@ function montarRutasApi(app) {
   app.use('/api/admin', adminRouter);
   app.use('/api/certificados', certificadosRouter);
 
+  // Panel de "Mi empresa" (requiere ADMIN_EMPRESA; el propio router lo valida)
+  app.use('/api/empresa', empresaRouter);
+
+  // Panel de "Mi multiempresa" (requiere ADMIN_MULTIEMPRESA; el propio router lo valida)
+  app.use('/api/multiempresa', multiempresaRouter);
+
   // A partir de aquí, todas las rutas de datos requieren sesión + empresa.
   // El ADMIN no opera datos de empresa, así que requiereEmpresa lo bloquea.
-  const protegerDatos = [requiereAutenticacion, requiereEmpresa];
+  // Para ADMIN_MULTIEMPRESA, resolverEmpresaMultiempresa valida la cabecera
+  // X-Empresa-Id contra sus empresas asignadas y fija req.usuario.id_empresa
+  // antes de requiereEmpresa; para cualquier otro rol no hace nada.
+  const protegerDatos = [requiereAutenticacion, resolverEmpresaMultiempresa(), requiereEmpresa];
 
   // Operaciones especiales de stock (antes del CRUD)
   app.use('/api/stock', protegerDatos, requiereModulo('stock'), stockRouter);

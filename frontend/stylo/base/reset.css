@@ -1,0 +1,7 @@
+/* base/reset.css
+   Base del documento. */
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 14px/20px var(--font-text); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

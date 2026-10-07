@@ -20,15 +20,19 @@ en **HTML, CSS y JavaScript** puro (sin frameworks ni bundler).
 # 1. Instalar dependencias
 npm install
 
-# 2. Crear la base de datos, las tablas y los datos iniciales
-#    ⚠ Este script BORRA la base si ya existía: solo para instalaciones nuevas.
-mysql -u root -p < backend/database/esquema/init_db.sql
-
-# 3. Configurar las credenciales
+# 2. Configurar las credenciales (la base y su usuario de MySQL ya deben existir, vacíos)
 cp .env.example .env
-# Editar .env con tu usuario y contraseña de MySQL
+# Editar .env: base, usuario, y los dos secretos (openssl rand -hex 48)
 
-# 4. Iniciar el servidor (siempre desde la raíz del proyecto)
+# 3. Instalar: crea las tablas (sin datos de prueba) y el administrador de plataforma.
+#    Solo funciona sobre una base vacía. Para desarrollo: agregar --con-datos-de-prueba
+npm run instalar
+
+# 4. Dar de alta al primer cliente (empresa + su administrador)
+npm run alta-cliente
+
+# 5. Iniciar el servidor (siempre desde la raíz del proyecto). Antes de abrir el
+#    puerto verifica el entorno; `npm run verificar-entorno` hace solo esa verificación.
 npm start
 ```
 
@@ -76,14 +80,14 @@ tcv-logisuite-erp/
 │   │       ├── facturacion/  # rutas, servicio y PDF de factura
 │   │       └── dashboard/    # rutas y piezas de SQL
 │   ├── database/
-│   │   ├── esquema/          # init_db.sql (instalación NUEVA, destructivo)
+│   │   ├── esquema/          # esquema.sql (instalación limpia, sin datos; lo aplica instalar.js)
 │   │   ├── migraciones/      # 001…026; se aplican con migrar.js (registro en MIGRACIONES)
 │   │   └── datos_prueba/     # datos masivos y su generador
 │   └── test/                 # Tests (node:test)
-├── frontend/                 # Se sirve tal cual: /css, /js, /img
+├── frontend/                 # Se sirve tal cual: /stylo, /js, /img
 │   ├── index.html            # SPA (sistema)
 │   ├── landing.html          # Landing comercial
-│   ├── css/styles.css
+│   ├── stylo/                # CSS: main.css importa base/, componentes/, layout/, vistas/
 │   └── js/
 │       ├── api.js            # Cliente HTTP
 │       ├── nucleo/           # módulos, utilidades, navegación, sesión

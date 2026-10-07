@@ -1,0 +1,40 @@
+/* vistas/unidades.css
+   Grilla de unidades, ficha unificada y esquema de ejes de cubiertas. */
+
+/* Lista de unidades: patente grande como protagonista */
+.unidades { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.unidad-ficha { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.unidad-ficha:hover { border-color: var(--line-strong); }
+.unidad-ficha .fila { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.unidad-ficha .modelo { font: 600 18px/20px var(--font-display); }
+.unidad-ficha .datos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.unidad-ficha .datos b { display: block; font: 600 17px/20px var(--font-display); }
+.unidad-ficha .datos span { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+.marcas { display: flex; flex-wrap: wrap; gap: 6px; min-height: 22px; }
+.filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.filtros .entrada { width: 240px; max-width: 100%; }
+
+/* Ficha */
+.ficha-pila { display: flex; flex-direction: column; }
+.ficha-cuerpo { padding-top: 24px; display: flex; flex-direction: column; gap: 24px; }
+
+/* Cubiertas: esquema de ejes */
+.ejes { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 20px 8px; }
+.ejes-chasis { position: relative; display: flex; flex-direction: column; gap: 26px; padding: 18px 0; }
+.ejes-chasis::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 30px; transform: translateX(-50%); background: var(--surface-sunk); border: 1px solid var(--line-strong); border-radius: 3px; }
+.eje { position: relative; display: grid; grid-template-columns: auto 80px auto; align-items: center; }
+.eje::before { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 4px; transform: translateY(-50%); background: var(--ink); }
+.eje .lado { position: relative; display: flex; gap: 4px; }
+.eje .rotulo-eje { position: relative; text-align: center; font: 600 10.5px var(--font-text); letter-spacing: .8px; color: var(--ink-2); background: var(--surface-sunk); padding: 2px 0; z-index: 1; }
+.cubierta { width: 30px; height: 62px; border-radius: 6px; border: 2px solid var(--ink); background: var(--ink); cursor: pointer; padding: 0; position: relative; display: flex; align-items: flex-end; justify-content: center; }
+.cubierta::after { content: ""; position: absolute; inset: 6px 7px; border-radius: 2px; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(255,255,255,.18) 5px 7px); }
+.cubierta.estado-nueva { background: var(--ok); border-color: var(--ok); }
+.cubierta.estado-buena { background: #2f4a6e; border-color: #2f4a6e; }
+.cubierta.estado-recapada { background: #6b7685; border-color: #6b7685; }
+.cubierta.estado-cambiar { background: var(--danger-fill); border-color: var(--danger-fill); }
+.cubierta.vacia { background: var(--surface); border-style: dashed; border-color: var(--line-strong); }
+.cubierta.vacia::after { display: none; }
+.cubierta[aria-pressed="true"] { outline: 3px solid var(--warn-fill); outline-offset: 2px; }
+.cubierta-detalle { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cubierta-detalle div span { display: block; }
+.vida { display: grid; grid-template-columns: minmax(0, 1fr) 56px; gap: 8px; align-items: center; }

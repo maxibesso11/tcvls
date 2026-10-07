@@ -5,14 +5,26 @@ const syncConsumos = require('./gastos/consumos.hooks');
 const syncViajes = require('./viajes/viajes.hooks');
 const syncGastos = require('./gastos/gastosAdministrativos.hooks');
 const syncEquipos = require('./equipos/equipos.hooks');
+const choferesHooks = require('./choferes/choferes.hooks');
+
+// Bloque 7 · IVA en compras: grupo de campos del comprobante del proveedor,
+// compartido por los tres registros de compra (combustible, generales y
+// gastos administrativos). `monto` (o litros × precio) sigue siendo el total
+// que se le debe al proveedor.
+const CAMPOS_COMPROBANTE = [
+  'comprobante_tipo', 'comprobante_letra', 'comprobante_punto_venta', 'comprobante_numero',
+  'neto_gravado', 'iva_alicuota', 'iva', 'no_gravado', 'exento', 'percepciones'
+];
 
 module.exports = [
   {
     ruta: 'choferes',
     table: 'CHOFERES',
     idField: 'id_chofer',
-    fields: ['nombre', 'cuil', 'edad', 'ultima_jornada_descanso', 'vencimiento_carnet', 'domicilio', 'telefono', 'remuneracion', 'tipo_remuneracion'],
+    fields: ['nombre', 'cuil', 'edad', 'ultima_jornada_descanso', 'vencimiento_carnet', 'domicilio', 'telefono', 'sueldo_fijo_mensual', 'variable_tipo', 'variable_valor'],
     hooks: {
+      beforeCreate: choferesHooks.antesDeCrearChofer,
+      beforeUpdate: choferesHooks.antesDeActualizarChofer,
       afterCreate: sync.alCrearChofer,
       afterUpdate: sync.alActualizarChofer,
       afterDelete: sync.alEliminarChofer
@@ -59,10 +71,11 @@ module.exports = [
     table: 'CONSUMOS_COMBUSTIBLE',
     idField: 'id_consumo_combustible',
     filtroEquipo: 'directo',
-    fields: ['estacion_carga', 'proveedor', 'id_equipo', 'cantidad_litros', 'km_recorridos', 'precio_por_litro', 'fecha'],
+    grupoFiscal: true,
+    fields: ['estacion_carga', 'proveedor', 'id_equipo', 'cantidad_litros', 'km_recorridos', 'precio_por_litro', 'fecha', ...CAMPOS_COMPROBANTE],
     hooks: {
-      beforeCreate: syncConsumos.antesDeCrearConsumo,
-      beforeUpdate: syncConsumos.antesDeActualizarConsumo,
+      beforeCreate: syncConsumos.antesDeCrearConsumoCombustible,
+      beforeUpdate: syncConsumos.antesDeActualizarConsumoCombustible,
       afterCreate: syncConsumos.alCrearConsumoCombustible,
       afterUpdate: syncConsumos.alActualizarConsumoCombustible,
       afterDelete: syncConsumos.alEliminarConsumoCombustible
@@ -72,10 +85,11 @@ module.exports = [
     ruta: 'consumos-generales',
     table: 'CONSUMOS_GENERALES',
     idField: 'id_consumo_general',
-    fields: ['proveedor', 'fecha', 'id_unidad', 'concepto', 'monto'],
+    grupoFiscal: true,
+    fields: ['proveedor', 'fecha', 'id_unidad', 'concepto', 'monto', ...CAMPOS_COMPROBANTE],
     hooks: {
-      beforeCreate: syncConsumos.antesDeCrearConsumo,
-      beforeUpdate: syncConsumos.antesDeActualizarConsumo,
+      beforeCreate: syncConsumos.antesDeCrearConsumoGeneral,
+      beforeUpdate: syncConsumos.antesDeActualizarConsumoGeneral,
       afterCreate: syncConsumos.alCrearConsumoGeneral,
       afterUpdate: syncConsumos.alActualizarConsumoGeneral,
       afterDelete: syncConsumos.alEliminarConsumoGeneral
@@ -85,7 +99,7 @@ module.exports = [
     ruta: 'cuentas',
     table: 'CUENTA',
     idField: 'id_cuenta',
-    fields: ['tipo', 'cuil', 'nombre', 'domicilio', 'telefono', 'plazo_pago_dias'],
+    fields: ['tipo', 'cuil', 'nombre', 'domicilio', 'telefono', 'plazo_pago_dias', 'condicion_iva'],
     hooks: {
       beforeCreate: sync.antesDeCrearCuenta,
       beforeUpdate: sync.antesDeActualizarCuenta,
@@ -110,6 +124,7 @@ module.exports = [
     table: 'MANTENIMIENTOS',
     idField: 'id_mantenimiento',
     filtroEquipo: 'por_unidad',
+    ambitoUnidad: true,
     fields: ['id_unidad', 'periodicidad', 'fecha', 'fecha_vencimiento', 'concepto']
   },
   {
@@ -117,6 +132,7 @@ module.exports = [
     table: 'VENCIMIENTOS',
     idField: 'id_vencimiento',
     filtroEquipo: 'por_unidad',
+    ambitoUnidad: true,
     fields: ['concepto', 'fecha_vencimiento', 'id_unidad']
   },
   {
@@ -133,7 +149,8 @@ module.exports = [
     filtrosLike: ['concepto'],
     filtroFecha: { columna: 'fecha' },
     ordenable: ['fecha', 'monto', 'id_gasto_administrativo'],
-    fields: ['proveedor', 'concepto', 'fecha', 'monto'],
+    grupoFiscal: true,
+    fields: ['proveedor', 'concepto', 'fecha', 'monto', ...CAMPOS_COMPROBANTE],
     hooks: {
       beforeCreate: syncGastos.antesDeCrearGasto,
       beforeUpdate: syncGastos.antesDeActualizarGasto,

@@ -16,7 +16,8 @@ const ORIGEN = {
   CONSUMO_GENERAL: 'CONSUMO_GENERAL',
   GASTO_ADMINISTRATIVO: 'GASTO_ADMINISTRATIVO',
   FACTURA: 'FACTURA',                       // factura manual (sin viaje)
-  NOTA_CREDITO: 'NOTA_CREDITO'
+  NOTA_CREDITO: 'NOTA_CREDITO',
+  LIQUIDACION_SUELDO_FIJO: 'LIQUIDACION_SUELDO_FIJO'  // crédito al chofer, sueldo fijo del mes
 };
 
 async function crearMovimientoAutomatico(db, { idEmpresa, idCuenta, monto, fecha, concepto, origenTipo, origenId }) {
