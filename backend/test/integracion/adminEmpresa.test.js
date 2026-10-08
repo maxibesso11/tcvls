@@ -180,4 +180,25 @@ describe('rol ADMIN_EMPRESA', { skip: !HABILITADO && MOTIVO_OMISION }, () => {
     const eliminar = await entorno.api('DELETE', `/api/admin/usuarios/${unico.id}`, undefined, { token: tokenAdmin });
     assert.equal(eliminar.estado, 409, JSON.stringify(eliminar.datos));
   });
+
+  // ---------- Métricas financieras (reunión del 2/10) ----------
+
+  test('ingresos y rentabilidad: los ve el ADMIN_EMPRESA, no un USUARIO común', async () => {
+    const usuario = await usuarioListo('USUARIO', 1);
+    const adminE = await usuarioListo('ADMIN_EMPRESA', 1);
+    for (const ruta of ['ingresos-por-viaje', 'rentabilidad-equipos', 'clientes-top', 'ingresos-mensuales']) {
+      const r = await entorno.api('GET', `/api/dashboard/${ruta}`, undefined, { token: usuario.token });
+      assert.equal(r.estado, 403, ruta);
+      const a = await entorno.api('GET', `/api/dashboard/${ruta}`, undefined, { token: adminE.token });
+      assert.equal(a.estado, 200, ruta);
+    }
+    const kU = await entorno.api('GET', '/api/dashboard/kpis', undefined, { token: usuario.token });
+    assert.equal(kU.datos.ingresos, null);
+    assert.ok(Number.isFinite(kU.datos.costos_totales));
+    const kA = await entorno.api('GET', '/api/dashboard/kpis', undefined, { token: adminE.token });
+    assert.ok(Number.isFinite(kA.datos.ingresos.ganancia_neta));
+    const ch = await entorno.api('GET', '/api/dashboard/rendimiento-choferes', undefined, { token: usuario.token });
+    assert.equal(ch.estado, 200);
+    assert.ok(ch.datos.every(c => !('ingresos' in c)));
+  });
 });

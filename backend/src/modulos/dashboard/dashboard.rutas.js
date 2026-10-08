@@ -11,6 +11,14 @@ const router = express.Router();
 // Atajo: solo filtro de empresa
 const emp = req => req.usuario.id_empresa;
 
+// Las métricas de ingresos y rentabilidad son para quien administra la
+// empresa: un usuario común (rol USUARIO) ve rendimiento, consumos y reportes.
+const veFinanzas = req => req.usuario.rol !== 'USUARIO';
+function soloFinanzas(req, res, next) {
+  if (veFinanzas(req)) return next();
+  res.status(403).json({ error: 'Las métricas de ingresos y rentabilidad son solo para quienes administran la empresa.' });
+}
+
 // ==================== KPIs ====================
 router.get('/kpis', async (req, res) => {
   try {
@@ -78,7 +86,8 @@ router.get('/kpis', async (req, res) => {
 
     res.json({
       viajes,
-      ingresos: {
+      costos_totales: costos,
+      ingresos: !veFinanzas(req) ? null : {
         ingresos_totales: ingresosTotales,
         pendiente_cobro: Number(cobros.pendiente_cobro),
         costos_totales: costos,
@@ -262,14 +271,15 @@ router.get('/rendimiento-choferes', async (req, res) => {
       GROUP BY ch.id_chofer, ch.nombre
       ORDER BY ingresos DESC LIMIT 50
     `, [emp(req)]);
-    res.json(rows);
+    // Sin el monto para un usuario común: solo la cantidad de viajes.
+    res.json(veFinanzas(req) ? rows : rows.map(({ ingresos, ...r }) => r).sort((a, b) => b.viajes - a.viajes));
   } catch (err) {
     responderError(res, err, req);
   }
 });
 
 // ==================== INGRESOS MENSUALES ====================
-router.get('/ingresos-mensuales', async (req, res) => {
+router.get('/ingresos-mensuales', soloFinanzas, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT DATE_FORMAT(fecha_origen, '%Y-%m') AS mes,
@@ -287,7 +297,7 @@ router.get('/ingresos-mensuales', async (req, res) => {
 });
 
 // ==================== CLIENTES TOP ====================
-router.get('/clientes-top', async (req, res) => {
+router.get('/clientes-top', soloFinanzas, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT pagador,
@@ -352,7 +362,7 @@ router.get('/consumos-por-equipo', async (req, res) => {
 });
 
 // ==================== INGRESOS POR VIAJE ====================
-router.get('/ingresos-por-viaje', async (req, res) => {
+router.get('/ingresos-por-viaje', soloFinanzas, async (req, res) => {
   try {
     const f = filtros(req, { colFecha: 'v.fecha_origen', colEquipo: 'v.id_equipo', aliasEmpresa: 'v.id_empresa' });
 
@@ -425,7 +435,7 @@ router.get('/ingresos-por-viaje', async (req, res) => {
 });
 
 // ==================== RENTABILIDAD POR EQUIPO ====================
-router.get('/rentabilidad-equipos', async (req, res) => {
+router.get('/rentabilidad-equipos', soloFinanzas, async (req, res) => {
   try {
     const e = emp(req);
     const desde = req.query.fecha_desde || null;

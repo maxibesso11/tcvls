@@ -10,7 +10,8 @@ const METRICAS = {
   'ingresos-por-viaje': {
     titulo: 'Ingresos por viaje',
     sub: 'Detalle de cada viaje y su valor de flete (sin IVA)',
-    conEquipo: true
+    conEquipo: true,
+    finanzas: true
   },
   'consumos-por-equipo': {
     titulo: 'Consumos generales por equipo',
@@ -25,7 +26,8 @@ const METRICAS = {
   'rentabilidad-equipos': {
     titulo: 'Rentabilidad general por equipo',
     sub: 'Ingresos menos costos (combustible, generales y sueldo del chofer) por período',
-    conEquipo: true
+    conEquipo: true,
+    finanzas: true
   },
   'gastos-administrativos': {
     titulo: 'Gastos administrativos',
@@ -45,7 +47,7 @@ const montoEstado = n => `<span class="cifra-delta ${Number(n) >= 0 ? 'sube' : '
 
 async function renderMetricaDetalle(clave) {
   const def = METRICAS[clave];
-  if (!def) { location.hash = 'dashboard'; return; }
+  if (!def || (def.finanzas && !veFinanzas())) { location.hash = 'dashboard'; return; }
 
   contenido.innerHTML = `
     <div class="vista-cab">

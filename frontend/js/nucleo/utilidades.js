@@ -398,3 +398,7 @@ function diasHasta(fecha) {
   const f = new Date(String(fecha).slice(0, 10) + 'T00:00:00');
   return Math.round((f - hoy) / 86400000);
 }
+
+// Ingresos y rentabilidad: solo para quien administra la empresa (no para el
+// rol USUARIO). El servidor aplica la misma regla.
+const veFinanzas = () => !!(SESION && SESION.rol !== 'USUARIO');

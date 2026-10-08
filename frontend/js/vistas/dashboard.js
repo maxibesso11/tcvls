@@ -116,18 +116,23 @@ async function renderDashboard() {
   const periodo = { fecha_desde: filtroDash.fecha_desde, fecha_hasta: filtroDash.fecha_hasta };
 
   try {
+    // Ingresos y rentabilidad: solo para quien administra la empresa.
+    const finanzas = veFinanzas();
+    const sinDato = valor => Promise.resolve(valor);
     const [kpis, alertas, rendEquipos, rendChoferes, clientes, consumosEq, ingresosViaje, rentabilidad, gastosAdmin] = await Promise.all([
       API.kpis(periodo), API.alertas(), API.rendimientoEquipos(),
-      API.rendimientoChoferes(), API.clientesTop(),
-      API.consumosPorEquipo(periodo), API.ingresosPorViaje(periodo), API.rentabilidadEquipos(periodo),
+      API.rendimientoChoferes(), finanzas ? API.clientesTop() : sinDato([]),
+      API.consumosPorEquipo(periodo),
+      finanzas ? API.ingresosPorViaje(periodo) : sinDato({ resumen: {}, top_viajes: [] }),
+      finanzas ? API.rentabilidadEquipos(periodo) : sinDato({ equipos: [] }),
       API.gastosAdministrativos(periodo)
     ]);
 
     // --- Pulso: la primera cifra (resultado neto) es la más ancha ---
-    const ing = kpis.ingresos;
+    const ing = kpis.ingresos || {};
     $('#dash-kpis').innerHTML = `
       <div class="pulso tablero">
-        <div class="cifra cifra-xl">
+        ${finanzas ? `<div class="cifra cifra-xl">
           <span class="rotulo">Resultado neto</span>
           <span class="cifra-valor">${fmtMillones(ing.ganancia_neta)}</span>
           <span class="cifra-delta ${ing.ganancia_neta >= 0 ? 'sube' : 'baja'}">${ing.ganancia_neta >= 0 ? '▲' : '▼'} ${fmtNum(ing.margen, 1)} % <span class="tenue">de margen</span></span>
@@ -136,17 +141,17 @@ async function renderDashboard() {
           <span class="rotulo">Ingresos</span>
           <span class="cifra-valor">${fmtMillones(ing.ingresos_totales)}</span>
           <span class="cifra-delta tenue">viajes finalizados y facturados</span>
-        </div>
-        <div class="cifra">
+        </div>` : ''}
+        <div class="cifra${finanzas ? '' : ' cifra-xl'}">
           <span class="rotulo">Costos</span>
-          <span class="cifra-valor">${fmtMillones(ing.costos_totales)}</span>
+          <span class="cifra-valor">${fmtMillones(kpis.costos_totales)}</span>
           <span class="cifra-delta tenue">${fmtDinero(kpis.combustible.gasto_combustible)} en combustible</span>
         </div>
-        <div class="cifra">
+        ${finanzas ? `<div class="cifra">
           <span class="rotulo">Pendiente de cobro</span>
           <span class="cifra-valor">${fmtMillones(ing.pendiente_cobro)}</span>
           <span class="cifra-delta tenue">viajes sin cobrar</span>
-        </div>
+        </div>` : ''}
         <div class="cifra">
           <span class="rotulo">Rendimiento</span>
           <span class="cifra-valor">${fmtNum(kpis.combustible.rendimiento_global)}<small>km/L</small></span>
@@ -214,14 +219,14 @@ async function renderDashboard() {
     const htmlChoferes = rendChoferes.length === 0
       ? '<div class="vacio">Sin choferes registrados.</div>'
       : tablaSimple(
-          ['Chofer', 'Viajes', 'Ingresos'],
+          finanzas ? ['Chofer', 'Viajes', 'Ingresos'] : ['Chofer', 'Viajes'],
           top7(rendChoferes).map(r => [
             esc(r.nombre),
             `<td class="num">${r.viajes}</td>`,
-            `<td class="num">${fmtDinero(r.ingresos)}</td>`
+            ...(finanzas ? [`<td class="num">${fmtDinero(r.ingresos)}</td>`] : [])
           ])
         );
-    const pieChoferes = rendChoferes.length > TOPE_DASH ? `Mostrando los ${TOPE_DASH} con más ingresos de ${rendChoferes.length}.` : '';
+    const pieChoferes = rendChoferes.length > TOPE_DASH ? `Mostrando los ${TOPE_DASH} con más ${finanzas ? 'ingresos' : 'viajes'} de ${rendChoferes.length}.` : '';
 
     const htmlClientes = clientes.length === 0
       ? '<div class="vacio">Sin viajes con pagador registrado.</div>'
@@ -335,18 +340,19 @@ async function renderDashboard() {
     // consumos y gastos de sus respectivos módulos.
     const hayFlota = moduloActivo('mantenimientos') || moduloActivo('vencimientos') || moduloActivo('choferes');
     const delViajes = moduloActivo('viajes');
+    const finanzasViajes = delViajes && finanzas;
     // Las hojas son las mismas de siempre; solo se agrupan por tema, con un título
     // de sección, para leer el tablero de arriba hacia abajo.
-    const hoja_cascada = delViajes && hojaHTML('Resultado del período', 'Ingresos menos cada costo, como porcentaje de los ingresos', htmlCascada, botonAmpliar('rentabilidad-equipos'));
+    const hoja_cascada = finanzasViajes && hojaHTML('Resultado del período', 'Ingresos menos cada costo, como porcentaje de los ingresos', htmlCascada, botonAmpliar('rentabilidad-equipos'));
     const hoja_alertas = hayFlota && hojaHTML(`Alertas ${insignia(totalAlertas, totalAlertas ? 'peligro' : 'ok')}`, 'Ordenadas por urgencia', htmlAlertas,
       totalAlertas > 0 ? `<button class="btn btn-chico" onclick="location.hash='alertas'">Ampliar</button>` : '', pieAlertas);
-    const hoja_rentabilidad = delViajes && hojaHTML('Rentabilidad por equipo', 'Ingresos menos costos de combustible, consumos y sueldo del chofer', htmlRentabilidad + resumenRent, botonAmpliar('rentabilidad-equipos'), pieResto(rentEquipos, 'rentabilidad-equipos'));
+    const hoja_rentabilidad = finanzasViajes && hojaHTML('Rentabilidad por equipo', 'Ingresos menos costos de combustible, consumos y sueldo del chofer', htmlRentabilidad + resumenRent, botonAmpliar('rentabilidad-equipos'), pieResto(rentEquipos, 'rentabilidad-equipos'));
     const hoja_rendimiento = moduloActivo('consumos-combustible') && hojaHTML('Rendimiento por equipo', 'Kilómetros por litro contra el promedio de la flota', htmlEquipos, botonAmpliar('rendimiento-equipos'), pieResto(rendEquipos, 'rendimiento-equipos'));
-    const hoja_ingresosViaje = delViajes && hojaHTML('Ingresos por viaje', 'Viajes con más ingresos del período', htmlIngresosViaje, botonAmpliar('ingresos-por-viaje'), pieIngresosViaje);
+    const hoja_ingresosViaje = finanzasViajes && hojaHTML('Ingresos por viaje', 'Viajes con más ingresos del período', htmlIngresosViaje, botonAmpliar('ingresos-por-viaje'), pieIngresosViaje);
     const hoja_gastosAdmin = moduloActivo('gastos-administrativos') && hojaHTML('Gastos administrativos', 'Gastos de estructura por proveedor', htmlGastosAdmin, botonAmpliar('gastos-administrativos'), pieResto(provs, 'gastos-administrativos'));
     const hoja_consumos = moduloActivo('consumos-generales') && hojaHTML('Consumos generales por equipo', '', htmlConsumosEq, botonAmpliar('consumos-por-equipo'), pieResto(consumosEq, 'consumos-por-equipo'));
     const hoja_choferes = delViajes && hojaHTML('Rendimiento por chofer', '', htmlChoferes, '', pieChoferes);
-    const hoja_clientes = delViajes && hojaHTML('Principales clientes', '', htmlClientes, '', pieClientes);
+    const hoja_clientes = finanzasViajes && hojaHTML('Principales clientes', '', htmlClientes, '', pieClientes);
 
     const seccion = (titulo, hojas, clase) => {
       const visibles = hojas.filter(Boolean);

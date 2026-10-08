@@ -17,6 +17,8 @@ describe('remuneración mixta de choferes', { skip: !HABILITADO && MOTIVO_OMISIO
 
   before(async () => {
     entorno = await levantar();
+    // Consulta la rentabilidad: hace falta quien administra la empresa.
+    await entorno.pool.query("UPDATE USUARIOS SET rol = 'ADMIN_EMPRESA' WHERE nombre_usuario = 'demo'");
     await entorno.iniciarSesion('demo', 'demo123');
   });
   after(async () => { if (entorno) await entorno.cerrar(); });
