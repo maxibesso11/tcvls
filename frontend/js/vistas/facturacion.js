@@ -118,8 +118,7 @@ async function renderFacturador(id) {
   contenido.innerHTML = `<div class="vista-cab"><div><h1>Comprobante</h1></div></div><section class="hoja"><div class="vacio">Cargando…</div></section>`;
   let config, clientes, factura = null;
   try {
-    [config, clientes] = await Promise.all([configFacturacion(true), API.listarTodo('cuentas')]);
-    clientes = clientes.filter(c => c.tipo === 'CLIENTE').sort((a, b) => a.nombre.localeCompare(b.nombre));
+    [config, clientes] = await Promise.all([configFacturacion(true), API.cuentasFacturables()]);
     if (id) factura = await API.obtenerFactura(id);
   } catch (err) {
     contenido.innerHTML = `<div class="vacio">Error: ${esc(err.message)}</div>`;
@@ -174,7 +173,7 @@ async function renderFacturador(id) {
         <div class="campo ancho"><label for="fd-cliente">Cliente</label>
           <select id="fd-cliente" ${factura ? 'disabled' : ''} onchange="_fdElegirCliente(this.value)">
             <option value="">— Elegí el cliente —</option>
-            ${clientes.map(c => `<option value="${c.id_cuenta}"${c.id_cuenta === F.id_cuenta ? ' selected' : ''}>${esc(c.nombre)} — ${esc(c.cuil)}</option>`).join('')}
+            ${clientes.map(c => `<option value="${c.id_cuenta}"${c.id_cuenta === F.id_cuenta ? ' selected' : ''}>${esc(c.nombre)} — ${esc(c.cuil)}${c.tipo === 'PROVEEDOR' ? ' (proveedor)' : ''}${c.viajes_pendientes ? ` · ${c.viajes_pendientes} viaje${c.viajes_pendientes === 1 ? '' : 's'} por facturar` : ''}</option>`).join('')}
           </select>
         </div>
         <div class="campo"><label for="fd-condicion">Condición frente al IVA del cliente</label>
@@ -582,9 +581,9 @@ async function _facNotaCredito(id, nro, letra) {
 // Abre el facturador con un viaje ya elegido (desde la vista Viajes).
 async function facturarViajeConComprobante(idViaje, pagador) {
   try {
-    const cuentas = await API.listarTodo('cuentas');
-    const c = cuentas.find(x => x.tipo === 'CLIENTE' && x.nombre === pagador);
-    if (!c) { mostrarToast(`El pagador "${pagador}" no está cargado como cliente.`, true); return; }
+    const cuentas = await API.cuentasFacturables();
+    const c = cuentas.find(x => x.nombre === pagador);
+    if (!c) { mostrarToast(`El pagador "${pagador}" no tiene cuenta: cargalo en Cuentas.`, true); return; }
     _facturadorInicial = { id_cuenta: c.id_cuenta, viajes: [idViaje] };
     location.hash = 'facturador';
   } catch (err) { mostrarToast(err.message, true); }

@@ -113,6 +113,25 @@ async function viajesFacturables(idEmpresa, idCuenta, { incluirFactura = null } 
   return filas;
 }
 
+// Cuentas a las que se puede facturar: los clientes y cualquier cuenta que
+// figure como pagador de viajes (puede ser un PROVEEDOR, por ejemplo otro
+// transportista que contrata el flete), con sus viajes pendientes de facturar.
+async function cuentasFacturables(idEmpresa, db = pool) {
+  const [filas] = await db.query(`
+    SELECT c.id_cuenta, c.tipo, c.nombre, c.cuil, c.condicion_iva, c.domicilio, c.plazo_pago_dias,
+           c.plantilla_item, c.plantilla_observaciones,
+           (SELECT COUNT(*) FROM VIAJES v
+             WHERE v.id_empresa = c.id_empresa AND v.pagador = c.nombre AND v.estado = 'FINALIZADO'
+               AND NOT EXISTS (SELECT 1 FROM FACTURA_VIAJES fv JOIN FACTURAS f ON f.id_factura = fv.id_factura
+                                WHERE fv.id_viaje = v.id_viaje AND f.estado IN ('BORRADOR', 'PENDIENTE', 'EMITIDA'))) AS viajes_pendientes
+      FROM CUENTA c
+     WHERE c.id_empresa = ?
+       AND (c.tipo = 'CLIENTE'
+            OR (c.tipo = 'PROVEEDOR' AND EXISTS (SELECT 1 FROM VIAJES v2 WHERE v2.id_empresa = c.id_empresa AND v2.pagador = c.nombre)))
+     ORDER BY viajes_pendientes > 0 DESC, c.nombre`, [idEmpresa]);
+  return filas.map(f => ({ ...f, viajes_pendientes: Number(f.viajes_pendientes) }));
+}
+
 // ---------------------------------------------------------------- borradores
 
 // Propuesta de comprobante (sin guardar) para un cliente y sus viajes: letra,
@@ -500,6 +519,6 @@ async function guardarPlantillas(idEmpresa, idCuenta, { plantilla_item, plantill
 }
 
 module.exports = {
-  configuracion, viajesFacturables, preparar, guardarBorrador, eliminarBorrador, obtener,
+  configuracion, cuentasFacturables, viajesFacturables, preparar, guardarBorrador, eliminarBorrador, obtener,
   emitir, verificar, anularConNotaCredito, guardarPlantillas, nroComprobante, detalleArca
 };

@@ -337,6 +337,21 @@ describe('facturación electrónica', { skip: !HABILITADO && MOTIVO_OMISION }, (
     assert.equal(r.estado, 400);
   });
 
+  test('se le factura también a un proveedor que paga viajes (otro transportista)', async () => {
+    secuencia += 1;
+    const p = await ok(entorno.api('POST', '/api/cuentas', {
+      tipo: 'PROVEEDOR', nombre: `TRANSPORTADORA FE ${secuencia}`, condicion_iva: 'RESPONSABLE INSCRIPTO', cuil: cuitValido(secuencia * 101)
+    }));
+    const v = await viajeFinalizado(p);
+    const cuentas = await ok(entorno.api('GET', '/api/facturacion/cuentas'));
+    const fila = cuentas.find(c => c.id_cuenta === p.id_cuenta);
+    assert.equal(fila.viajes_pendientes, 1);
+    assert.ok(!cuentas.some(c => c.tipo === 'PROVEEDOR' && c.nombre === 'YPF'), 'un proveedor que no paga viajes no aparece');
+    const f = await ok(entorno.api('POST', `/api/facturacion/${(await borrador(p, [v])).id_factura}/emitir`));
+    assert.equal(f.estado, 'EMITIDA');
+    assert.equal(await saldo(p.id_cuenta), -121000);
+  });
+
   test('el ticket de acceso de ARCA se pidió una sola vez en todos los tests', () => {
     assert.equal(arca.estado.logins, 1);
   });

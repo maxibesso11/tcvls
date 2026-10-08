@@ -270,6 +270,7 @@ const API = {
     const params = new URLSearchParams({ pagina, ...filtros });
     return this._solicitud(`/api/facturacion?${params.toString()}`);
   },
+  cuentasFacturables() { return this._solicitud('/api/facturacion/cuentas'); },
   obtenerFactura(id) { return this._solicitud(`/api/facturacion/${id}`); },
   viajesFacturables(idCuenta, idFactura) {
     return this._solicitud(`/api/facturacion/viajes-facturables?id_cuenta=${idCuenta}${idFactura ? `&id_factura=${idFactura}` : ''}`);
