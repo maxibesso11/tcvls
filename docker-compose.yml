@@ -67,6 +67,10 @@ services:
     volumes:
       - ${RESPALDOS_HOST:-/var/backups/tcv-bd}:/respaldos:ro
     user: "${TCV_UID:-1000}:${TCV_GID:-1000}"
+    # Grupo con permiso de lectura sobre los respaldos locales: el script de
+    # respaldos los deja en el grupo sudo (gid 27 en Ubuntu). Solo lectura.
+    group_add:
+      - "${RESPALDOS_GID:-27}"
     ports:
       - "127.0.0.1:${APP_PUERTO:-3001}:3000"
     depends_on:

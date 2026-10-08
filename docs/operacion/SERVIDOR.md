@@ -117,6 +117,20 @@ age -d -i clave.txt tcvdb_AAAAMMDD_HHMMSS.sql.gz.age > tcvdb.sql.gz
 El `.sql.gz` resultante se carga como en *Restaurar*. El `.conteos` que está
 al lado en Drive dice cuántas filas tiene que tener cada tabla.
 
+## Panel de respaldos
+
+El panel de respaldos del administrador de plataforma lee `/var/backups/tcv-bd`
+(montada en solo lectura en el contenedor como `/respaldos`). La app la lee con el
+grupo `sudo` (`group_add` en `docker-compose.yml`; si en el servidor ese grupo no
+es el 27, poner `RESPALDOS_GID=<gid>` en el `.env`). La carpeta tiene que ser del
+grupo `sudo` con el bit setgid, para que los archivos nuevos hereden el grupo:
+
+```bash
+sudo chgrp -R sudo /var/backups/tcv-bd
+sudo chmod 2750 /var/backups/tcv-bd
+sudo chmod g+r /var/backups/tcv-bd/*
+```
+
 ## Facturación electrónica
 
 Se prende con `FACTURACION_HABILITADA=1` en `/opt/tcvls/.env`; sin esa
