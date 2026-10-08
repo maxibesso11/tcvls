@@ -96,13 +96,36 @@ async function antesDeActualizarViaje(id, data, anterior, req) {
     return 'Un viaje en estado FACTURADO no puede volver a un estado anterior.';
   }
 
+  // Un viaje incluido en un comprobante electrónico no cambia lo que se le
+  // facturó al cliente: para corregirlo se anula el comprobante (nota de crédito).
+  const comprobante = await comprobanteVigenteDelViaje(id, req.usuario.id_empresa);
+  if (comprobante) {
+    const sensibles = ['estado', 'pagador', 'tipo_tarifa', 'tarifa', 'resultado', 'cantidad_cargada', 'comision', 'modo_facturacion'];
+    const cambia = sensibles.filter(c => data[c] !== undefined && String(data[c] ?? '') !== String(anterior[c] ?? ''));
+    if (cambia.length) {
+      return comprobante.estado === 'BORRADOR'
+        ? `El viaje está en un borrador de factura (#${comprobante.id_factura}): sacalo del borrador antes de cambiar ${cambia.join(', ')}.`
+        : `El viaje está en un comprobante ${comprobante.estado === 'EMITIDA' ? 'emitido' : 'en emisión'}: para cambiar ${cambia.join(', ')} anulalo con nota de crédito.`;
+    }
+  }
+
   return null;
 }
 
-function antesDeEliminarViaje(viaje) {
+async function comprobanteVigenteDelViaje(idViaje, idEmpresa) {
+  const [[f]] = await pool.query(
+    `SELECT f.id_factura, f.estado FROM FACTURA_VIAJES fv JOIN FACTURAS f ON f.id_factura = fv.id_factura
+      WHERE fv.id_viaje = ? AND f.id_empresa = ? AND f.estado IN ('BORRADOR', 'PENDIENTE', 'EMITIDA')
+      ORDER BY FIELD(f.estado, 'EMITIDA', 'PENDIENTE', 'BORRADOR') LIMIT 1`, [idViaje, idEmpresa]);
+  return f || null;
+}
+
+async function antesDeEliminarViaje(viaje) {
   if (viaje.estado === 'FACTURADO') {
     return 'Los viajes facturados no se pueden eliminar.';
   }
+  const [[f]] = await pool.query('SELECT id_factura FROM FACTURA_VIAJES WHERE id_viaje = ? LIMIT 1', [viaje.id_viaje]);
+  if (f) return `El viaje figura en el comprobante #${f.id_factura}: no se puede eliminar.`;
   return null;
 }
 

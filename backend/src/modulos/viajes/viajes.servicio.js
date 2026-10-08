@@ -72,25 +72,22 @@ async function fotografiarEquipo(db, idViaje, idEquipo, idEmpresa) {
 
 // ---------- Movimientos ----------
 
-// Factura A emitida para el viaje (la última, aunque esté anulada: si fue
-// anulada, su nota de crédito ya compensa el débito, que debe quedar igual).
-async function facturaDelViaje(db, idViaje, idEmpresa) {
+// Comprobante electrónico emitido (o anulado) que incluye al viaje. El débito
+// al cliente lo hace el comprobante, por su total (y su nota de crédito lo
+// compensa): el viaje no genera un débito propio.
+async function comprobanteDelViaje(db, idViaje, idEmpresa) {
   const [[factura]] = await db.query(
-    `SELECT id_cuenta, total, punto_venta, numero FROM FACTURAS
-     WHERE id_viaje = ? AND id_empresa = ? AND clase = 'FACTURA'
-     ORDER BY id_factura DESC LIMIT 1`,
+    `SELECT f.id_factura FROM FACTURA_VIAJES fv JOIN FACTURAS f ON f.id_factura = fv.id_factura
+      WHERE fv.id_viaje = ? AND f.id_empresa = ? AND f.clase = 'FACTURA' AND f.estado = 'EMITIDA'
+      LIMIT 1`,
     [idViaje, idEmpresa]
   );
   return factura || null;
 }
 
-function etiquetaFiscal(viaje, factura) {
+function etiquetaFiscal(viaje) {
   const comision = Number(viaje.comision) || 0;
   const conComision = texto => (comision > 0 ? `comisión ${comision}% + ${texto}` : texto);
-  if (factura) {
-    const nro = `${String(factura.punto_venta).padStart(4, '0')}-${String(factura.numero).padStart(8, '0')}`;
-    return `[${conComision('IVA 21%')} · factura A ${nro}]`;
-  }
   if (viaje.modo_facturacion === 'SIN_FACTURAR') {
     return comision > 0 ? `[comisión ${comision}% · sin IVA]` : '[sin IVA]';
   }
@@ -99,31 +96,23 @@ function etiquetaFiscal(viaje, factura) {
   return `[${conComision('IVA 21%')} · líquido producto]`;
 }
 
-// Débito al pagador. Si el viaje tiene factura formal, el débito es el total
-// de esa factura (así la nota de crédito lo compensa exacto); si no, el monto
-// calculado según el modo de facturación.
+// Débito al pagador según el modo de facturación. Si el viaje está en un
+// comprobante electrónico emitido, el débito ya es el del comprobante.
 async function crearFacturacion(db, viaje, idEmpresa) {
-  const factura = await facturaDelViaje(db, viaje.id_viaje, idEmpresa);
-  let idCuenta, monto;
-  if (factura) {
-    idCuenta = factura.id_cuenta;
-    monto = Number(factura.total);
-  } else {
-    if (!viaje.pagador) return;
-    const cuenta = await buscarCuentaPagador(db, viaje.pagador, idEmpresa);
-    if (!cuenta) return;
-    idCuenta = cuenta.id_cuenta;
-    monto = calcularMontoCuentaCliente(viaje);
-  }
+  if (await comprobanteDelViaje(db, viaje.id_viaje, idEmpresa)) return;
+  if (!viaje.pagador) return;
+  const cuenta = await buscarCuentaPagador(db, viaje.pagador, idEmpresa);
+  if (!cuenta) return;
+  const monto = calcularMontoCuentaCliente(viaje);
   if (monto === 0) return;
 
   const concepto = `FACTURACION VIAJE #${viaje.id_viaje} — ${viaje.origen} → ${viaje.destino}` +
                    (viaje.numero_remito ? ` (remito ${viaje.numero_remito})` : '') +
-                   ` ${etiquetaFiscal(viaje, factura)}`;
+                   ` ${etiquetaFiscal(viaje)}`;
 
   await crearMovimientoAutomatico(db, {
     idEmpresa,
-    idCuenta,
+    idCuenta: cuenta.id_cuenta,
     monto: -Math.abs(monto),
     fecha: viaje.fecha_llegada || viaje.fecha_origen,
     concepto,
@@ -182,5 +171,6 @@ module.exports = {
   obtenerChoferDelViaje,
   fotografiarEquipo,
   eliminarMovimientosDelViaje,
-  reconciliarMovimientos
+  reconciliarMovimientos,
+  comprobanteDelViaje
 };

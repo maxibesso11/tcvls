@@ -1,201 +1,134 @@
 // backend/src/modulos/facturacion/facturacion.rutas.js
-// API de facturación (Factura A). Permite:
-//   - Listar las facturas emitidas (paginado).
-//   - Facturar un viaje al CUIT del pagador (cuenta CLIENTE).
-//   - Emitir una factura manual asociada a una cuenta, con ítems libres.
-//   - Emitir una nota de crédito que anula una factura.
-//   - Descargar el PDF de una factura.
+// API de facturación electrónica (comprobantes A, B o C según la condición
+// frente al IVA de la empresa y del cliente):
+//   GET    /configuracion                 datos fiscales y si se puede emitir
+//   GET    /                              comprobantes (filtros: estado, id_cuenta)
+//   GET    /viajes-facturables?id_cuenta  viajes finalizados de un cliente sin comprobante
+//   POST   /preparar                      propuesta del facturador para un cliente y sus viajes
+//   POST   /                              guardar un borrador nuevo
+//   GET    /:id                           comprobante con renglones y viajes
+//   PUT    /:id                           modificar un borrador
+//   DELETE /:id                           eliminar un borrador
+//   POST   /:id/emitir                    pedir el CAE a ARCA
+//   POST   /:id/verificar                 aclarar con ARCA un comprobante PENDIENTE
+//   POST   /:id/nota-credito              anular un comprobante emitido
+//   GET    /:id/pdf                       PDF del comprobante (con QR de ARCA)
+//   PUT    /plantillas/:idCuenta          plantillas de texto del cliente
 //
-// La lógica (numeración, importes, CAE, imputación) está en
-// facturacion.servicio.js y el dibujo del PDF en facturacion.pdf.js.
+// La lógica está en facturacion.servicio.js y el PDF en facturacion.pdf.js.
 const express = require('express');
 const pool = require('../../config/db');
 const { calcularPaginacion } = require('../../lib/paginacion');
-const { crearFactura, facturarViaje, emitirNotaCredito, importeFacturableDeViaje, r2 } = require('./facturacion.servicio');
+const { responderError, ErrorNegocio } = require('../../lib/errores');
+const servicio = require('./facturacion.servicio');
 const { enviarFacturaPDF } = require('./facturacion.pdf');
-const { responderError } = require('../../lib/errores');
 
 const router = express.Router();
 const emp = req => req.usuario.id_empresa;
+const id = req => Number(req.params.id);
 
-// --------------------------------------------------------------
-// Listado paginado de facturas
-// --------------------------------------------------------------
-router.get('/', async (req, res) => {
+// Los errores de comunicación con ARCA llegan con un mensaje para el usuario.
+const manejar = fn => async (req, res) => {
   try {
-    const idEmpresa = emp(req);
-    const [[{ total }]] = await pool.query(
-      'SELECT COUNT(*) AS total FROM FACTURAS WHERE id_empresa = ?', [idEmpresa]);
-    const { pagina, porPagina, totalPaginas, offset } = calcularPaginacion(req.query, total);
-
-    const [filas] = await pool.query(
-      `SELECT f.id_factura, f.clase, f.tipo_comprobante, f.punto_venta, f.numero, f.fecha_emision,
-              f.receptor_nombre, f.receptor_cuit, f.id_viaje, f.id_factura_asociada,
-              f.neto_gravado, f.iva, f.total, f.cae, f.estado
-         FROM FACTURAS f
-        WHERE f.id_empresa = ?
-        ORDER BY f.id_factura DESC LIMIT ? OFFSET ?`,
-      [idEmpresa, porPagina, offset]
-    );
-    res.json({ datos: filas, paginacion: { pagina, por_pagina: porPagina, total, total_paginas: totalPaginas } });
+    await fn(req, res);
   } catch (err) {
+    if (err && err.name === 'ErrorArca') return responderError(res, new ErrorNegocio(err.message, 502), req);
     responderError(res, err, req);
   }
-});
+};
 
-// --------------------------------------------------------------
-// Viajes facturables (FINALIZADO o FACTURADO, con pagador que tenga cuenta)
-// --------------------------------------------------------------
-router.get('/viajes-facturables', async (req, res) => {
-  try {
-    const idEmpresa = emp(req);
-    const [filas] = await pool.query(
-      `SELECT v.id_viaje, v.fecha_origen, v.origen, v.destino, v.numero_remito,
-              v.tarifa, v.tipo_tarifa, v.resultado, v.cantidad_cargada, v.comision, v.pagador,
-              c.id_cuenta, c.cuil AS pagador_cuit
-         FROM VIAJES v
-         JOIN CUENTA c ON c.nombre = v.pagador AND c.id_empresa = v.id_empresa AND c.tipo = 'CLIENTE'
-    LEFT JOIN FACTURAS f ON f.id_viaje = v.id_viaje
-        WHERE v.id_empresa = ? AND v.estado IN ('FINALIZADO','FACTURADO') AND f.id_factura IS NULL
-        ORDER BY v.fecha_origen DESC LIMIT 200`,
-      [idEmpresa]
-    );
-    // Calcular el neto (base − comisión) de cada viaje
-    const conNeto = filas.map(v => {
-      const { base, neto } = importeFacturableDeViaje(v);
-      return { ...v, base: r2(base), neto };
-    });
-    res.json(conNeto);
-  } catch (err) {
-    responderError(res, err, req);
+router.get('/configuracion', manejar(async (req, res) => {
+  const c = await servicio.configuracion(emp(req));
+  res.json({
+    entorno: c.entorno, condicion_iva: c.condicion, letras: c.letras, lista: c.lista, faltantes: c.faltantes,
+    punto_venta: c.empresa.punto_venta
+  });
+}));
+
+router.get('/', manejar(async (req, res) => {
+  const idEmpresa = emp(req);
+  const filtros = ['f.id_empresa = ?'];
+  const valores = [idEmpresa];
+  if (req.query.estado) { filtros.push('f.estado = ?'); valores.push(String(req.query.estado)); }
+  if (req.query.id_cuenta) { filtros.push('f.id_cuenta = ?'); valores.push(Number(req.query.id_cuenta)); }
+  const donde = filtros.join(' AND ');
+  const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM FACTURAS f WHERE ${donde}`, valores);
+  const { pagina, porPagina, totalPaginas, offset } = calcularPaginacion(req.query, total);
+  const [filas] = await pool.query(
+    `SELECT f.id_factura, f.clase, f.tipo_comprobante, f.punto_venta, f.numero, f.fecha_emision, f.entorno,
+            f.id_cuenta, f.receptor_nombre, f.receptor_cuit, f.id_factura_asociada,
+            f.neto_gravado, f.iva, f.total, f.cae, f.estado,
+            (SELECT COUNT(*) FROM FACTURA_VIAJES fv WHERE fv.id_factura = f.id_factura) AS cantidad_viajes
+       FROM FACTURAS f
+      WHERE ${donde}
+      ORDER BY FIELD(f.estado, 'PENDIENTE', 'BORRADOR') DESC, f.id_factura DESC LIMIT ? OFFSET ?`,
+    [...valores, porPagina, offset]);
+  res.json({ datos: filas, paginacion: { pagina, por_pagina: porPagina, total, total_paginas: totalPaginas } });
+}));
+
+router.get('/viajes-facturables', manejar(async (req, res) => {
+  if (!req.query.id_cuenta) throw new ErrorNegocio('Elegí el cliente.');
+  const filas = await servicio.viajesFacturables(emp(req), Number(req.query.id_cuenta),
+    { incluirFactura: Number(req.query.id_factura) || null });
+  res.json(filas.map(v => ({
+    id_viaje: v.id_viaje, fecha_origen: v.fecha_origen, origen: v.origen, destino: v.destino,
+    numero_remito: v.numero_remito, tipo_carga: v.tipo_carga, tipo_tarifa: v.tipo_tarifa, tarifa: v.tarifa,
+    resultado: v.resultado, cantidad_cargada: v.cantidad_cargada, comision: v.comision,
+    patente_principal: v.patente_principal, chofer: v.chofer
+  })));
+}));
+
+router.post('/preparar', manejar(async (req, res) => {
+  const { id_cuenta, viajes } = req.body || {};
+  if (!id_cuenta) throw new ErrorNegocio('Elegí el cliente.');
+  res.json(await servicio.preparar(emp(req), { id_cuenta: Number(id_cuenta), viajes: Array.isArray(viajes) ? viajes : [] }));
+}));
+
+router.put('/plantillas/:idCuenta(\\d+)', manejar(async (req, res) => {
+  await servicio.guardarPlantillas(emp(req), Number(req.params.idCuenta), req.body || {});
+  res.json({ ok: true });
+}));
+
+router.post('/', manejar(async (req, res) => {
+  const idFactura = await servicio.guardarBorrador(emp(req), req.body || {});
+  res.status(201).json(await servicio.obtener(emp(req), idFactura));
+}));
+
+router.get('/:id(\\d+)', manejar(async (req, res) => {
+  res.json(await servicio.obtener(emp(req), id(req)));
+}));
+
+router.put('/:id(\\d+)', manejar(async (req, res) => {
+  await servicio.guardarBorrador(emp(req), req.body || {}, id(req));
+  res.json(await servicio.obtener(emp(req), id(req)));
+}));
+
+router.delete('/:id(\\d+)', manejar(async (req, res) => {
+  await servicio.eliminarBorrador(emp(req), id(req));
+  res.json({ ok: true });
+}));
+
+router.post('/:id(\\d+)/emitir', manejar(async (req, res) => {
+  res.json(await servicio.emitir(emp(req), id(req)));
+}));
+
+router.post('/:id(\\d+)/verificar', manejar(async (req, res) => {
+  res.json(await servicio.verificar(emp(req), id(req)));
+}));
+
+router.post('/:id(\\d+)/nota-credito', manejar(async (req, res) => {
+  const nc = await servicio.anularConNotaCredito(emp(req), id(req), { observaciones: req.body && req.body.observaciones });
+  res.status(201).json(nc);
+}));
+
+router.get('/:id(\\d+)/pdf', manejar(async (req, res) => {
+  const idEmpresa = emp(req);
+  const factura = await servicio.obtener(idEmpresa, id(req));
+  if (factura.estado !== 'EMITIDA' && factura.estado !== 'ANULADA') {
+    throw new ErrorNegocio('El comprobante todavía no fue emitido: no tiene CAE.');
   }
-});
-
-// --------------------------------------------------------------
-// Facturar un viaje (al CUIT del pagador)
-// --------------------------------------------------------------
-router.post('/desde-viaje/:idViaje', async (req, res) => {
-  try {
-    const idEmpresa = emp(req);
-    const [[viaje]] = await pool.query(
-      'SELECT * FROM VIAJES WHERE id_viaje = ? AND id_empresa = ?', [req.params.idViaje, idEmpresa]);
-    if (!viaje) return res.status(404).json({ error: 'Viaje no encontrado.' });
-    if (!viaje.pagador) return res.status(400).json({ error: 'El viaje no tiene un pagador asignado.' });
-    if (viaje.estado !== 'FINALIZADO' && viaje.estado !== 'FACTURADO') {
-      return res.status(400).json({ error: 'Solo se pueden facturar viajes finalizados.' });
-    }
-
-    // Buscar la cuenta CLIENTE del pagador
-    const [[cuenta]] = await pool.query(
-      `SELECT id_cuenta FROM CUENTA WHERE nombre = ? AND id_empresa = ? AND tipo = 'CLIENTE' LIMIT 1`,
-      [viaje.pagador, idEmpresa]);
-    if (!cuenta) return res.status(400).json({ error: 'El pagador del viaje no está registrado como cuenta de cliente.' });
-
-    // Verificar que no esté ya facturado
-    const [[existe]] = await pool.query(
-      'SELECT id_factura FROM FACTURAS WHERE id_viaje = ? AND id_empresa = ?', [viaje.id_viaje, idEmpresa]);
-    if (existe) return res.status(409).json({ error: 'Este viaje ya tiene una factura emitida.' });
-
-    // Importe: base (tarifa × resultado, o tarifa si UNICA) menos comisión
-    const { neto } = importeFacturableDeViaje(viaje);
-
-    const descripcion = `Flete ${viaje.origen} a ${viaje.destino}` +
-      (viaje.numero_remito ? ` — Remito ${viaje.numero_remito}` : '') +
-      (viaje.tipo_carga ? ` (${viaje.tipo_carga})` : '');
-
-    // Factura, viaje FACTURADO y débito en la cuenta del cliente, en una
-    // sola transacción (ver facturarViaje en facturacion.servicio.js).
-    const idFactura = await facturarViaje(idEmpresa, {
-      id_cuenta: cuenta.id_cuenta,
-      id_viaje: viaje.id_viaje,
-      items: [{ descripcion, cantidad: 1, precio_unitario: neto }],
-      observaciones: ''
-    });
-
-    res.status(201).json({ id_factura: idFactura });
-  } catch (err) {
-    responderError(res, err, req);
-  }
-});
-
-// --------------------------------------------------------------
-// Emitir una factura manual asociada a una cuenta
-// --------------------------------------------------------------
-router.post('/manual', async (req, res) => {
-  try {
-    const idEmpresa = emp(req);
-    const { id_cuenta, items, observaciones } = req.body;
-    if (!id_cuenta) return res.status(400).json({ error: 'Debés seleccionar una cuenta.' });
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'Agregá al menos un ítem a la factura.' });
-    }
-    const idFactura = await crearFactura(idEmpresa, { id_cuenta, items, observaciones });
-    res.status(201).json({ id_factura: idFactura });
-  } catch (err) {
-    responderError(res, err, req);
-  }
-});
-
-// --------------------------------------------------------------
-// Nota de crédito sobre una factura existente (anula la factura)
-// --------------------------------------------------------------
-router.post('/:id/nota-credito', async (req, res) => {
-  try {
-    const idEmpresa = emp(req);
-    const [[factura]] = await pool.query(
-      `SELECT * FROM FACTURAS WHERE id_factura = ? AND id_empresa = ?`, [req.params.id, idEmpresa]);
-    if (!factura) return res.status(404).json({ error: 'Factura no encontrada.' });
-    if (factura.clase !== 'FACTURA') {
-      return res.status(400).json({ error: 'Solo se puede hacer una nota de crédito sobre una factura, no sobre otra nota de crédito.' });
-    }
-    if (factura.estado === 'ANULADA') {
-      return res.status(409).json({ error: 'Esta factura ya fue anulada con una nota de crédito.' });
-    }
-
-    // Copiar los ítems de la factura original
-    const [items] = await pool.query('SELECT * FROM FACTURA_ITEMS WHERE id_factura = ?', [factura.id_factura]);
-    const itemsNC = items.map(it => ({
-      descripcion: it.descripcion, cantidad: Number(it.cantidad),
-      unidad: it.unidad, precio_unitario: Number(it.precio_unitario)
-    }));
-
-    const nroFactura = `${String(factura.punto_venta).padStart(4, '0')}-${String(factura.numero).padStart(8, '0')}`;
-    // Nota de crédito y anulación de la factura, en una sola transacción.
-    const idNC = await emitirNotaCredito(idEmpresa, factura, {
-      items: itemsNC,
-      observaciones: (req.body && req.body.observaciones)
-        ? String(req.body.observaciones).slice(0, 255)
-        : `Anula la Factura A ${nroFactura}`
-    });
-
-    res.status(201).json({ id_factura: idNC });
-  } catch (err) {
-    responderError(res, err, req);
-  }
-});
-
-// --------------------------------------------------------------
-// Descargar el PDF de una factura
-// --------------------------------------------------------------
-router.get('/:id/pdf', async (req, res) => {
-  try {
-    const idEmpresa = emp(req);
-    const [[factura]] = await pool.query(
-      'SELECT * FROM FACTURAS WHERE id_factura = ? AND id_empresa = ?', [req.params.id, idEmpresa]);
-    if (!factura) return res.status(404).json({ error: 'Factura no encontrada.' });
-    const [[empresa]] = await pool.query('SELECT * FROM EMPRESAS WHERE id_empresa = ?', [idEmpresa]);
-    const [items] = await pool.query('SELECT * FROM FACTURA_ITEMS WHERE id_factura = ?', [factura.id_factura]);
-    // Si es nota de crédito, traer el número de la factura asociada para el PDF
-    let facturaAsociada = null;
-    if (factura.clase === 'NOTA_CREDITO' && factura.id_factura_asociada) {
-      const [[asoc]] = await pool.query(
-        'SELECT punto_venta, numero FROM FACTURAS WHERE id_factura = ?', [factura.id_factura_asociada]);
-      facturaAsociada = asoc || null;
-    }
-    enviarFacturaPDF(res, empresa, factura, items, facturaAsociada);
-  } catch (err) {
-    responderError(res, err, req);
-  }
-});
+  const [[empresa]] = await pool.query('SELECT * FROM EMPRESAS WHERE id_empresa = ?', [idEmpresa]);
+  await enviarFacturaPDF(res, empresa, factura);
+}));
 
 module.exports = router;

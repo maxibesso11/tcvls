@@ -117,16 +117,32 @@ age -d -i clave.txt tcvdb_AAAAMMDD_HHMMSS.sql.gz.age > tcvdb.sql.gz
 El `.sql.gz` resultante se carga como en *Restaurar*. El `.conteos` que está
 al lado en Drive dice cuántas filas tiene que tener cada tabla.
 
-## Facturación con comprobantes
+## Facturación electrónica
 
-Está **apagada** hasta que la emisión real con ARCA esté lista: sin
-`FACTURACION_HABILITADA=1` en `/opt/tcvls/.env`, el menú Facturación no
-aparece, la API no emite comprobantes y los viajes se facturan como en la
-versión anterior (líquido producto con IVA, o sin facturar). Así nadie genera
-comprobantes borrador que ocupen la numeración del punto de venta.
+Se prende con `FACTURACION_HABILITADA=1` en `/opt/tcvls/.env`; sin esa
+variable el menú Facturación no aparece y los viajes se facturan como antes
+(líquido producto con IVA, o sin facturar). `ARCA_PRODUCCION=1` emite
+comprobantes reales; sin ella, homologación (pruebas). Después de cambiar el
+`.env`: `sudo docker compose --project-directory /opt/tcvls up -d app`.
 
-Para prenderla: agregar `FACTURACION_HABILITADA=1` al `.env` y
-`sudo docker compose --project-directory /opt/tcvls up -d app`.
+Cargar un certificado que ya existe (`.crt` + `.key`) en la empresa `<id>`:
+copiar los dos archivos a `~/cert-arca` del usuario `tcvls` (`chmod 700
+~/cert-arca`, el contenedor corre con ese usuario), importarlos y **borrar la
+carpeta** (la clave queda cifrada en la base):
+
+```bash
+sudo docker compose --project-directory /opt/tcvls run --rm -v ~/cert-arca:/cert:ro app   node scripts/arca-importar-certificado.js --empresa <id> --crt /cert/certificado.crt --key /cert/clave.key
+rm -rf ~/cert-arca
+```
+
+Diagnóstico (no emite nada; `--pedir-acceso` solo si avisa que no hay ticket guardado):
+
+```bash
+sudo docker compose --project-directory /opt/tcvls exec app node scripts/arca-diagnostico.js --empresa <id>
+```
+
+La guía completa (certificado, punto de venta, letras A/B/C, facturador) está
+en `docs/facturacion/HABILITAR_FACTURACION_ARCA.md`.
 
 ## Seguridad
 

@@ -156,12 +156,12 @@ const MODULOS = {
     id: 'id_cuenta',
     campos: [
       { nombre: 'tipo', etiqueta: 'Tipo', tipo: 'select', requerido: true, opciones: ['PROVEEDOR', 'CLIENTE'] },
-      { nombre: 'cuil', etiqueta: 'CUIL', tipo: 'text', requerido: true },
+      { nombre: 'cuil', etiqueta: 'CUIT / CUIL (DNI si es consumidor final)', tipo: 'text', requerido: true },
       { nombre: 'nombre', etiqueta: 'Nombre', tipo: 'text', requerido: true, ancho: true },
       { nombre: 'domicilio', etiqueta: 'Domicilio', tipo: 'text', ancho: true, requerido: true },
       { nombre: 'telefono', etiqueta: 'Teléfono', tipo: 'text', requerido: true },
       { nombre: 'plazo_pago_dias', etiqueta: 'Plazo de pago (días) — solo clientes', tipo: 'number', ayuda: 'Días que el cliente puede adeudar antes de que aparezca una alerta de cobro vencido. Dejar vacío si no aplica.' },
-      { nombre: 'condicion_iva', etiqueta: 'Condición frente al IVA', tipo: 'select', opciones: ['RESPONSABLE INSCRIPTO', 'MONOTRIBUTO', 'EXENTO', 'CONSUMIDOR FINAL'], ayuda: 'Para el futuro Libro IVA Compras (proveedores). Opcional.' }
+      { nombre: 'condicion_iva', etiqueta: 'Condición frente al IVA', tipo: 'select', opciones: ['RESPONSABLE INSCRIPTO', 'MONOTRIBUTO', 'EXENTO', 'CONSUMIDOR FINAL'], ayuda: 'En clientes define la letra de la factura (A, B o C); en proveedores, el Libro IVA Compras.' }
     ],
     // Los choferes se gestionan desde su módulo
     alHacerClic: (fila) => {

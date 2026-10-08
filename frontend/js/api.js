@@ -264,14 +264,35 @@ const API = {
     return this.descargarArchivo(`/api/cuentas-corrientes/liquidacion-sueldos/${id}/pdf`, `recibo_sueldo_${id}.pdf`);
   },
 
-  // Facturación
-  listarFacturas(pagina = 1) { return this._solicitud(`/api/facturacion?pagina=${pagina}`); },
-  viajesFacturables() { return this._solicitud('/api/facturacion/viajes-facturables'); },
-  facturarViaje(idViaje) { return this._solicitud(`/api/facturacion/desde-viaje/${idViaje}`, { method: 'POST' }); },
-  facturarManual(datos) { return this._solicitud('/api/facturacion/manual', { method: 'POST', body: JSON.stringify(datos) }); },
-  notaCredito(idFactura) { return this._solicitud(`/api/facturacion/${idFactura}/nota-credito`, { method: 'POST', body: JSON.stringify({}) }); },
-  descargarPdfFactura(id) {
-    return this.descargarArchivo(`/api/facturacion/${id}/pdf`, `factura_${id}.pdf`);
+  // Facturación electrónica
+  configuracionFacturacion() { return this._solicitud('/api/facturacion/configuracion'); },
+  listarFacturas(pagina = 1, filtros = {}) {
+    const params = new URLSearchParams({ pagina, ...filtros });
+    return this._solicitud(`/api/facturacion?${params.toString()}`);
+  },
+  obtenerFactura(id) { return this._solicitud(`/api/facturacion/${id}`); },
+  viajesFacturables(idCuenta, idFactura) {
+    return this._solicitud(`/api/facturacion/viajes-facturables?id_cuenta=${idCuenta}${idFactura ? `&id_factura=${idFactura}` : ''}`);
+  },
+  prepararFactura(idCuenta, viajes) {
+    return this._solicitud('/api/facturacion/preparar', { method: 'POST', body: JSON.stringify({ id_cuenta: idCuenta, viajes }) });
+  },
+  guardarFactura(id, datos) {
+    return id
+      ? this._solicitud(`/api/facturacion/${id}`, { method: 'PUT', body: JSON.stringify(datos) })
+      : this._solicitud('/api/facturacion', { method: 'POST', body: JSON.stringify(datos) });
+  },
+  eliminarFactura(id) { return this._solicitud(`/api/facturacion/${id}`, { method: 'DELETE' }); },
+  emitirFactura(id) { return this._solicitud(`/api/facturacion/${id}/emitir`, { method: 'POST', body: '{}' }); },
+  verificarFactura(id) { return this._solicitud(`/api/facturacion/${id}/verificar`, { method: 'POST', body: '{}' }); },
+  notaCredito(id, observaciones) {
+    return this._solicitud(`/api/facturacion/${id}/nota-credito`, { method: 'POST', body: JSON.stringify({ observaciones }) });
+  },
+  guardarPlantillasCliente(idCuenta, datos) {
+    return this._solicitud(`/api/facturacion/plantillas/${idCuenta}`, { method: 'PUT', body: JSON.stringify(datos) });
+  },
+  descargarPdfFactura(id, nombre) {
+    return this.descargarArchivo(`/api/facturacion/${id}/pdf`, nombre || `comprobante_${id}.pdf`);
   },
 
   // Operaciones de stock

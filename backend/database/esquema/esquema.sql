@@ -328,6 +328,9 @@ CREATE TABLE CUENTA (
     -- Condición frente al IVA (Bloque 7, comparte con el Bloque 4): la
     -- necesita el futuro Libro IVA Compras. Puede quedar sin cargar.
     condicion_iva VARCHAR(40) NULL,
+    -- Plantillas del facturador para este cliente (ver facturacion.plantillas.js).
+    plantilla_item VARCHAR(255) NULL,
+    plantilla_observaciones TEXT NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
     UNIQUE KEY uq_cuenta_cuil (id_empresa, cuil),
@@ -344,32 +347,48 @@ CREATE TABLE CUENTA (
 CREATE TABLE FACTURAS (
     id_factura INT AUTO_INCREMENT PRIMARY KEY,
     id_empresa INT NOT NULL,
+    -- HOMOLOGACION (pruebas) o PRODUCCION: la numeración es independiente.
+    entorno ENUM('HOMOLOGACION', 'PRODUCCION') NULL,
     clase ENUM('FACTURA', 'NOTA_CREDITO') NOT NULL DEFAULT 'FACTURA',
     tipo_comprobante CHAR(1) NOT NULL DEFAULT 'A',
+    -- Código de ARCA: 1/6/11 facturas A/B/C; 3/8/13 notas de crédito A/B/C.
+    codigo_arca SMALLINT NULL,
     punto_venta INT NOT NULL,
-    numero INT NOT NULL,
+    -- Sin número mientras es BORRADOR; lo asigna ARCA al emitir.
+    numero INT NULL,
     fecha_emision DATE NOT NULL,
+    -- Concepto de ARCA: 2 = servicios (el flete), con período y vencimiento.
+    concepto TINYINT NOT NULL DEFAULT 2,
+    fecha_servicio_desde DATE NULL,
+    fecha_servicio_hasta DATE NULL,
+    fecha_vto_pago DATE NULL,
     id_cuenta INT NOT NULL,
     id_viaje INT,
     id_factura_asociada INT,
     receptor_cuit VARCHAR(13) NOT NULL,
+    receptor_doc_tipo SMALLINT NULL,
     receptor_nombre VARCHAR(150) NOT NULL,
     receptor_domicilio VARCHAR(150),
     receptor_condicion_iva VARCHAR(40) DEFAULT 'RESPONSABLE INSCRIPTO',
+    condicion_iva_receptor_id SMALLINT NULL,
+    emisor_condicion_iva VARCHAR(40) NULL,
     neto_gravado DECIMAL(12, 2) NOT NULL DEFAULT 0,
     iva DECIMAL(12, 2) NOT NULL DEFAULT 0,
     total DECIMAL(12, 2) NOT NULL DEFAULT 0,
     cae VARCHAR(20),
     cae_vencimiento DATE,
-    estado ENUM('BORRADOR', 'EMITIDA', 'ANULADA') NOT NULL DEFAULT 'BORRADOR',
-    observaciones VARCHAR(255),
+    -- BORRADOR → PENDIENTE (número reservado, esperando el CAE) → EMITIDA → ANULADA.
+    estado ENUM('BORRADOR', 'PENDIENTE', 'EMITIDA', 'ANULADA') NOT NULL DEFAULT 'BORRADOR',
+    respuesta_arca TEXT NULL,
+    observaciones TEXT NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
     FOREIGN KEY (id_cuenta) REFERENCES CUENTA(id_cuenta) ON DELETE RESTRICT,
     FOREIGN KEY (id_viaje) REFERENCES VIAJES(id_viaje) ON DELETE SET NULL,
     FOREIGN KEY (id_factura_asociada) REFERENCES FACTURAS(id_factura) ON DELETE SET NULL,
-    UNIQUE KEY uq_factura_numero (id_empresa, clase, tipo_comprobante, punto_venta, numero),
+    UNIQUE KEY uq_factura_numero (id_empresa, entorno, tipo_comprobante, clase, punto_venta, numero),
     INDEX idx_fac_empresa (id_empresa),
+    INDEX idx_fac_estado (id_empresa, estado),
     INDEX idx_fac_cuenta (id_cuenta),
     INDEX idx_fac_viaje (id_viaje),
     INDEX idx_fac_fecha (fecha_emision)
@@ -380,12 +399,38 @@ CREATE TABLE FACTURA_ITEMS (
     id_item INT AUTO_INCREMENT PRIMARY KEY,
     id_factura INT NOT NULL,
     descripcion VARCHAR(255) NOT NULL,
-    cantidad DECIMAL(10, 2) NOT NULL DEFAULT 1,
+    cantidad DECIMAL(12, 3) NOT NULL DEFAULT 1,
     unidad VARCHAR(20),
     precio_unitario DECIMAL(12, 2) NOT NULL DEFAULT 0,
     subtotal DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    id_viaje INT NULL,
     FOREIGN KEY (id_factura) REFERENCES FACTURAS(id_factura) ON DELETE CASCADE,
+    FOREIGN KEY (id_viaje) REFERENCES VIAJES(id_viaje) ON DELETE SET NULL,
     INDEX idx_item_factura (id_factura)
+);
+
+-- Viajes que incluye cada comprobante (un comprobante puede tener varios).
+CREATE TABLE FACTURA_VIAJES (
+    id_factura INT NOT NULL,
+    id_viaje INT NOT NULL,
+    PRIMARY KEY (id_factura, id_viaje),
+    FOREIGN KEY (id_factura) REFERENCES FACTURAS(id_factura) ON DELETE CASCADE,
+    FOREIGN KEY (id_viaje) REFERENCES VIAJES(id_viaje) ON DELETE RESTRICT,
+    INDEX idx_fv_viaje (id_viaje)
+);
+
+-- Tickets de acceso de ARCA (WSAA), cifrados: se reutilizan hasta que vencen.
+CREATE TABLE ARCA_TICKETS (
+    id_ticket INT AUTO_INCREMENT PRIMARY KEY,
+    cuit VARCHAR(11) NOT NULL,
+    entorno ENUM('HOMOLOGACION', 'PRODUCCION') NOT NULL,
+    servicio VARCHAR(20) NOT NULL,
+    huella_certificado CHAR(64) NOT NULL,
+    token_cifrado MEDIUMTEXT NOT NULL,
+    sign_cifrado MEDIUMTEXT NOT NULL,
+    generado DATETIME NOT NULL,
+    expira DATETIME NOT NULL,
+    UNIQUE KEY uq_ticket (cuit, entorno, servicio, huella_certificado)
 );
 
 -- 8. MOVIMIENTOS
@@ -393,7 +438,7 @@ CREATE TABLE MOVIMIENTOS (
     id_movimiento INT AUTO_INCREMENT PRIMARY KEY,
     id_empresa INT NOT NULL,
     id_cuenta INT NOT NULL,
-    monto DECIMAL(10, 2) NOT NULL,
+    monto DECIMAL(14, 2) NOT NULL,
     fecha DATETIME NOT NULL,
     concepto VARCHAR(255) NOT NULL,
     -- Documento que generó el movimiento (NULL = cargado a mano). Ver migración 023.
@@ -610,7 +655,8 @@ INSERT INTO MIGRACIONES (nombre) VALUES
 ('migracion_030_rol_admin_multiempresa.sql'),
 ('migracion_031_vencimientos_mantenimientos_generales.sql'),
 ('migracion_032_auditoria.sql'),
-('migracion_033_baja_equipos.sql');
+('migracion_033_baja_equipos.sql'),
+('migracion_034_facturacion_electronica.sql');
 
 -- =========================================================
 -- FIN DE LA INSTALACIÓN

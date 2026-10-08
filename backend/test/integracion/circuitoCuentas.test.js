@@ -1,8 +1,8 @@
 // backend/test/integracion/circuitoCuentas.test.js
 // Circuito viaje → facturación → cuenta corriente contra una base real
 // (descartable). Reproduce los criterios de aceptación del MVP:
-//   - Facturar un viaje genera el débito correcto en la cuenta del cliente.
-//   - Anular con nota de crédito devuelve el saldo exactamente al valor previo.
+//   - Facturar un viaje genera el débito correcto en la cuenta del cliente
+//     (con comprobante electrónico: ver facturacion.test.js).
 //   - Un viaje facturado y luego modificado deja los saldos correctos, sin
 //     movimientos duplicados, incluso si alguien editó el concepto a mano.
 // Además cubre las ediciones parciales y la atomicidad de los automatismos.
@@ -20,6 +20,8 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
 
   before(async () => {
     entorno = await levantar();
+    // Consulta la rentabilidad: hace falta quien administra la empresa.
+    await entorno.pool.query("UPDATE USUARIOS SET rol = 'ADMIN_EMPRESA' WHERE nombre_usuario = 'demo'");
     await entorno.iniciarSesion('demo', 'demo123');
   });
   after(async () => { if (entorno) await entorno.cerrar(); });
@@ -56,43 +58,7 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     };
   }
 
-  // ---------- Facturación ----------
-
-  test('facturar un viaje desde Facturación genera el débito en la cuenta del cliente', async () => {
-    const cliente = await crearCuenta('CLIENTE');
-    const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, { estado: 'FINALIZADO' })));
-    assert.equal(await saldo(cliente.id_cuenta), 0);
-
-    const { id_factura } = await ok(entorno.api('POST', `/api/facturacion/desde-viaje/${viaje.id_viaje}`));
-    const [[factura]] = await entorno.pool.query('SELECT total FROM FACTURAS WHERE id_factura = ?', [id_factura]);
-
-    assert.equal(Number(factura.total), 121000);
-    assert.equal(await saldo(cliente.id_cuenta), -121000);
-    assert.equal((await detalleCuenta(cliente.id_cuenta)).movimientos.length, 1);
-  });
-
-  test('la nota de crédito devuelve el saldo del cliente al valor previo a la factura', async () => {
-    const cliente = await crearCuenta('CLIENTE');
-    const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, { estado: 'FINALIZADO' })));
-    const saldoPrevio = await saldo(cliente.id_cuenta);
-
-    const { id_factura } = await ok(entorno.api('POST', `/api/facturacion/desde-viaje/${viaje.id_viaje}`));
-    await ok(entorno.api('POST', `/api/facturacion/${id_factura}/nota-credito`, {}));
-
-    assert.equal(await saldo(cliente.id_cuenta), saldoPrevio);
-  });
-
-  test('facturar un viaje ya facturado como líquido producto no duplica la deuda', async () => {
-    const cliente = await crearCuenta('CLIENTE');
-    const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente)));
-    await ok(entorno.api('PUT', `/api/viajes/${viaje.id_viaje}`, { estado: 'FACTURADO', modo_facturacion: 'LIQUIDO_PRODUCTO' }));
-    assert.equal(await saldo(cliente.id_cuenta), -121000);
-
-    await ok(entorno.api('POST', `/api/facturacion/desde-viaje/${viaje.id_viaje}`));
-
-    assert.equal(await saldo(cliente.id_cuenta), -121000);
-    assert.equal((await detalleCuenta(cliente.id_cuenta)).movimientos.length, 1);
-  });
+  // La facturación electrónica (comprobantes con ARCA) se prueba en facturacion.test.js.
 
   // ---------- Vínculo movimiento ↔ viaje ----------
 
@@ -303,7 +269,7 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
       assert.ok(!yo.usuario.modulos.includes('facturacion'));
 
       const cliente = await crearCuenta('CLIENTE');
-      const manual = await entorno.api('POST', '/api/facturacion/manual', {
+      const manual = await entorno.api('POST', '/api/facturacion', {
         id_cuenta: cliente.id_cuenta, items: [{ descripcion: 'Flete', cantidad: 1, precio_unitario: 1000 }]
       });
       assert.equal(manual.estado, 403);

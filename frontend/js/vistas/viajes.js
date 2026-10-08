@@ -126,7 +126,7 @@ function valorViajeFacturado(fila) {
   const sinIva = fila.modo_facturacion === 'SIN_FACTURAR';
   const total = sinIva ? neto : conIVA;
   const detalle = sinIva ? 'sin IVA'
-    : fila.modo_facturacion === 'FACTURA' ? 'Factura A · IVA incl.'
+    : fila.modo_facturacion === 'FACTURA' ? 'factura electrónica'
     : 'líquido producto · IVA incl.';
   return `<strong>${fmtDinero(total)}</strong><br><span class="tenue">${detalle}</span>`;
 }
@@ -155,12 +155,12 @@ function abrirModalFacturarViaje(datos) {
     </table></div>
     <div class="grupo-titulo"></div>
     <div class="acciones">
-      ${conFactura ? `<button class="btn btn-primario" onclick="confirmarFacturarViaje('FACTURA')">Emitir factura A · ${fmtDinero(conIVA)}</button>` : ''}
+      ${conFactura ? `<button class="btn btn-primario" onclick="confirmarFacturarViaje('COMPROBANTE')">Armar factura electrónica…</button>` : ''}
       <button class="btn ${conFactura ? '' : 'btn-primario'}" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Facturar líquido producto (con IVA) · ${fmtDinero(conIVA)}</button>
       <button class="btn" onclick="confirmarFacturarViaje('SIN_FACTURAR')">Continuar sin facturar (sin IVA) · ${fmtDinero(neto)}</button>
     </div>
     <p class="tenue">
-      ${conFactura ? '<strong>Emitir factura A</strong> genera el comprobante formal e imputa el total en la cuenta.' : ''}
+      ${conFactura ? '<strong>Factura electrónica</strong> deja el viaje finalizado y abre el facturador con este viaje (podés sumar otros del mismo cliente); al emitir, el viaje pasa a facturado y el total se imputa en la cuenta.' : ''}
       <strong>Líquido producto</strong> imputa el total con IVA sin emitir comprobante.
       <strong>Sin facturar</strong> imputa solo el neto, sin IVA.
     </p>`;
@@ -171,7 +171,11 @@ function abrirModalFacturarViaje(datos) {
 
 async function confirmarFacturarViaje(modo) {
   if (!_datosViajeFacturar) return;
-  const datos = { ..._datosViajeFacturar, modo_facturacion: modo };
+  // Factura electrónica: el viaje queda FINALIZADO y se arma el comprobante
+  // en el facturador; al emitirlo, el viaje pasa a FACTURADO.
+  const datos = modo === 'COMPROBANTE'
+    ? { ..._datosViajeFacturar, estado: 'FINALIZADO', modo_facturacion: null }
+    : { ..._datosViajeFacturar, modo_facturacion: modo };
 
   try {
     // Guardar el viaje con su modo. El hook del backend imputa el movimiento
@@ -184,17 +188,12 @@ async function confirmarFacturarViaje(modo) {
       idViaje = creado && (creado.id_viaje || creado.insertId || creado.id);
     }
 
-    if (modo === 'FACTURA') {
-      if (idViaje) {
-        try {
-          await API.facturarViaje(idViaje);
-          mostrarToast('Viaje facturado y comprobante emitido');
-        } catch (errFac) {
-          mostrarToast('Viaje guardado, pero la factura no se emitió: ' + errFac.message, true);
-        }
-      } else {
-        mostrarToast('Viaje guardado. Emití el comprobante desde Facturación.');
-      }
+    if (modo === 'COMPROBANTE') {
+      _datosViajeFacturar = null;
+      cerrarModal();
+      if (idViaje) facturarViajeConComprobante(Number(idViaje), datos.pagador);
+      else mostrarToast('Viaje guardado como finalizado. Armá la factura desde Facturación.');
+      return;
     } else if (modo === 'LIQUIDO_PRODUCTO') {
       mostrarToast('Viaje imputado con IVA (líquido producto)');
     } else {

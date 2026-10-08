@@ -16,6 +16,7 @@ function navegar() {
     else if (hash.startsWith('metrica/')) vistaActiva = 'dashboard';
     else if (hash.startsWith('unidad-detalle/')) vistaActiva = 'unidades';
     else if (hash.startsWith('chofer-detalle/')) vistaActiva = 'choferes';
+    else if (hash.startsWith('facturador')) vistaActiva = 'facturacion';
     if (a.dataset.vista === vistaActiva) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
@@ -25,6 +26,7 @@ function navegar() {
   if (hash.startsWith('cuenta-corriente/')) claveModulo = 'cuentas-corrientes';
   else if (hash.startsWith('unidad-detalle/')) claveModulo = 'unidades';
   else if (hash.startsWith('chofer-detalle/')) claveModulo = 'choferes';
+  else if (hash.startsWith('facturador')) claveModulo = 'facturacion';
 
   if (!esVistaAdmin(hash) && !moduloActivo(claveModulo) && (MODULOS[hash] || claveModulo === 'cuentas-corrientes' || claveModulo === 'unidades' || claveModulo === 'choferes' || claveModulo === 'facturacion')) {
     mostrarToast('Ese módulo no está habilitado para tu empresa.', true);
@@ -69,6 +71,8 @@ function navegar() {
   else if (hash.startsWith('metrica/')) renderMetricaDetalle(hash.split('/')[1]);
   else if (hash === 'cuentas-corrientes') renderCuentasCorrientes();
   else if (hash === 'facturacion') renderFacturacion();
+  else if (hash === 'facturador') renderFacturador(null);
+  else if (hash.startsWith('facturador/')) renderFacturador(hash.split('/')[1]);
   else if (hash.startsWith('cuenta-corriente/')) renderDetalleCuenta(hash.split('/')[1]);
   else if (MODULOS[hash]) renderModulo(hash);
   else if (SESION && SESION.rol === 'ADMIN') renderAdminEmpresas();

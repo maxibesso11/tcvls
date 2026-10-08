@@ -111,27 +111,93 @@ en línea o controlador fiscal) para evitar rechazos por numeración duplicada.
 
 ## PARTE C — Cargar todo en TCV LogiSuite
 
-Al terminar tenés tres cosas:
+El sistema se conecta **directo** con ARCA (WSAA y WSFEv1) con el certificado
+de cada empresa: la clave privada se guarda cifrada en la base y nunca sale
+del servidor.
 
-| Qué | Archivo / dato | De dónde salió |
-|-----|----------------|----------------|
-| Certificado | `certificado.crt` | Parte A.2 (descargado de ARCA) |
-| Clave privada | `clave_privada.key` | Parte A.1 (lo generaste vos) |
-| Punto de venta | número (ej. 3) | Parte B |
+### C.1 — Datos fiscales
 
-En el sistema:
-1. En los **datos fiscales de la empresa** cargá el CUIT, ingresos brutos,
-   inicio de actividades y el **número de punto de venta** de la Parte B.
-2. El certificado (`.crt`) y la clave (`.key`) se cargan en la configuración de
-   ARCA del servidor (variables de entorno / archivos del certificado). Esta
-   parte requiere completar la integración técnica en `backend/src/integraciones/arca.js`, que hoy
-   está preparada pero no conectada.
+En **Mi empresa → Datos de la empresa** (rol administrador de la empresa):
+condición frente al IVA, CUIT (11 dígitos), domicilio, ingresos brutos, inicio
+de actividades y el **número de punto de venta** de la Parte B. La condición
+frente al IVA define qué comprobantes se emiten:
 
-> **Importante:** primero conviene probar todo contra el **entorno de
-> homologación** (prueba) de ARCA, que no genera comprobantes reales. Una vez
-> que emite bien ahí, se pasa a **producción**. Y como no soy asesor fiscal,
-> validá con tu contador tu condición tributaria y el tipo de comprobante antes
-> de emitir comprobantes reales.
+| Empresa | Cliente | Comprobante |
+|---------|---------|-------------|
+| Responsable inscripto | Responsable inscripto o monotributista | **A** |
+| Responsable inscripto | Consumidor final o exento | **B** |
+| Monotributista o exento | cualquiera | **C** |
+
+Un responsable inscripto nunca emite C y un monotributista nunca emite A ni B:
+el sistema no deja elegir la letra.
+
+### C.2 — Certificado
+
+Dos caminos:
+
+- **Desde el sistema (recomendado):** *Mi empresa → Certificado ARCA →
+  Generar clave y CSR*. Se descarga el CSR, se tramita en ARCA (Parte A.2 y
+  A.3) y se sube el `.crt` en la misma pantalla. No hace falta OpenSSL.
+- **Con un `.crt` y `.key` que ya existen:** lo carga quien administra el
+  servidor con `scripts/arca-importar-certificado.js` (ver
+  `docs/operacion/SERVIDOR.md`). El script verifica que el certificado
+  corresponda a la clave y al CUIT de la empresa.
+
+> **Usá un certificado exclusivo para TCV LogiSuite.** ARCA entrega un "ticket
+> de acceso" por certificado que dura 12 horas y **no entrega otro mientras
+> ese siga vigente**. Si el mismo certificado lo usa otro sistema, el que
+> llegue segundo queda bloqueado hasta 12 horas. El sistema guarda su ticket y
+> lo reutiliza, así que con un certificado propio esto no pasa nunca.
+
+### C.3 — Clientes
+
+Cada cliente necesita su **condición frente al IVA** (en *Cuentas*; también se
+puede indicar al facturar y queda guardada) y su **CUIT**. Un consumidor final
+puede ir con DNI o sin identificar (solo en factura B).
+
+### C.4 — Verificar antes de facturar
+
+Quien administra el servidor corre el diagnóstico (no emite nada):
+
+```bash
+node scripts/arca-diagnostico.js --empresa <id>
+```
+
+Revisa los servidores de ARCA, el certificado, el ticket de acceso (si no hay
+uno guardado avisa y pide repetir con `--pedir-acceso`), los puntos de venta
+habilitados y el último número autorizado de cada tipo.
+
+### C.5 — Homologación y producción
+
+`ARCA_PRODUCCION=1` en el `.env` del servidor emite comprobantes reales; sin
+esa variable se usa **homologación** (pruebas, sin validez fiscal: el PDF lo
+dice). El certificado tiene que ser del mismo entorno: uno de homologación no
+sirve en producción y viceversa. Validá con tu contador la condición
+tributaria antes de emitir comprobantes reales.
+
+---
+
+## Cómo funciona el facturador
+
+1. **Facturación → Nuevo comprobante** (o, desde un viaje, *Facturar → Armar
+   factura electrónica*). Se elige el cliente y aparecen sus viajes
+   finalizados que no están en otro comprobante.
+2. Cada viaje elegido agrega un renglón (cantidad en toneladas, km o "1
+   viaje"; precio = tarifa menos comisión, sin IVA en A y B). Todo se puede
+   editar, quitar o agregar a mano. El texto de los renglones y de las
+   observaciones sale de las **plantillas del cliente** (por ejemplo
+   `CTG: {remitos} · KM: {km_total}` para Cargill), que se guardan para la
+   próxima vez.
+3. **Guardar borrador** no usa número. **Emitir** pide el número y el CAE a
+   ARCA. Si ARCA lo rechaza, vuelve a borrador con el motivo, sin gastar
+   número.
+4. Al emitir, el total se debita en la cuenta corriente del cliente y los
+   viajes pasan a **FACTURADO**.
+5. **Anular con nota de crédito** emite la nota por el total, compensa la
+   cuenta y deja los viajes otra vez disponibles para facturar.
+6. Si se corta la conexión al emitir, el comprobante queda **PENDIENTE** con
+   su número reservado: *Verificar con ARCA* lo confirma (si ARCA lo autorizó)
+   o lo devuelve a borrador. **No hay que volver a cargarlo.**
 
 ---
 
@@ -141,9 +207,8 @@ En el sistema:
   sola hasta que generes uno nuevo. Anotá la fecha de vencimiento.
 - **La clave privada (.key) es secreta.** No la subas a repositorios ni la
   compartas; si se filtra, hay que revocar el certificado.
-- **Punto de venta exclusivo** para el sistema, distinto del de talonario o
-  controlador fiscal.
-- **Un cambio normativo reciente:** desde abril de 2026 es obligatorio informar
-  la condición de IVA del receptor (campo `CondicionIVAReceptorId`) y la fecha
-  y hora de generación del comprobante. La integración técnica del sistema debe
-  contemplarlos.
+- **Punto de venta exclusivo** para el sistema, distinto del de talonario,
+  factura en línea o controlador fiscal: si otro sistema usa el mismo punto
+  de venta, la numeración se cruza.
+- Desde 2025 ARCA exige informar la **condición frente al IVA del receptor**:
+  por eso el sistema la pide en cada cliente.

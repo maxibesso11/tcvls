@@ -28,11 +28,8 @@ function revisarConfiguracion(env = process.env) {
   if (produccion && (!env.CORS_ORIGIN || env.CORS_ORIGIN.trim() === '*')) {
     avisos.push('CORS_ORIGIN permite cualquier origen. En producción indicá el dominio (ej. https://erp.midominio.com).');
   }
-  if (env.ARCA_HABILITADO === '1' && !env.AFIPSDK_ACCESS_TOKEN) {
-    avisos.push('ARCA_HABILITADO=1 pero falta AFIPSDK_ACCESS_TOKEN: no se podrán emitir facturas con CAE.');
-  }
-  if (env.ARCA_PRODUCCION === '1' && env.ARCA_HABILITADO !== '1') {
-    avisos.push('ARCA_PRODUCCION=1 sin ARCA_HABILITADO=1: las facturas seguirán saliendo como borrador.');
+  if (env.FACTURACION_HABILITADA === '1' && env.ARCA_PRODUCCION !== '1' && produccion) {
+    avisos.push('Facturación encendida contra ARCA de HOMOLOGACIÓN (pruebas): los comprobantes no tienen validez fiscal. Para facturar en serio: ARCA_PRODUCCION=1.');
   }
   const faltaCorreo = ['ASESORIA_DESTINO', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'].filter(v => !env[v] || /ejemplo|tu_casilla|tu_contrase/i.test(env[v]));
   if (faltaCorreo.length) {

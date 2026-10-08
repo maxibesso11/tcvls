@@ -30,8 +30,8 @@ test('CORS abierto en producción es un aviso, no un error', () => {
   assert.match(r.avisos[0], /CORS_ORIGIN/);
 });
 
-test('ARCA habilitado sin token y correo sin configurar generan avisos', () => {
-  const r = revisarConfiguracion({ ...entornoBueno, ARCA_HABILITADO: '1', SMTP_PASS: 'tu_contraseña_de_aplicacion' });
+test('facturación contra ARCA de homologación y correo sin configurar generan avisos', () => {
+  const r = revisarConfiguracion({ ...entornoBueno, FACTURACION_HABILITADA: '1', SMTP_PASS: 'tu_contraseña_de_aplicacion' });
   assert.equal(r.errores.length, 0);
   assert.equal(r.avisos.length, 2);
 });

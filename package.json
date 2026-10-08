@@ -11,21 +11,22 @@
     "verificar-entorno": "node scripts/verificar-entorno.js",
     "verificar": "node scripts/verificar-requires.js",
     "smoke": "node scripts/smoke-test.js",
-    "test": "node --test backend/test/viajes.calculos.test.js backend/test/facturacion.servicio.test.js backend/test/dashboard.calculos.test.js backend/test/comprobanteCompra.test.js backend/test/verificacionEntorno.test.js",
-    "test:integracion": "node --test --test-concurrency=1 backend/test/integracion/circuitoCuentas.test.js backend/test/integracion/seguridad.test.js backend/test/integracion/adminEmpresa.test.js backend/test/integracion/adminMultiempresa.test.js backend/test/integracion/remuneracionMixta.test.js backend/test/integracion/comprobanteCompra.test.js"
+    "test": "node --test backend/test/viajes.calculos.test.js backend/test/facturacion.reglas.test.js backend/test/facturacion.plantillas.test.js backend/test/dashboard.calculos.test.js backend/test/comprobanteCompra.test.js backend/test/verificacionEntorno.test.js",
+    "test:integracion": "node --test --test-concurrency=1 backend/test/integracion/circuitoCuentas.test.js backend/test/integracion/seguridad.test.js backend/test/integracion/adminEmpresa.test.js backend/test/integracion/adminMultiempresa.test.js backend/test/integracion/remuneracionMixta.test.js backend/test/integracion/comprobanteCompra.test.js backend/test/integracion/facturacion.test.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@afipsdk/afip.js": "^1.2.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
+    "fast-xml-parser": "^4.5.7",
     "mysql2": "^3.11.5",
     "node-forge": "^1.4.0",
     "nodemailer": "^8.0.7",
-    "pdfkit": "^0.15.2"
+    "pdfkit": "^0.15.2",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

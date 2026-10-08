@@ -15,7 +15,7 @@
 'use strict';
 const pool = require('../backend/src/config/db');
 const { calcularMontoCuentaCliente, calcularLiquidacionChofer } = require('../backend/src/modulos/viajes/viajes.calculos');
-const { buscarCuentaPagador, obtenerChoferDelViaje } = require('../backend/src/modulos/viajes/viajes.servicio');
+const { buscarCuentaPagador, obtenerChoferDelViaje, comprobanteDelViaje } = require('../backend/src/modulos/viajes/viajes.servicio');
 const { buscarCuentaProveedor } = require('../backend/src/modulos/cuentas/cuentas.servicio');
 
 const MOSTRAR_TODO = process.argv.includes('--todo');
@@ -77,20 +77,14 @@ async function auditarViajes(idEmpresa, mapa) {
     }
     comparar(mapa, `VIAJE_LIQUIDACION:${v.id_viaje}`, liquidacion, `${etiqueta} liquidación`);
 
-    // Débito al pagador (FACTURADO)
+    // Débito al pagador (FACTURADO). Si el viaje está en un comprobante
+    // electrónico emitido, el débito es el del comprobante (origen FACTURA).
     let facturacion = null;
-    if (v.estado === 'FACTURADO') {
-      const [[factura]] = await pool.query(
-        `SELECT id_cuenta, total FROM FACTURAS WHERE id_viaje = ? AND id_empresa = ? AND clase = 'FACTURA'
-          ORDER BY id_factura DESC LIMIT 1`, [v.id_viaje, idEmpresa]);
-      if (factura) {
-        facturacion = { idCuenta: factura.id_cuenta, monto: -Math.abs(Number(factura.total)) };
-      } else {
-        const cuenta = await buscarCuentaPagador(pool, v.pagador, idEmpresa);
-        const monto = calcularMontoCuentaCliente(v);
-        if (cuenta && monto !== 0) facturacion = { idCuenta: cuenta.id_cuenta, monto: -Math.abs(monto) };
-        if (!cuenta) anotar('PAGADOR', `${etiqueta}: el pagador "${v.pagador}" no tiene cuenta CLIENTE/PROVEEDOR`);
-      }
+    if (v.estado === 'FACTURADO' && !(await comprobanteDelViaje(pool, v.id_viaje, idEmpresa))) {
+      const cuenta = await buscarCuentaPagador(pool, v.pagador, idEmpresa);
+      const monto = calcularMontoCuentaCliente(v);
+      if (cuenta && monto !== 0) facturacion = { idCuenta: cuenta.id_cuenta, monto: -Math.abs(monto) };
+      if (!cuenta) anotar('PAGADOR', `${etiqueta}: el pagador "${v.pagador}" no tiene cuenta CLIENTE/PROVEEDOR`);
     }
     comparar(mapa, `VIAJE_FACTURACION:${v.id_viaje}`, facturacion, `${etiqueta} facturación`);
   }
