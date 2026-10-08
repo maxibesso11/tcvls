@@ -6,29 +6,46 @@
   <title>TCV LogiSuite ERP</title>
   <link rel="icon" type="image/svg+xml" href="/img/logo/isotipo.svg">
   <style>[hidden]{display:none!important}</style>
-  <link rel="stylesheet" href="/stylo/main.css?v=20261013">
+  <link rel="stylesheet" href="/stylo/main.css?v=20261014">
 </head>
 <body>
 
-  <!-- Pantalla de login -->
-  <div class="fondo-modal" id="login-pantalla" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="login-pantalla-titulo">
-      <div class="modal-cabecera"><h2 id="login-pantalla-titulo">TCV LogiSuite ERP</h2></div>
-      <div class="modal-cuerpo">
-        <p class="tenue">Gestión de transporte y logística</p>
-        <div class="formulario">
-          <div class="campo ancho"><label for="login-usuario">Usuario</label><input type="text" id="login-usuario" autocomplete="username" placeholder="nombre de usuario"></div>
-          <div class="campo ancho"><label for="login-clave">Contraseña</label>
-            <input type="password" id="login-clave" autocomplete="current-password" placeholder="contraseña">
-            <button type="button" class="btn btn-fantasma btn-chico" id="btn-ver-clave" aria-label="Mostrar contraseña">Mostrar contraseña</button>
+  <!-- Pantalla de login: marca a la izquierda, formulario a la derecha -->
+  <div class="acceso" id="login-pantalla" hidden>
+    <aside class="acceso-marca" aria-hidden="true">
+      <img class="acceso-logo" src="/img/logo/logo_horizontal_claro.svg" alt="">
+      <img class="acceso-isotipo" src="/img/landing/arco.svg" alt="">
+      <div class="acceso-lema">
+        <p class="acceso-kicker">Gestión para empresas de transporte</p>
+        <h2>Tu operación,<br><em>en orden.</em></h2>
+      </div>
+      <ul class="acceso-tarjetas">
+        <li><span class="punto ok"></span><div><b>Factura A 00002-00000148</b><small>Emitida · CAE 86410964917115</small></div></li>
+        <li><span class="punto info"></span><div><b>Viaje #212 finalizado</b><small>San José Boquerón → Rosario · 30,68 tn</small></div></li>
+        <li><span class="punto aviso"></span><div><b>Seguro AB 123 CD</b><small>Vence en 5 días</small></div></li>
+      </ul>
+      <p class="acceso-pie">TCV LogiSuite</p>
+    </aside>
+    <main class="acceso-panel">
+      <div class="acceso-form" role="dialog" aria-modal="true" aria-labelledby="login-pantalla-titulo">
+        <img class="acceso-logo-movil" src="/img/logo/logo_horizontal.svg" alt="TCV LogiSuite">
+        <h1 id="login-pantalla-titulo">Ingresá a tu cuenta</h1>
+        <p class="tenue">Usá el usuario que te dio el administrador de tu empresa.</p>
+        <div class="campo"><label for="login-usuario">Usuario</label><input type="text" id="login-usuario" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
+        <div class="campo"><label for="login-clave">Contraseña</label>
+          <div class="acceso-clave">
+            <input type="password" id="login-clave" autocomplete="current-password">
+            <button type="button" id="btn-ver-clave" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
           </div>
-          <div class="campo error ancho"><span class="ayuda" id="login-error" hidden></span></div>
         </div>
+        <p class="acceso-error" id="login-error" role="alert" hidden></p>
+        <button class="btn btn-primario acceso-boton" id="login-btn">Ingresar</button>
+        <p class="acceso-ayuda">¿Olvidaste la contraseña? Pedile al administrador de tu empresa que te asigne una nueva.</p>
+        <nav class="acceso-enlaces"><a href="/">Sitio</a><a href="/privacidad.html">Privacidad</a><a href="/terminos.html">Términos</a></nav>
       </div>
-      <div class="modal-pie">
-        <button class="btn btn-primario" id="login-btn">Ingresar</button>
-      </div>
-    </div>
+    </main>
   </div>
 
   <!-- Cambio de contraseña: obligatorio con la contraseña inicial o una
@@ -68,7 +85,7 @@
   <!-- Aplicación (oculta hasta autenticarse) -->
   <div class="app" id="app-contenedor" hidden>
     <nav class="rail" id="rail" aria-label="Navegación principal">
-      <div class="rail-marca"><img src="/img/logo/isotipo.svg" alt=""><div><b id="brand-empresa">Empresa</b><span>TCV LogiSuite</span></div></div>
+      <div class="rail-marca"><img src="/img/logo/isotipo_claro.svg" alt=""><div><b id="brand-empresa">Empresa</b><span>TCV LogiSuite</span></div></div>
 
       <!-- Navegación de datos (usuarios operativos) -->
       <div id="nav-datos">
@@ -187,14 +204,14 @@
   <!-- Orden de carga: cliente de la API, núcleo, vistas, sesión y arranque.
        Todas las funciones son globales (las usan los onclick del HTML generado).
        Al modificar un JS, actualizar ?v= para evitar la caché del navegador. -->
-  <script src="/js/api.js?v=20261011"></script>
+  <script src="/js/api.js?v=20261014"></script>
   <script src="/js/nucleo/modulos.js?v=20261011"></script>
   <script src="/js/nucleo/utilidades.js?v=20261012"></script>
   <script src="/js/nucleo/navegacion.js?v=20261011"></script>
   <script src="/js/nucleo/graficos.js?v=20261012"></script>
   <script src="/js/vistas/dashboard.js?v=20261012"></script>
   <script src="/js/vistas/metricas.js?v=20261012"></script>
-  <script src="/js/vistas/facturacion.js?v=20261012"></script>
+  <script src="/js/vistas/facturacion.js?v=20261014"></script>
   <script src="/js/vistas/cuentasCorrientes.js?v=20261007"></script>
   <script src="/js/vistas/viajes.js?v=20261011"></script>
   <script src="/js/vistas/stock.js?v=20261003"></script>
@@ -208,7 +225,7 @@
   <script src="/js/vistas/actividad.js?v=20261011"></script>
   <script src="/js/vistas/miEmpresa.js?v=20261006"></script>
   <script src="/js/vistas/multiempresa.js?v=20261006"></script>
-  <script src="/js/nucleo/sesion.js?v=20261003"></script>
+  <script src="/js/nucleo/sesion.js?v=20261014"></script>
   <script src="/js/app.js?v=20261003"></script>
 </body>
 </html>

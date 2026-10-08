@@ -1,7 +1,7 @@
 /* base/temas.css
    Temas de Apariencia. Cada tema redefine SOLO estas 6 variables. Se aplica con <html data-tema="id">. */
 
-[data-tema="tcv"] { --rail: #16386b; --rail-raised: #1c4789; --accent: #38b6ff; --accent-text: #006cab; --on-accent: #0f1b2d; --rail-ink-muted: #adbacf; } /* TCV */
+[data-tema="tcv"] { --rail: #282828; --rail-raised: #3a3a3a; --accent: #4cc3ff; --accent-text: #0a6fa3; --on-accent: #1d1d1d; --rail-ink-muted: #a9aeb3; } /* TCV: colores de la marca */
 [data-tema="verde"] { --rail: #1d2f29; --rail-raised: #2b453c; --accent: #e8a13c; --accent-text: #915c11; --on-accent: #0f1b2d; --rail-ink-muted: #a0b0ab; } /* Verde pizarra */
 [data-tema="azul"] { --rail: #1a2940; --rail-raised: #243959; --accent: #4f9dde; --accent-text: #206baa; --on-accent: #0f1b2d; --rail-ink-muted: #98a4b6; } /* Azul noche */
 [data-tema="violeta"] { --rail: #2f2046; --rail-raised: #3f2b5e; --accent: #a779e0; --accent-text: #8443d4; --on-accent: #0f1b2d; --rail-ink-muted: #a69bb5; } /* Violeta */

@@ -84,7 +84,7 @@ router.post('/login', async (req, res) => {
         nombre_empresa: usuario.nombre_empresa,
         iniciales_empresa: usuario.iniciales_empresa,
         cuit_empresa: usuario.cuit_empresa,
-        tema: usuario.tema || 'verde',
+        tema: usuario.tema || 'tcv',
         debe_cambiar_contrasena: Boolean(usuario.debe_cambiar_contrasena),
         modulos,
         ...(empresas_asignadas !== undefined ? { empresas_asignadas } : {})

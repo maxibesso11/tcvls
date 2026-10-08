@@ -3,578 +3,292 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TCV LogiSuite ERP — Gestión de transporte y logística</title>
-  <meta name="description" content="El sistema de gestión para empresas de transporte: viajes, flota, gastos, cuentas corrientes y facturación electrónica en un solo lugar.">
+  <title>TCV LogiSuite — Gestión para empresas de transporte</title>
+  <meta name="description" content="Viajes, flota, cuentas corrientes y facturación electrónica en un solo sistema, pensado para empresas de transporte.">
+  <meta name="theme-color" content="#1b1b1b">
   <link rel="icon" type="image/svg+xml" href="/img/logo/isotipo.svg">
-  <style>
-    :root {
-      --pizarra-900: #0f2747;
-      --pizarra-800: #16386b;
-      --pizarra-700: #1e4d8f;
-      --ambar: #38b6ff;
-      --ambar-suave: #6ecbff;
-      --papel: #f4f7fb;
-      --papel-borde: #dce6f2;
-      --tinta: #1b2733;
-      --tinta-suave: #5a6b7d;
-      --blanco-hueso: #f7fafd;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
-      .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: var(--tinta);
-      background: var(--papel);
-      line-height: 1.6;
-    }
-    .mono {
-      font-family: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, monospace;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 12px;
-    }
-    a { color: inherit; }
-    .contenedor { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-
-    /* ============ Nav ============ */
-    .nav {
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(15, 39, 71, 0.96);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(56, 182, 255, 0.22);
-    }
-    .nav-inner {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 24px; max-width: 1120px; margin: 0 auto;
-    }
-    .nav-marca { display: flex; align-items: center; gap: 11px; text-decoration: none; }
-    .nav-marca img { width: 34px; height: 34px; }
-    .nav-marca span { color: var(--blanco-hueso); font-weight: 700; font-size: 16px; }
-    .nav-marca span em { color: var(--ambar); font-style: normal; }
-    .nav-enlaces { display: flex; align-items: center; gap: 26px; }
-    .nav-enlaces a { color: #c4d3e4; text-decoration: none; font-size: 14px; transition: color .15s; }
-    .nav-enlaces a:hover { color: var(--blanco-hueso); }
-    .btn {
-      display: inline-block; text-decoration: none; font-weight: 600; font-size: 15px;
-      padding: 11px 22px; border-radius: 10px; transition: transform .15s, box-shadow .15s, background .15s;
-      border: none; cursor: pointer;
-    }
-    .btn:focus-visible { outline: 3px solid var(--ambar); outline-offset: 2px; }
-    .btn-ambar { background: var(--ambar); color: var(--pizarra-900); }
-    .btn-ambar:hover { background: var(--ambar-suave); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(56,182,255,.4); }
-    .btn-borde { border: 1px solid rgba(243,241,234,.35); color: var(--blanco-hueso); background: transparent; }
-    .btn-borde:hover { border-color: var(--ambar); color: var(--ambar); }
-    .nav .btn { padding: 9px 18px; font-size: 14px; }
-
-    /* ============ Hero ============ */
-    .hero {
-      background: linear-gradient(168deg, var(--pizarra-900) 0%, var(--pizarra-800) 70%, #23392f 100%);
-      color: var(--blanco-hueso);
-      overflow: hidden;
-      position: relative;
-    }
-    .hero-inner {
-      display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center;
-      padding: 84px 24px 96px; max-width: 1120px; margin: 0 auto;
-      position: relative;
-    }
-    .hero .mono { color: var(--ambar); margin-bottom: 18px; display: block; }
-    .hero h1 {
-      font-size: clamp(34px, 4.6vw, 52px);
-      line-height: 1.12; font-weight: 800; letter-spacing: -0.02em;
-      margin-bottom: 20px;
-    }
-    .hero h1 em { color: var(--ambar); font-style: normal; }
-    .hero p.baja {
-      font-size: 17px; color: #c4cec8; max-width: 480px; margin-bottom: 34px;
-    }
-    .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; }
-    .hero-nota { margin-top: 26px; font-size: 13px; color: #8fa198; }
-
-    /* ruta decorativa del hero */
-    .hero-ruta {
-      position: absolute; left: -40px; bottom: -22px; width: 480px; opacity: .35; pointer-events: none;
-    }
-
-    /* Mock del producto */
-    .mock { position: relative; min-height: 380px; }
-    .tarjeta {
-      background: #fff; color: var(--tinta); border-radius: 14px;
-      box-shadow: 0 18px 44px rgba(0,0,0,.35);
-      padding: 18px 20px; position: absolute;
-    }
-    .tarjeta .et { font-size: 11px; color: var(--tinta-suave); letter-spacing: .05em; text-transform: uppercase; font-weight: 600; }
-    .tarjeta .num { font-size: 26px; font-weight: 800; margin-top: 4px; }
-    .t-kpi { top: 8px; left: 4px; width: 235px; }
-    .t-kpi .num { color: #1e4d8f; }
-    .t-kpi .sub { font-size: 12px; color: var(--tinta-suave); margin-top: 4px; }
-    .t-fac { top: 122px; right: 0; width: 258px; }
-    .t-fac .fila { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #eeece5; }
-    .t-fac .fila:last-child { border-bottom: none; font-weight: 700; }
-    .t-fac .chip {
-      display: inline-block; background: var(--pizarra-800); color: #fff; font-size: 11px;
-      font-weight: 700; border-radius: 6px; padding: 3px 9px; margin-bottom: 10px;
-    }
-    .t-alerta { bottom: 14px; left: 30px; width: 265px; border-left: 4px solid var(--ambar); }
-    .t-alerta .fila-al { display: flex; gap: 9px; align-items: baseline; font-size: 13px; padding: 4px 0; }
-    .t-alerta .dias { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #b5642a; font-weight: 700; white-space: nowrap; }
-
-    /* ============ Secciones ============ */
-    section { padding: 88px 0; position: relative; }
-    .cabeza-seccion { max-width: 640px; margin-bottom: 52px; }
-    .cabeza-seccion .mono { color: #1e4d8f; display: block; margin-bottom: 12px; }
-    .cabeza-seccion h2 { font-size: clamp(26px, 3.2vw, 36px); font-weight: 800; letter-spacing: -0.015em; line-height: 1.18; }
-    .cabeza-seccion p { color: var(--tinta-suave); margin-top: 12px; font-size: 16px; }
-
-    /* la ruta: hilo conductor entre secciones */
-    .hito { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .hito .punto { width: 11px; height: 11px; border-radius: 50%; background: var(--ambar); box-shadow: 0 0 0 4px rgba(56,182,255,.25); }
-    .conector { width: 2px; height: 60px; margin-left: 4px; background: repeating-linear-gradient(to bottom, var(--ambar) 0 6px, transparent 6px 12px); opacity: .55; }
-
-    /* Beneficios */
-    .grilla-beneficios { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
-    .beneficio {
-      background: #fff; border: 1px solid var(--papel-borde); border-radius: 16px; padding: 28px;
-      transition: transform .18s, box-shadow .18s;
-    }
-    .beneficio:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(32,38,36,.08); }
-    .beneficio h3 { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
-    .beneficio p { color: var(--tinta-suave); font-size: 14.5px; }
-    .beneficio .icono {
-      width: 42px; height: 42px; border-radius: 11px; background: var(--pizarra-800);
-      display: flex; align-items: center; justify-content: center; margin-bottom: 16px;
-    }
-    .beneficio .icono svg { width: 22px; height: 22px; stroke: var(--ambar); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-
-    /* Módulos */
-    .seccion-oscura { background: var(--pizarra-800); color: var(--blanco-hueso); }
-    .seccion-oscura .cabeza-seccion .mono { color: var(--ambar); }
-    .seccion-oscura .cabeza-seccion p { color: #c4d3e4; }
-    .grupos-modulos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-    .grupo-mod { background: rgba(243,241,234,.05); border: 1px solid rgba(243,241,234,.12); border-radius: 16px; padding: 26px; }
-    .grupo-mod .mono { color: var(--ambar); display: block; margin-bottom: 16px; }
-    .grupo-mod ul { list-style: none; }
-    .grupo-mod li { padding: 7px 0; font-size: 14.5px; color: #d6ddd8; border-bottom: 1px solid rgba(243,241,234,.08); }
-    .grupo-mod li:last-child { border-bottom: none; }
-    .grupo-mod li strong { color: var(--blanco-hueso); }
-    .nota-modular {
-      margin-top: 30px; padding: 18px 22px; border: 1px dashed rgba(56,182,255,.5); border-radius: 12px;
-      color: #d6ddd8; font-size: 14px; max-width: 720px;
-    }
-    .nota-modular strong { color: var(--ambar); }
-
-    /* Facturación destacada */
-    .fila-factura { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
-    .fila-factura ul { list-style: none; margin-top: 18px; }
-    .fila-factura li { padding: 9px 0 9px 30px; position: relative; font-size: 15px; color: var(--tinta-suave); }
-    .fila-factura li::before {
-      content: ''; position: absolute; left: 0; top: 14px; width: 16px; height: 9px;
-      border-left: 2.5px solid var(--ambar); border-bottom: 2.5px solid var(--ambar); transform: rotate(-45deg);
-    }
-    .mini-factura {
-      background: #fff; border: 1px solid var(--papel-borde); border-radius: 12px; overflow: hidden;
-      box-shadow: 0 16px 40px rgba(32,38,36,.10); font-size: 12px;
-    }
-    .mini-factura .mf-cab { display: flex; border-bottom: 1px solid var(--papel-borde); position: relative; }
-    .mini-factura .mf-cab > div { flex: 1; padding: 14px 16px; }
-    .mini-factura .mf-a {
-      position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-      border: 1px solid var(--pizarra-800); background: #fff; width: 34px; height: 28px;
-      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 17px; color: var(--pizarra-800);
-    }
-    .mini-factura .mf-tabla { display: grid; grid-template-columns: 1fr 70px 90px; background: var(--pizarra-800); color: #fff; font-weight: 700; font-size: 10px; padding: 6px 14px; }
-    .mini-factura .mf-fila { display: grid; grid-template-columns: 1fr 70px 90px; padding: 8px 14px; border-bottom: 1px solid #efede6; }
-    .mini-factura .mf-tot { text-align: right; padding: 10px 14px; }
-    .mini-factura .mf-tot .total { display: inline-block; background: var(--pizarra-800); color: #fff; font-weight: 800; border-radius: 7px; padding: 6px 14px; margin-top: 4px; }
-    .mini-factura .mf-tot .total em { color: var(--ambar); font-style: normal; }
-
-    /* Asesoría */
-    .grilla-asesoria { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-    .servicio {
-      background: #fff; border: 1px solid var(--papel-borde); border-radius: 16px; padding: 28px;
-      transition: transform .18s, box-shadow .18s; position: relative; overflow: hidden;
-    }
-    .servicio::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: linear-gradient(90deg, var(--pizarra-700), var(--ambar));
-    }
-    .servicio:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(15,39,71,.10); }
-    .servicio .num-serv { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--ambar); font-weight: 700; }
-    .servicio h3 { font-size: 18px; font-weight: 700; margin: 10px 0 8px; }
-    .servicio p { color: var(--tinta-suave); font-size: 14.5px; }
-    .asesoria-cierre {
-      margin-top: 34px; display: flex; align-items: center; justify-content: space-between;
-      gap: 20px; flex-wrap: wrap; background: #fff; border: 1px solid var(--papel-borde);
-      border-radius: 16px; padding: 24px 28px;
-    }
-    .asesoria-cierre p { font-size: 15.5px; color: var(--tinta); max-width: 620px; }
-    .asesoria-cierre p strong { color: var(--pizarra-700); }
-
-    /* Modal de solicitud de asesoría */
-    .modal-fondo {
-      position: fixed; inset: 0; z-index: 100;
-      background: rgba(15, 39, 71, 0.55); backdrop-filter: blur(3px);
-      display: flex; align-items: center; justify-content: center; padding: 20px;
-    }
-    .modal-fondo[hidden] { display: none; }
-    .modal-caja {
-      background: #fff; border-radius: 18px; width: 100%; max-width: 460px;
-      box-shadow: 0 24px 60px rgba(15, 39, 71, .3); overflow: hidden;
-      animation: subir .22s ease;
-    }
-    @keyframes subir { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
-    @media (prefers-reduced-motion: reduce) { .modal-caja { animation: none; } }
-    .modal-cab {
-      background: linear-gradient(150deg, var(--pizarra-900), var(--pizarra-700));
-      color: var(--blanco-hueso); padding: 22px 26px; position: relative;
-    }
-    .modal-cab h3 { font-size: 20px; font-weight: 800; }
-    .modal-cab p { font-size: 13px; color: #c4d3e4; margin-top: 4px; }
-    .modal-cerrar {
-      position: absolute; top: 16px; right: 18px; background: transparent; border: none;
-      color: #c4d3e4; font-size: 24px; cursor: pointer; line-height: 1; padding: 2px 6px; border-radius: 6px;
-    }
-    .modal-cerrar:hover { color: #fff; background: rgba(255,255,255,.1); }
-    .modal-cuerpo { padding: 24px 26px; }
-    .campo-f { margin-bottom: 15px; }
-    .campo-f label { display: block; font-size: 13px; font-weight: 600; color: var(--tinta); margin-bottom: 6px; }
-    .campo-f label span { color: #d64545; }
-    .campo-f input, .campo-f textarea {
-      width: 100%; box-sizing: border-box; padding: 11px 13px; font-size: 15px; font-family: inherit;
-      border: 1px solid var(--papel-borde); border-radius: 10px; background: var(--papel); color: var(--tinta);
-      transition: border-color .15s, box-shadow .15s;
-    }
-    .campo-f input:focus, .campo-f textarea:focus {
-      outline: none; border-color: var(--ambar); box-shadow: 0 0 0 3px rgba(56,182,255,.18); background: #fff;
-    }
-    .campo-f textarea { resize: vertical; min-height: 68px; }
-    .campo-error { border-color: #d64545 !important; }
-    .form-aviso { font-size: 12px; color: var(--tinta-suave); margin: 4px 0 16px; line-height: 1.5; }
-    .modal-caja .btn-ambar { width: 100%; padding: 13px; font-size: 15px; text-align: center; }
-
-    /* CTA final */
-    .cta-final { background: linear-gradient(150deg, var(--pizarra-900), var(--pizarra-700)); color: var(--blanco-hueso); text-align: center; }
-    .cta-final .destino { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-    .cta-final .destino .punto-final { width: 13px; height: 13px; border-radius: 50%; background: var(--ambar); box-shadow: 0 0 0 6px rgba(56,182,255,.2); }
-    .cta-final h2 { font-size: clamp(26px, 3.4vw, 40px); font-weight: 800; letter-spacing: -0.015em; margin-bottom: 14px; }
-    .cta-final p { color: #c4d3e4; max-width: 520px; margin: 0 auto 32px; }
-
-    /* Footer */
-    footer { background: var(--pizarra-900); color: #8fa198; padding: 30px 0; font-size: 13px; }
-    .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-    .footer-inner .marca-f { display: flex; align-items: center; gap: 9px; color: var(--blanco-hueso); font-weight: 600; }
-    .footer-inner .marca-f img { width: 24px; height: 24px; }
-    footer a { color: #c4d3e4; text-decoration: none; }
-    footer a:hover { color: var(--ambar); }
-
-    /* Reveal on scroll */
-    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
-    .reveal.visible { opacity: 1; transform: none; }
-
-    /* ============ Responsive ============ */
-    @media (max-width: 900px) {
-      .hero-inner { grid-template-columns: 1fr; padding: 56px 24px 72px; }
-      .mock { min-height: 350px; margin-top: 10px; }
-      .grilla-beneficios { grid-template-columns: 1fr; }
-      .grupos-modulos { grid-template-columns: 1fr; }
-      .grilla-asesoria { grid-template-columns: 1fr; }
-      .fila-factura { grid-template-columns: 1fr; }
-      .nav-enlaces a:not(.btn) { display: none; }
-      section { padding: 64px 0; }
-    }
-  </style>
+  <link rel="stylesheet" href="/stylo/sitio.css?v=20261014">
 </head>
 <body>
 
-  <!-- ================= NAV ================= -->
-  <nav class="nav">
-    <div class="nav-inner">
-      <a class="nav-marca" href="#">
-        <img src="/img/logo/isotipo.svg" alt="">
-        <span>TCV <em>LogiSuite</em> ERP</span>
-      </a>
+  <!-- ================= NAVEGACIÓN ================= -->
+  <nav class="nav" aria-label="Principal">
+    <div class="contenedor nav-inner">
+      <a class="nav-logo" href="/" aria-label="TCV LogiSuite, inicio"><img src="/img/logo/logo_horizontal_claro.svg" alt="TCV LogiSuite"></a>
       <div class="nav-enlaces">
-        <a href="#beneficios">Beneficios</a>
-        <a href="#modulos">Módulos</a>
+        <a href="#producto">Producto</a>
         <a href="#facturacion">Facturación</a>
         <a href="#asesoria">Asesoría</a>
-        <a class="btn btn-ambar" href="/app">Ingresar</a>
+        <a class="boton boton-celeste boton-chico" href="/app">Ingresar</a>
       </div>
     </div>
   </nav>
 
   <!-- ================= HERO ================= -->
   <header class="hero">
-    <svg class="hero-ruta" viewBox="0 0 480 200" aria-hidden="true">
-      <path d="M10 180 Q140 175 210 120 T460 30" fill="none" stroke="#38b6ff" stroke-width="3" stroke-dasharray="10 12" stroke-linecap="round"/>
-      <circle cx="10" cy="180" r="6" fill="#f7fafd"/>
-      <path d="M448 18 L472 30 L450 44 Z" fill="#38b6ff"/>
-    </svg>
-    <div class="hero-inner">
+    <img class="hero-arco" src="/img/landing/arco.svg" alt="" aria-hidden="true">
+    <div class="contenedor hero-grid">
       <div>
-        <span class="mono">ERP para empresas de transporte</span>
-        <h1>Tu flota, tus viajes y tu facturación, <em>en un solo sistema</em>.</h1>
-        <p class="baja">TCV LogiSuite es la gestión completa del transportista: cargá viajes, controlá gastos y vencimientos, facturá electrónicamente y sabé exactamente cuánto te deben.</p>
+        <span class="pestana">ERP para transporte</span>
+        <h1 class="titulo">Tu flota, tus viajes y tu facturación. <em>En un solo lugar.</em></h1>
+        <p class="bajada">Cargás el viaje una vez: el sistema factura, imputa la cuenta del cliente y te muestra cuánto ganaste.</p>
         <div class="hero-cta">
-          <a class="btn btn-ambar" href="/app">Ingresar al sistema</a>
-          <a class="btn btn-borde" href="#beneficios">Conocer más</a>
+          <a class="boton boton-celeste" href="/app">Ingresar al sistema
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <button class="boton boton-borde" type="button" onclick="abrirModalAsesoria(event)">Pedir una demostración</button>
         </div>
-        <div class="hero-nota">Módulos activables · Acceso desde cualquier dispositivo</div>
+        <div class="hero-sellos"><span>Factura electrónica ARCA</span><span>Desde cualquier dispositivo</span><span>Módulos a medida</span></div>
       </div>
-      <div class="mock" aria-hidden="true">
-        <div class="tarjeta t-kpi">
-          <div class="et">Ingresos totales</div>
-          <div class="num">$ 12.480.500</div>
-          <div class="sub">Viajes finalizados y facturados</div>
+
+      <div class="revela" aria-hidden="true" style="position:relative">
+        <div class="ventana">
+          <div class="ventana-barra"><i></i><i></i><i></i><span>tcvlogisuite · tablero</span></div>
+          <div class="ventana-cuerpo">
+            <div class="ventana-rail"><img src="/img/logo/isotipo_claro.svg" alt=""><b class="activo"></b><b></b><b></b><b></b><b></b></div>
+            <div class="ventana-contenido">
+              <div class="ventana-titulo">Tablero · octubre</div>
+              <div class="cifras">
+                <div class="cifra"><small>Resultado neto</small><strong>$ 18,4 M</strong><span class="sube">▲ 22 % de margen</span></div>
+                <div class="cifra"><small>Viajes activos</small><strong>12</strong></div>
+                <div class="cifra"><small>Rendimiento</small><strong>2,41</strong></div>
+              </div>
+              <div class="grafico">
+                <small>Ingresos y costos por mes</small>
+                <svg viewBox="0 0 320 110" role="img" aria-label="Gráfico de barras">
+                  <g fill="#282828">
+                    <rect x="14" y="44" width="16" height="56" rx="3"/><rect x="66" y="36" width="16" height="64" rx="3"/><rect x="118" y="48" width="16" height="52" rx="3"/>
+                    <rect x="170" y="28" width="16" height="72" rx="3"/><rect x="222" y="22" width="16" height="78" rx="3"/><rect x="274" y="12" width="16" height="88" rx="3"/>
+                  </g>
+                  <g fill="#4cc3ff">
+                    <rect x="32" y="64" width="16" height="36" rx="3"/><rect x="84" y="60" width="16" height="40" rx="3"/><rect x="136" y="66" width="16" height="34" rx="3"/>
+                    <rect x="188" y="56" width="16" height="44" rx="3"/><rect x="240" y="58" width="16" height="42" rx="3"/><rect x="292" y="52" width="16" height="48" rx="3"/>
+                  </g>
+                  <line x1="6" y1="100.5" x2="314" y2="100.5" stroke="#d8dce0"/>
+                </svg>
+                <div class="leyenda"><span><i style="background:#282828"></i>Ingresos</span><span><i style="background:#4cc3ff"></i>Costos</span></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="tarjeta t-fac">
-          <span class="chip">FACTURA A · 0001-00000042</span>
-          <div class="fila"><span>Neto gravado</span><span>$ 450.000,00</span></div>
-          <div class="fila"><span>IVA 21%</span><span>$ 94.500,00</span></div>
-          <div class="fila"><span>Total</span><span>$ 544.500,00</span></div>
-        </div>
-        <div class="tarjeta t-alerta">
-          <div class="et" style="margin-bottom:6px">Alertas</div>
-          <div class="fila-al"><span class="dias">VENCE 3D</span><span>Seguro · AB 123 CD</span></div>
-          <div class="fila-al"><span class="dias">VENCE 9D</span><span>Service · EF 456 GH</span></div>
-          <div class="fila-al"><span class="dias">VENCE 15D</span><span>Carnet · J. Domínguez</span></div>
-        </div>
+        <div class="flotante flotante-factura"><span class="sello">A</span><div><b>Factura emitida</b><small>CAE autorizado por ARCA</small></div></div>
+        <div class="flotante flotante-alerta"><span class="sello">5 DÍAS</span><div><b>Vence el seguro</b><small>AB 123 CD</small></div></div>
       </div>
     </div>
   </header>
 
-  <!-- ================= BENEFICIOS ================= -->
-  <section id="beneficios">
+  <!-- ================= RECORRIDO ================= -->
+  <section class="fondo-blanco" aria-labelledby="t-recorrido">
     <div class="contenedor">
-      <div class="hito"><span class="punto"></span><span class="mono" style="color:#1e4d8f">Origen · Por qué LogiSuite</span></div>
-      <div class="conector"></div>
-      <div class="cabeza-seccion reveal">
-        <h2>Menos papeles, más control.</h2>
-        <p>Cada viaje genera remitos, gastos, vencimientos y cobros dispersos. LogiSuite los junta en un solo lugar para que la administración deje de ser una carga.</p>
+      <div class="cabeza revela">
+        <span class="pestana">Cómo funciona</span>
+        <h2 class="titulo" id="t-recorrido">Del remito a la cobranza, <em>sin volver a escribir nada.</em></h2>
       </div>
-      <div class="grilla-beneficios">
-        <div class="beneficio reveal">
-          <div class="icono"><svg viewBox="0 0 24 24"><path d="M3 17 Q8 17 11 12 T21 5"/><path d="M17 4 L21 5 L20 9"/></svg></div>
-          <h3>Todo el viaje, del remito a la factura</h3>
-          <p>Cargá el viaje con su equipo, chofer, carga y tarifa. Al finalizar, lo facturás al CUIT del pagador con dos clics. Sin volver a escribir nada.</p>
+      <div class="recorrido">
+        <div class="recorrido-ruta" aria-hidden="true"></div>
+        <div class="paso revela">
+          <div class="paso-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h13V6H3z"/><path d="M16 10h4l1 3v4h-5"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg></div>
+          <small>01</small><h3>Viaje</h3><p>Origen, carga, equipo y tarifa.</p>
         </div>
-        <div class="beneficio reveal">
-          <div class="icono"><svg viewBox="0 0 24 24"><path d="M12 8 v5 l3 3"/><circle cx="12" cy="13" r="8"/><path d="M9 2 h6"/></svg></div>
-          <h3>Alertas antes del problema</h3>
-          <p>Vencimientos de seguros y VTV, services pendientes, carnets por vencer y descansos de choferes: el sistema te avisa antes, ordenado por urgencia.</p>
+        <div class="paso revela">
+          <div class="paso-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
+          <small>02</small><h3>Factura</h3><p>Se arma sola y ARCA la autoriza.</p>
         </div>
-        <div class="beneficio reveal">
-          <div class="icono"><svg viewBox="0 0 24 24"><path d="M12 2 v20 M17 6 H9.5 a3 3 0 0 0 0 7 h5 a3 3 0 0 1 0 7 H6"/></svg></div>
-          <h3>Sabé quién te debe (y cuánto)</h3>
-          <p>Cuentas corrientes de clientes, choferes y proveedores con saldo al día, resumen en PDF y el pendiente de cobro siempre a la vista en el panel.</p>
+        <div class="paso revela">
+          <div class="paso-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
+          <small>03</small><h3>Cuenta corriente</h3><p>Cada comprobante se imputa solo.</p>
         </div>
-        <div class="beneficio reveal">
-          <div class="icono"><svg viewBox="0 0 24 24"><path d="M4 20 V10 M10 20 V4 M16 20 v-7 M22 20 H2"/></svg></div>
-          <h3>Decidí con números, no con intuición</h3>
-          <p>Ingresos, costos de combustible y gastos, rentabilidad por equipo y los viajes que más facturan. El panel muestra lo que importa de tu operación.</p>
+        <div class="paso revela">
+          <div class="paso-icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
+          <small>04</small><h3>Rentabilidad</h3><p>Ves cuánto deja cada equipo.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ================= MÓDULOS ================= -->
-  <section id="modulos" class="seccion-oscura">
+  <!-- ================= PRODUCTO ================= -->
+  <section class="fondo-gris" id="producto" aria-labelledby="t-producto">
     <div class="contenedor">
-      <div class="hito"><span class="punto"></span><span class="mono" style="color:var(--ambar)">En ruta · Qué incluye</span></div>
-      <div class="conector"></div>
-      <div class="cabeza-seccion reveal">
-        <h2>Quince módulos que cubren toda la operación.</h2>
-        <p>Cada empresa activa solo lo que usa. El panel y los menús se adaptan a los módulos habilitados.</p>
+      <div class="cabeza revela">
+        <span class="pestana">Producto</span>
+        <h2 class="titulo" id="t-producto">Toda la empresa, <em>en una pantalla.</em></h2>
       </div>
-      <div class="grupos-modulos">
-        <div class="grupo-mod reveal">
-          <span class="mono">Operaciones</span>
-          <ul>
-            <li><strong>Viajes</strong> — origen, destino, carga, tarifa y estado</li>
-            <li><strong>Facturación</strong> — facturas electrónicas y notas de crédito</li>
-            <li><strong>Cuentas corrientes</strong> — saldos y resumen en PDF</li>
-            <li><strong>Movimientos</strong> — débitos y créditos por cuenta</li>
-          </ul>
-        </div>
-        <div class="grupo-mod reveal">
-          <span class="mono">Flota</span>
-          <ul>
-            <li><strong>Unidades y equipos</strong> — tractores, acoplados, pesos</li>
-            <li><strong>Choferes</strong> — carnets y descansos</li>
-            <li><strong>Mantenimientos</strong> — services programados</li>
-            <li><strong>Vencimientos</strong> — seguros, VTV, patentes</li>
-            <li><strong>Cubiertas</strong> — posición y estado</li>
-          </ul>
-        </div>
-        <div class="grupo-mod reveal">
-          <span class="mono">Gastos y stock</span>
-          <ul>
-            <li><strong>Combustible</strong> — litros, precio y rendimiento</li>
-            <li><strong>Gastos generales</strong> — por unidad y cuenta</li>
-            <li><strong>Gastos administrativos</strong> — de la empresa</li>
-            <li><strong>Stock</strong> — repuestos por depósito</li>
-          </ul>
-        </div>
-      </div>
-      <div class="nota-modular reveal">
-        <strong>A tu medida:</strong> activá solo los módulos que usás, sumá a tu equipo con sus propios usuarios y elegí la apariencia que más te guste.
+      <div class="bento">
+        <article class="mosaico m-viajes revela">
+          <h3>Viajes y equipos</h3>
+          <p>Cada viaje guarda el camión, el acoplado y el chofer de ese día.</p>
+          <div class="muestra filas" aria-hidden="true">
+            <div><span>Viaje</span><span>Equipo</span><span class="num">Carga</span><span>Estado</span></div>
+            <div><span class="ruta">San José Boquerón → Rosario</span><span class="patente"><span>AE 482 KD</span></span><span class="num">30,68 tn</span><span class="estado facturado">Facturado</span></div>
+            <div><span class="ruta">Marcos Juárez → Timbúes</span><span class="patente"><span>AF 105 TR</span></span><span class="num">29,94 tn</span><span class="estado final">Finalizado</span></div>
+            <div><span class="ruta">Río Cuarto → Villa María</span><span class="patente"><span>AD 913 LP</span></span><span class="num">612 km</span><span class="estado curso">En curso</span></div>
+          </div>
+        </article>
+        <article class="mosaico m-alertas revela">
+          <h3>Alertas a tiempo</h3>
+          <p>Seguros, VTV, services y carnets.</p>
+          <div class="muestra lista-alertas" aria-hidden="true">
+            <div class="rojo"><b>−2</b><span>VTV · AF 105 TR</span></div>
+            <div class="ambar"><b>5</b><span>Seguro · AE 482 KD</span></div>
+            <div class="ambar"><b>9</b><span>Carnet · J. Domínguez</span></div>
+          </div>
+        </article>
+        <article class="mosaico m-cuentas revela">
+          <h3>Cuentas corrientes</h3>
+          <p>Quién te debe y cuánto, al día.</p>
+          <div class="muestra extracto" aria-hidden="true">
+            <div><span>Factura A 00002-148</span><span class="debe">− $ 3.526.666</span></div>
+            <div><span>Recibo transferencia</span><span class="haber">+ $ 2.000.000</span></div>
+            <div class="saldo"><span>Saldo</span><span>− $ 1.526.666</span></div>
+          </div>
+        </article>
+        <article class="mosaico m-combustible revela">
+          <h3>Combustible</h3>
+          <p>Rendimiento real de cada equipo.</p>
+          <div class="muestra medidor" aria-hidden="true">
+            <svg viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#e1e5e9" stroke-width="16" stroke-linecap="round"/><path d="M20 100 A80 80 0 0 1 152 44" fill="none" stroke="#4cc3ff" stroke-width="16" stroke-linecap="round"/></svg>
+            <strong>2,41<small>km/L</small></strong>
+          </div>
+        </article>
+        <article class="mosaico m-modulos revela">
+          <h3>A tu medida</h3>
+          <p>Activás solo lo que usás.</p>
+          <div class="muestra chips" aria-hidden="true">
+            <span class="si">Viajes</span><span class="si">Facturación</span><span class="si">Cuentas</span><span class="si">Combustible</span><span>Stock</span><span class="si">Mantenimientos</span><span>Cubiertas</span><span class="si">Vencimientos</span>
+          </div>
+        </article>
       </div>
     </div>
   </section>
 
   <!-- ================= FACTURACIÓN ================= -->
-  <section id="facturacion">
-    <div class="contenedor">
-      <div class="hito"><span class="punto"></span><span class="mono" style="color:#1e4d8f">Último tramo · Facturación</span></div>
-      <div class="conector"></div>
-      <div class="fila-factura">
-        <div class="reveal">
-          <div class="cabeza-seccion" style="margin-bottom:0">
-            <h2>Facturación electrónica, armada desde tus viajes.</h2>
-            <p>Elegí el cliente y sus viajes: la factura se completa sola y la revisás antes de emitirla.</p>
+  <section class="oscuro" id="facturacion" aria-labelledby="t-factura">
+    <div class="contenedor factura-grid">
+      <div class="revela">
+        <span class="pestana">Facturación electrónica</span>
+        <h2 class="titulo" id="t-factura">Facturá desde tus viajes, <em>con CAE de ARCA.</em></h2>
+        <ul class="puntos">
+          <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/><path d="m15 17 2 2 4-4"/></svg></span>
+            <div><b>Se completa sola</b><span>Un renglón por viaje, editable antes de emitir.</span></div></li>
+          <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 7v6c0 4 3.4 7.3 8 8 4.6-.7 8-4 8-8V7z"/><path d="m9 12 2 2 4-4"/></svg></span>
+            <div><b>La letra correcta, siempre</b><span>A, B o C según tu condición y la del cliente.</span></div></li>
+          <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><rect x="9" y="11" width="6" height="6"/></svg></span>
+            <div><b>PDF con QR</b><span>Listo para enviar. La nota de crédito, a un clic.</span></div></li>
+        </ul>
+        <div class="letras" aria-label="Comprobantes A, B y C"><span>A</span><span>B</span><span>C</span></div>
+      </div>
+      <div class="revela" aria-hidden="true">
+        <div class="papel">
+          <div class="sello-arca">✓ Autorizada por ARCA</div>
+          <div class="papel-cab">
+            <div><img src="/img/logo/logo_horizontal.svg" alt=""><div class="dato" style="margin-top:8px">Responsable inscripto<br>Córdoba</div></div>
+            <div class="papel-letra"><div>A<small>COD. 001</small></div></div>
+            <div class="papel-nro"><b>FACTURA</b><span>N° 00002-00000148<br>08/10/2026</span></div>
           </div>
-          <ul>
-            <li>Un renglón por viaje, con remito, carga y toneladas o kilómetros; todo editable.</li>
-            <li>Factura A, B o C según corresponda, con CAE de ARCA.</li>
-            <li>Anulá con nota de crédito, vinculada al comprobante original.</li>
-            <li>PDF con código QR y tus datos fiscales, listo para enviar al cliente.</li>
-            <li>Cada factura se imputa sola en la cuenta corriente del cliente.</li>
-          </ul>
+          <div class="papel-items">
+            <div><span>Descripción</span><span class="num">Cant.</span><span class="num">Subtotal</span></div>
+            <div><span>Flete de Soja · San José Boquerón a Rosario · CTG 10134872416</span><span class="num">30,68 tn</span><span class="num">$ 2.914.600</span></div>
+            <div><span>Flete de Maíz · Marcos Juárez a Timbúes</span><span class="num">29,94 tn</span><span class="num">$ 1.227.540</span></div>
+          </div>
+          <div class="papel-total"><div>TOTAL<em>$ 5.011.989,40</em></div></div>
+          <div class="papel-pie"><img src="/img/landing/qr-muestra.svg" alt=""><div><b>CAE 86410964917115</b><span>Vencimiento del CAE: 18/10/2026</span></div></div>
         </div>
-        <div class="mini-factura reveal" aria-hidden="true">
-          <div class="mf-cab">
-            <div>
-              <strong style="font-size:14px;color:var(--pizarra-800)">3 de Abril SAS</strong><br>
-              <span style="color:var(--tinta-suave)">Responsable inscripto<br>Ruta 9 km 698, Córdoba</span>
-            </div>
-            <div class="mf-a">A</div>
-            <div style="text-align:right">
-              <strong>FACTURA N° 0001-00000042</strong><br>
-              <span style="color:var(--tinta-suave)">Fecha: 19/06/2026<br>CUIT: 30-71122334-5</span>
-            </div>
-          </div>
-          <div class="mf-tabla"><span>DESCRIPCIÓN</span><span style="text-align:center">CANT.</span><span style="text-align:right">SUBTOTAL</span></div>
-          <div class="mf-fila"><span>Flete Córdoba a Rosario — Remito R-4521</span><span style="text-align:center">1</span><span style="text-align:right">$ 450.000,00</span></div>
-          <div class="mf-fila"><span>Espera en destino</span><span style="text-align:center">4 horas</span><span style="text-align:right">$ 60.000,00</span></div>
-          <div class="mf-tot">
-            Neto $ 510.000,00 · IVA 21% $ 107.100,00<br>
-            <span class="total">TOTAL <em>$ 617.100,00</em></span>
-          </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TABLERO ================= -->
+  <section class="fondo-blanco" aria-labelledby="t-tablero">
+    <div class="contenedor tablero-grid">
+      <div class="revela">
+        <span class="pestana">Tablero</span>
+        <h2 class="titulo" id="t-tablero">Decidí con números, <em>no con intuición.</em></h2>
+        <p class="bajada" style="margin-top:18px">Ingresos, combustible, sueldos y gastos por equipo y por período.</p>
+        <div class="datos-tablero">
+          <div><b>$ / km</b><span>Costo real por kilómetro</span></div>
+          <div><b>% margen</b><span>Rentabilidad por equipo</span></div>
         </div>
+      </div>
+      <div class="barras revela" aria-hidden="true">
+        <h4>Rentabilidad por equipo · septiembre</h4>
+        <div class="barra"><span class="patente"><span>AE 482 KD</span></span><span class="pista"><i style="width:86%"></i></span><span class="valor">$ 4,8 M</span></div>
+        <div class="barra"><span class="patente"><span>AF 105 TR</span></span><span class="pista"><i style="width:68%"></i></span><span class="valor">$ 3,6 M</span></div>
+        <div class="barra"><span class="patente"><span>AD 913 LP</span></span><span class="pista"><i style="width:52%"></i></span><span class="valor">$ 2,7 M</span></div>
+        <div class="barra"><span class="patente"><span>AC 277 MN</span></span><span class="pista"><i class="c" style="width:31%"></i></span><span class="valor">$ 1,1 M</span></div>
+        <div class="barra"><span class="patente"><span>AB 640 QS</span></span><span class="pista"><i class="c" style="width:9%"></i></span><span class="valor neg">− $ 0,2 M</span></div>
       </div>
     </div>
   </section>
 
   <!-- ================= ASESORÍA ================= -->
-  <section id="asesoria" class="seccion-oscura">
+  <section class="fondo-gris" id="asesoria" aria-labelledby="t-asesoria">
     <div class="contenedor">
-      <div class="hito"><span class="punto"></span><span class="mono" style="color:var(--ambar)">Acompañamiento · Asesoría</span></div>
-      <div class="conector"></div>
-      <div class="cabeza-seccion reveal">
-        <h2>No solo el software: te acompañamos en la gestión.</h2>
-        <p>Conocemos el rubro desde adentro. Además del sistema, ofrecemos asesoría para empresas de transporte y logística que quieren ordenar y hacer crecer su operación.</p>
+      <div class="cabeza revela">
+        <span class="pestana">Asesoría</span>
+        <h2 class="titulo" id="t-asesoria">Además del sistema, <em>te acompañamos.</em></h2>
+        <p class="bajada">Conocemos el rubro desde adentro.</p>
       </div>
-      <div class="grilla-asesoria">
-        <div class="grupo-mod reveal" style="border-color:rgba(247,250,253,.14)">
-          <span class="num-serv">01</span>
-          <h3 style="color:var(--blanco-hueso)">Implementación y puesta en marcha</h3>
-          <p style="color:#c4d3e4">Migramos tus datos, configuramos la empresa, los módulos y los usuarios, y capacitamos a tu equipo para que empiece a trabajar con el sistema desde el primer día.</p>
-        </div>
-        <div class="grupo-mod reveal" style="border-color:rgba(247,250,253,.14)">
-          <span class="num-serv">02</span>
-          <h3 style="color:var(--blanco-hueso)">Ordenamiento administrativo</h3>
-          <p style="color:#c4d3e4">Te ayudamos a poner en orden viajes, cuentas corrientes y facturación: definir tarifas, controlar cobros y dejar de perder plata en cuentas que nadie sigue.</p>
-        </div>
-        <div class="grupo-mod reveal" style="border-color:rgba(247,250,253,.14)">
-          <span class="num-serv">03</span>
-          <h3 style="color:var(--blanco-hueso)">Análisis de costos y rentabilidad</h3>
-          <p style="color:#c4d3e4">Interpretamos los números del sistema con vos: costo por kilómetro, rentabilidad por equipo y por cliente, para que cada viaje que tomes sume y no reste.</p>
-        </div>
-        <div class="grupo-mod reveal" style="border-color:rgba(247,250,253,.14)">
-          <span class="num-serv">04</span>
-          <h3 style="color:var(--blanco-hueso)">Facturación electrónica y ARCA</h3>
-          <p style="color:#c4d3e4">Te acompañamos en la integración con ARCA (CAE), la configuración del punto de venta y el circuito fiscal, junto a tu contador, para facturar en regla y sin sobresaltos.</p>
-        </div>
-        <div class="grupo-mod reveal" style="border-color:rgba(247,250,253,.14)">
-          <span class="num-serv">05</span>
-          <h3 style="color:var(--blanco-hueso)">Gestión de flota y vencimientos</h3>
-          <p style="color:#c4d3e4">Diseñamos con vos el plan de mantenimientos, el control de cubiertas y el seguimiento de seguros y VTV, para bajar las paradas imprevistas y los gastos evitables.</p>
-        </div>
-        <div class="grupo-mod reveal" style="border-color:rgba(247,250,253,.14)">
-          <span class="num-serv">06</span>
-          <h3 style="color:var(--blanco-hueso)">Soporte continuo</h3>
-          <p style="color:#c4d3e4">No te dejamos solo después de la venta: soporte del sistema, evacuación de dudas y mejoras según cómo crece tu operación, con actualizaciones periódicas.</p>
-        </div>
+      <div class="servicios">
+        <article class="servicio revela"><span class="n">01</span><h3>Puesta en marcha</h3><p>Cargamos tus datos, configuramos la empresa y capacitamos a tu equipo.</p></article>
+        <article class="servicio revela"><span class="n">02</span><h3>Orden administrativo</h3><p>Tarifas, cobros y facturación electrónica en regla, junto a tu contador.</p></article>
+        <article class="servicio revela"><span class="n">03</span><h3>Costos y rentabilidad</h3><p>Leemos los números con vos para que cada viaje sume.</p></article>
       </div>
-      <div class="asesoria-cierre reveal">
-        <p><strong>¿Querés ordenar tu empresa de transporte?</strong> Combiná el sistema con nuestra asesoría y convertí la administración en una ventaja competitiva, no en una carga.</p>
-        <a class="btn btn-ambar" href="#" onclick="abrirModalAsesoria(event)" style="white-space:nowrap">Solicitar asesoría</a>
+      <div class="asesoria-pie revela">
+        <p><strong>¿Querés ordenar tu empresa de transporte?</strong></p>
+        <button class="boton boton-celeste" type="button" onclick="abrirModalAsesoria(event)">Solicitar asesoría</button>
       </div>
     </div>
   </section>
 
-  <!-- ================= CTA FINAL ================= -->
-  <section class="cta-final">
+  <!-- ================= CIERRE ================= -->
+  <section class="oscuro cierre" aria-labelledby="t-cierre">
+    <img class="cierre-isotipo" src="/img/landing/arco.svg" alt="" aria-hidden="true">
     <div class="contenedor">
-      <div class="destino reveal"><span class="punto-final"></span><span class="mono" style="color:var(--ambar)">Destino</span></div>
-      <h2 class="reveal">Empezá a manejar tu empresa,<br>no tus planillas.</h2>
-      <p class="reveal">Ingresá con tu usuario y recorré el sistema. Si querés una demostración o sumar tu empresa, escribinos.</p>
-      <div class="reveal">
-        <a class="btn btn-ambar" href="/app" style="font-size:16px;padding:14px 34px">Ingresar al sistema</a>
+      <h2 class="titulo revela" id="t-cierre">Manejá tu empresa, <em>no tus planillas.</em></h2>
+      <p class="bajada revela">Entrá con tu usuario o pedinos una demostración.</p>
+      <div class="hero-cta revela">
+        <a class="boton boton-celeste" href="/app">Ingresar al sistema</a>
+        <button class="boton boton-borde" type="button" onclick="abrirModalAsesoria(event)">Pedir una demostración</button>
       </div>
     </div>
   </section>
 
-  <!-- ================= FOOTER ================= -->
-  <footer>
-    <div class="contenedor footer-inner">
-      <div class="marca-f"><img src="/img/logo/isotipo.svg" alt="">TCV LogiSuite ERP</div>
-      <div>Gestión de transporte y logística</div>
-      <div><a href="/app">Ingresar</a></div>
+  <!-- ================= PIE ================= -->
+  <footer class="pie">
+    <div class="contenedor">
+      <div class="pie-grid">
+        <div><img src="/img/logo/logo_horizontal_claro.svg" alt="TCV LogiSuite"><p style="font-size:14px;max-width:280px">Gestión para empresas de transporte y logística.</p></div>
+        <div><h4>Producto</h4><a href="#producto">Módulos</a><a href="#facturacion">Facturación</a><a href="#asesoria">Asesoría</a></div>
+        <div><h4>Legal</h4><a href="/privacidad.html">Política de privacidad</a><a href="/terminos.html">Términos de uso</a></div>
+        <div><h4>Cuenta</h4><a href="/app">Ingresar</a><a href="#" onclick="abrirModalAsesoria(event)">Contacto</a></div>
+      </div>
+      <div class="pie-legal"><span>© <span id="anio">2026</span> TCV LogiSuite. Todos los derechos reservados.</span><span><a href="/privacidad.html">Privacidad</a> · <a href="/terminos.html">Términos</a></span></div>
     </div>
   </footer>
 
-  <!-- ================= MODAL SOLICITAR ASESORÍA ================= -->
+  <!-- ================= MODAL: SOLICITAR ASESORÍA ================= -->
   <div class="modal-fondo" id="modal-asesoria" hidden>
     <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="modal-aseso-titulo">
       <div class="modal-cab">
-        <button class="modal-cerrar" onclick="cerrarModalAsesoria()" aria-label="Cerrar">&times;</button>
-        <h3 id="modal-aseso-titulo">Solicitar asesoría</h3>
-        <p>Completá tus datos y te contactamos a la brevedad.</p>
+        <button class="modal-cerrar" type="button" onclick="cerrarModalAsesoria()" aria-label="Cerrar">&times;</button>
+        <h3 id="modal-aseso-titulo">Hablemos</h3>
+        <p>Dejanos tus datos y te contactamos a la brevedad.</p>
       </div>
       <div class="modal-cuerpo">
-        <div class="campo-f">
-          <label for="a-nombre">Nombre y apellido <span>*</span></label>
-          <input id="a-nombre" type="text" autocomplete="name" placeholder="Juan Pérez">
-        </div>
-        <div class="campo-f">
-          <label for="a-empresa">Nombre de la empresa <span>*</span></label>
-          <input id="a-empresa" type="text" autocomplete="organization" placeholder="Transportes del Sur SRL">
-        </div>
-        <div class="campo-f">
-          <label for="a-email">Email <span>*</span></label>
-          <input id="a-email" type="email" autocomplete="email" placeholder="juan@empresa.com.ar">
-        </div>
-        <div class="campo-f">
-          <label for="a-telefono">Teléfono <span>*</span></label>
-          <input id="a-telefono" type="tel" autocomplete="tel" placeholder="351 555 1234">
-        </div>
-        <div class="campo-f">
-          <label for="a-mensaje">Mensaje (opcional)</label>
-          <textarea id="a-mensaje" placeholder="Contanos brevemente qué necesitás"></textarea>
-        </div>
-        <p class="form-aviso" id="a-aviso">Enviamos tu solicitud a nuestro equipo y te contactamos a la brevedad por email o teléfono.</p>
-        <button class="btn btn-ambar" onclick="enviarAsesoria()">Enviar solicitud</button>
+        <div class="campo-f"><label for="a-nombre">Nombre y apellido <span>*</span></label><input id="a-nombre" type="text" autocomplete="name"></div>
+        <div class="campo-f"><label for="a-empresa">Empresa <span>*</span></label><input id="a-empresa" type="text" autocomplete="organization"></div>
+        <div class="campo-f"><label for="a-email">Email <span>*</span></label><input id="a-email" type="email" autocomplete="email"></div>
+        <div class="campo-f"><label for="a-telefono">Teléfono <span>*</span></label><input id="a-telefono" type="tel" autocomplete="tel"></div>
+        <div class="campo-f"><label for="a-mensaje">¿Qué necesitás? (opcional)</label><textarea id="a-mensaje"></textarea></div>
+        <p class="form-aviso" id="a-aviso">Usamos estos datos solo para responderte. Ver la <a href="/privacidad.html">política de privacidad</a>.</p>
+        <button class="boton boton-celeste" type="button" id="a-enviar" onclick="enviarAsesoria()">Enviar</button>
       </div>
     </div>
   </div>
 
   <script>
-    // ===== Modal de solicitud de asesoría =====
+    document.getElementById('anio').textContent = new Date().getFullYear();
+
+    // ===== Modal de asesoría =====
     function abrirModalAsesoria(ev) {
       if (ev) ev.preventDefault();
       document.getElementById('modal-asesoria').hidden = false;
@@ -585,7 +299,6 @@
       document.getElementById('modal-asesoria').hidden = true;
       document.body.style.overflow = '';
     }
-    // Cerrar al hacer clic fuera de la caja o con Escape
     document.getElementById('modal-asesoria').addEventListener('click', e => {
       if (e.target.id === 'modal-asesoria') cerrarModalAsesoria();
     });
@@ -602,83 +315,62 @@
       };
       const mensaje = document.getElementById('a-mensaje').value.trim();
       const aviso = document.getElementById('a-aviso');
-      const boton = document.querySelector('#modal-asesoria .btn-ambar');
-
-      // Validación de los campos obligatorios
+      const boton = document.getElementById('a-enviar');
       let faltante = null;
       Object.values(campos).forEach(c => c.classList.remove('campo-error'));
       for (const campo of Object.values(campos)) {
         if (!campo.value.trim()) { campo.classList.add('campo-error'); faltante = faltante || campo; }
       }
-      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(campos.email.value.trim());
-      if (!emailOk && campos.email.value.trim()) { campos.email.classList.add('campo-error'); faltante = faltante || campos.email; }
-
+      const email = campos.email.value.trim();
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      if (email && !emailOk) { campos.email.classList.add('campo-error'); faltante = faltante || campos.email; }
       if (faltante) {
-        aviso.textContent = (!emailOk && campos.email.value.trim())
-          ? 'Revisá el email: no parece válido.'
-          : 'Completá los campos obligatorios (nombre, empresa, email y teléfono).';
-        aviso.style.color = '#d64545';
+        aviso.textContent = email && !emailOk ? 'Revisá el email: no parece válido.' : 'Completá nombre, empresa, email y teléfono.';
+        aviso.style.color = 'var(--peligro)';
         faltante.focus();
         return;
       }
-
-      const datos = {
-        nombre: campos.nombre.value.trim(),
-        empresa: campos.empresa.value.trim(),
-        email: campos.email.value.trim(),
-        telefono: campos.telefono.value.trim(),
-        mensaje
-      };
-
+      const datos = { nombre: campos.nombre.value.trim(), empresa: campos.empresa.value.trim(), email, telefono: campos.telefono.value.trim(), mensaje };
       boton.disabled = true;
-      const textoOriginal = boton.textContent;
       boton.textContent = 'Enviando…';
-      aviso.style.color = 'var(--tinta-suave)';
+      aviso.style.color = '';
       aviso.textContent = 'Enviando tu solicitud…';
-
       try {
-        const resp = await fetch('/api/asesoria', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(datos)
-        });
+        const resp = await fetch('/api/asesoria', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos) });
         const cuerpo = await resp.json().catch(() => ({}));
         if (resp.ok) {
-          // Éxito: reemplazar el formulario por un mensaje de confirmación
           document.querySelector('#modal-asesoria .modal-cuerpo').innerHTML =
-            '<div style="text-align:center;padding:12px 0">' +
-              '<div style="width:56px;height:56px;border-radius:50%;background:#e3f4ff;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">' +
-                '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1e4d8f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
+            '<div style="text-align:center;padding:14px 0">' +
+              '<div style="width:60px;height:60px;border-radius:18px 18px 18px 4px;background:var(--celeste);display:grid;place-items:center;margin:0 auto 18px">' +
+                '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#282828" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
               '</div>' +
-              '<h3 style="font-size:19px;color:#1b2733;margin-bottom:8px">¡Solicitud enviada!</h3>' +
-              '<p style="color:#5a6b7d;font-size:14.5px">Recibimos tus datos y te vamos a contactar a la brevedad. ¡Gracias!</p>' +
-              '<button class="btn btn-ambar" style="margin-top:20px" onclick="cerrarModalAsesoria()">Cerrar</button>' +
+              '<h3 class="titulo" style="font-size:24px;margin-bottom:8px">¡Recibido!</h3>' +
+              '<p style="color:var(--tinta-2)">Te vamos a contactar a la brevedad.</p>' +
+              '<button class="boton boton-carbon" style="margin:22px auto 0" onclick="cerrarModalAsesoria()">Cerrar</button>' +
             '</div>';
         } else {
-          aviso.style.color = '#d64545';
-          aviso.textContent = cuerpo.error || 'No pudimos enviar la solicitud. Intentá de nuevo en unos minutos.';
+          aviso.style.color = 'var(--peligro)';
+          aviso.textContent = cuerpo.error || 'No pudimos enviar la solicitud. Probá de nuevo en unos minutos.';
           boton.disabled = false;
-          boton.textContent = textoOriginal;
+          boton.textContent = 'Enviar';
         }
       } catch (err) {
-        aviso.style.color = '#d64545';
-        aviso.textContent = 'No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.';
+        aviso.style.color = 'var(--peligro)';
+        aviso.textContent = 'No pudimos conectar con el servidor. Revisá tu conexión.';
         boton.disabled = false;
-        boton.textContent = textoOriginal;
+        boton.textContent = 'Enviar';
       }
     }
-  </script>
 
-  <script>
     // Revelado suave al hacer scroll (respeta prefers-reduced-motion)
-    const prefiereMenos = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!prefiereMenos && 'IntersectionObserver' in window) {
+    const menosMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!menosMovimiento && 'IntersectionObserver' in window) {
       const io = new IntersectionObserver(entradas => {
         entradas.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
       }, { threshold: 0.12 });
-      document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+      document.querySelectorAll('.revela').forEach(el => io.observe(el));
     } else {
-      document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+      document.querySelectorAll('.revela').forEach(el => el.classList.add('visible'));
     }
   </script>
 </body>

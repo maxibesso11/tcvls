@@ -64,7 +64,7 @@ CREATE TABLE USUARIOS (
     -- está operando en cada momento viaja en la cabecera X-Empresa-Id, no en
     -- esta columna. USUARIO: solo opera su empresa.
     rol ENUM('ADMIN', 'ADMIN_EMPRESA', 'ADMIN_MULTIEMPRESA', 'USUARIO') NOT NULL DEFAULT 'USUARIO',
-    tema VARCHAR(30) NOT NULL DEFAULT 'verde',
+    tema VARCHAR(30) NOT NULL DEFAULT 'tcv',
     activo TINYINT(1) NOT NULL DEFAULT 1,
     -- Contraseña asignada por otro: debe cambiarse al ingresar (migración 024).
     debe_cambiar_contrasena TINYINT(1) NOT NULL DEFAULT 0,
@@ -656,7 +656,8 @@ INSERT INTO MIGRACIONES (nombre) VALUES
 ('migracion_031_vencimientos_mantenimientos_generales.sql'),
 ('migracion_032_auditoria.sql'),
 ('migracion_033_baja_equipos.sql'),
-('migracion_034_facturacion_electronica.sql');
+('migracion_034_facturacion_electronica.sql'),
+('migracion_035_tema_marca.sql');
 
 -- =========================================================
 -- FIN DE LA INSTALACIÓN

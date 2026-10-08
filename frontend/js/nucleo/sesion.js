@@ -10,7 +10,7 @@ let SESION = null;
 
 // Catálogo de temas disponibles (debe coincidir con stylo/base/temas.css y el backend)
 const TEMAS = [
-  { id: 'tcv', nombre: 'TCV', rail: '#16386b', rail2: '#1c4789', acento: '#38b6ff' },
+  { id: 'tcv', nombre: 'TCV (marca)', rail: '#282828', rail2: '#3a3a3a', acento: '#4cc3ff' },
   { id: 'verde', nombre: 'Verde pizarra', rail: '#1d2f29', rail2: '#2b453c', acento: '#e8a13c' },
   { id: 'azul', nombre: 'Azul noche', rail: '#1a2940', rail2: '#243959', acento: '#4f9dde' },
   { id: 'violeta', nombre: 'Violeta', rail: '#2f2046', rail2: '#3f2b5e', acento: '#a779e0' },
@@ -39,6 +39,7 @@ function mostrarLogin() {
   $('#multiempresa-selector-pantalla').hidden = true;
   $('#login-pantalla').hidden = false;
   $('#app-contenedor').hidden = true;
+  setTimeout(() => { const u = $('#login-usuario'); if (u && !u.value) u.focus(); }, 50);
 }
 
 function mostrarApp() {
@@ -211,7 +212,8 @@ $('#btn-ver-clave').addEventListener('click', () => {
   const visible = input.type === 'text';
   input.type = visible ? 'password' : 'text';
   boton.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
-  boton.textContent = visible ? 'Mostrar contraseña' : 'Ocultar contraseña';
+  boton.title = visible ? 'Mostrar contraseña' : 'Ocultar contraseña';
+  boton.classList.toggle('activo', !visible);
   input.focus();
 });
 
