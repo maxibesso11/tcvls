@@ -247,6 +247,8 @@ async function renderFacturador(id) {
     _facturadorInicial = null;
     $('#fd-cliente').value = ini.id_cuenta;
     await _fdElegirCliente(ini.id_cuenta, { viajes: ini.viajes });
+    // Desde un viaje: la lista empieza plegada, con la opción de sumar otros.
+    _fdPlegarViajes(true);
   }
   _fdPintarItems();
 }
@@ -296,7 +298,7 @@ function _fdPlegarViajes(forzar) {
   const cont = $('#fd-viajes');
   const plegado = forzar !== undefined ? forzar : !cont.classList.contains('plegado');
   cont.classList.toggle('plegado', plegado);
-  $('#fd-viajes-plegar').textContent = plegado ? 'Mostrar lista' : 'Ocultar lista';
+  $('#fd-viajes-plegar').textContent = plegado ? (F.viajes.size ? 'Agregar más viajes' : 'Mostrar lista') : 'Ocultar lista';
 }
 
 function _fdResumenViajes() {

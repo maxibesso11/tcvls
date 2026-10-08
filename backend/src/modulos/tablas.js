@@ -53,6 +53,7 @@ module.exports = [
     ruta: 'viajes',
     table: 'VIAJES',
     idField: 'id_viaje',
+    enriquecer: syncViajes.comprobantesDeViajes,
     filtroEquipo: 'directo',
     filtrosExactos: ['estado'],
     filtrosLike: ['tipo_carga'],

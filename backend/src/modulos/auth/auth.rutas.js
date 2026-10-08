@@ -51,7 +51,7 @@ router.post('/login', async (req, res) => {
     }
 
     const [[usuario]] = await pool.query(
-      `SELECT u.*, e.nombre AS nombre_empresa, e.iniciales AS iniciales_empresa, e.cuit AS cuit_empresa
+      `SELECT u.*, e.nombre AS nombre_empresa, e.iniciales AS iniciales_empresa, e.cuit AS cuit_empresa, e.condicion_iva AS condicion_iva_empresa
        FROM USUARIOS u
        LEFT JOIN EMPRESAS e ON e.id_empresa = u.id_empresa
        WHERE u.nombre_usuario = ? AND u.activo = 1`,
@@ -84,6 +84,7 @@ router.post('/login', async (req, res) => {
         nombre_empresa: usuario.nombre_empresa,
         iniciales_empresa: usuario.iniciales_empresa,
         cuit_empresa: usuario.cuit_empresa,
+        condicion_iva_empresa: usuario.condicion_iva_empresa || null,
         tema: usuario.tema || 'tcv',
         debe_cambiar_contrasena: Boolean(usuario.debe_cambiar_contrasena),
         modulos,
@@ -118,15 +119,17 @@ router.get('/yo', requiereAutenticacionConCambioPendiente, resolverEmpresaMultie
 
     if (usuario.id_empresa) {
       const [[empresa]] = await pool.query(
-        'SELECT nombre, iniciales, cuit FROM EMPRESAS WHERE id_empresa = ?', [usuario.id_empresa]
+        'SELECT nombre, iniciales, cuit, condicion_iva FROM EMPRESAS WHERE id_empresa = ?', [usuario.id_empresa]
       );
       usuario.nombre_empresa = empresa ? empresa.nombre : null;
       usuario.iniciales_empresa = empresa ? empresa.iniciales : null;
       usuario.cuit_empresa = empresa ? empresa.cuit : null;
+      usuario.condicion_iva_empresa = empresa ? empresa.condicion_iva : null;
     } else {
       usuario.nombre_empresa = null;
       usuario.iniciales_empresa = null;
       usuario.cuit_empresa = null;
+      usuario.condicion_iva_empresa = null;
     }
 
     usuario.modulos = await modulosActivos(usuario.id_empresa);

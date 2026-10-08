@@ -3,9 +3,10 @@
 // del usuario autenticado (req.usuario.id_empresa).
 const express = require('express');
 const pool = require('../../config/db');
-const { SQL_BASE_VIAJE, SQL_IVA_VIAJE, SQL_UNIDADES_DEL_VIAJE, sqlConsumoDelEquipo, filtros } = require('./dashboard.consultas');
+const { SQL_BASE_VIAJE, sqlIvaViaje, SQL_UNIDADES_DEL_VIAJE, sqlConsumoDelEquipo, filtros } = require('./dashboard.consultas');
 const { sueldoFijoProrrateado } = require('./dashboard.calculos');
 const { responderError } = require('../../lib/errores');
+const { discriminaIva } = require('../../lib/condicionFiscal');
 const router = express.Router();
 
 // Atajo: solo filtro de empresa
@@ -378,6 +379,7 @@ router.get('/consumos-por-equipo', async (req, res) => {
 // ==================== INGRESOS POR VIAJE ====================
 router.get('/ingresos-por-viaje', soloFinanzas, async (req, res) => {
   try {
+    const SQL_IVA_VIAJE = sqlIvaViaje(await discriminaIva(emp(req)));
     const f = filtros(req, { colFecha: 'v.fecha_origen', colEquipo: 'v.id_equipo', aliasEmpresa: 'v.id_empresa' });
 
     if (req.query.detalle === '1') {
@@ -451,6 +453,7 @@ router.get('/ingresos-por-viaje', soloFinanzas, async (req, res) => {
 // ==================== RENTABILIDAD POR EQUIPO ====================
 router.get('/rentabilidad-equipos', soloFinanzas, async (req, res) => {
   try {
+    const SQL_IVA_VIAJE = sqlIvaViaje(await discriminaIva(emp(req)));
     const e = emp(req);
     const desde = req.query.fecha_desde || null;
     const hasta = req.query.fecha_hasta || null;

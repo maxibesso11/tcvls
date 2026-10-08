@@ -53,7 +53,7 @@ function responderError(res, err) {
   return responderErrorGeneral(res, err);
 }
 
-function crudFactory({ table, idField, fields, filtroEquipo, ambitoUnidad, filtrosExactos, filtrosLike, filtroFecha, ordenable, hooks = {} }) {
+function crudFactory({ table, idField, fields, filtroEquipo, ambitoUnidad, filtrosExactos, filtrosLike, filtroFecha, ordenable, enriquecer, hooks = {} }) {
   const router = express.Router();
 
   // Listar (filtrado por empresa + filtros opcionales)
@@ -129,6 +129,8 @@ function crudFactory({ table, idField, fields, filtroEquipo, ambitoUnidad, filtr
       sql += ` LIMIT ? OFFSET ?`;
 
       const [rows] = await pool.query(sql, [...params, porPagina, offset]);
+      // Datos derivados que agrega cada módulo a las filas (ej. el comprobante de un viaje)
+      if (enriquecer && rows.length) await enriquecer(rows, req);
       res.json({
         datos: rows,
         paginacion: { pagina, por_pagina: porPagina, total, total_paginas: totalPaginas }

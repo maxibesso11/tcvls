@@ -52,8 +52,10 @@ async function renderViajeDetalle(idViaje) {
   const comprobanteVigente = comprobantes.find(f => f.estado !== 'ANULADA');
 
   const acciones = [{ texto: 'Editar', primario: true, onclick: `abrirModal('viajes', ${v.id_viaje})` }];
-  if (v.estado !== 'FACTURADO' && v.estado !== 'FINALIZADO') acciones.push({ texto: 'Avanzar estado', onclick: `avanzarEstadoViaje(${v.id_viaje})` });
-  if (finalizado && moduloActivo('facturacion') && !comprobanteVigente) acciones.push({ texto: 'Facturar', onclick: `facturarViajeConComprobante(${v.id_viaje}, ${jsArg(v.pagador)})` });
+  // Finalizado: "Facturar" abre la elección de siempre (factura electrónica,
+  // líquido producto o sin facturar). Antes de finalizar: avanzar el estado.
+  if (finalizado && !comprobanteVigente) acciones.push({ texto: 'Facturar', onclick: `avanzarEstadoViaje(${v.id_viaje})` });
+  else if (v.estado !== 'FACTURADO' && !finalizado) acciones.push({ texto: 'Avanzar estado', onclick: `avanzarEstadoViaje(${v.id_viaje})` });
   if (v.estado !== 'FACTURADO') acciones.push({ texto: 'Eliminar', peligro: true, onclick: `eliminarRegistro('viajes', ${v.id_viaje})` });
 
   const recorrido = `<div class="hoja-cuerpo"><div class="ficha-datos ficha-detalle">
@@ -79,7 +81,7 @@ async function renderViajeDetalle(idViaje) {
     ${datoDetalle('Resultado', v.resultado != null ? `${fmtNum(v.resultado)} ${unidadCantidad}` : '<span class="tenue">Sin cargar</span>')}
     ${datoDetalle('Comisión', Number(v.comision) ? `${fmtNum(v.comision)} %` : '')}
     ${datoDetalle('Neto del viaje', fmtDinero(neto) + (Number(v.comision) ? ` <span class="tenue">de ${fmtDinero(base)}</span>` : ''))}
-    ${datoDetalle('Con IVA', fmtDinero(conIVA))}
+    ${empresaDiscriminaIva() ? datoDetalle('Con IVA', fmtDinero(conIVA)) : ''}
     ${datoDetalle('Facturación', v.estado === 'FACTURADO' ? valorViajeFacturado(v) : '<span class="tenue">Todavía no facturado</span>')}
   </div></div>`;
 

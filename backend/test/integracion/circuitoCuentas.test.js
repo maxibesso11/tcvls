@@ -324,6 +324,27 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     assert.equal(await saldo(proveedor.id_cuenta), 951201);
   });
 
+  test('no acepta toneladas descargadas absurdas frente a lo cargado (falta la coma)', async () => {
+    const cliente = await crearCuenta('CLIENTE');
+    const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, { tipo_tarifa: 'POR TONELADA', tarifa: 80000, cantidad_cargada: 30.14 })));
+    const r = await entorno.api('PUT', `/api/viajes/${viaje.id_viaje}`, { estado: 'FINALIZADO', resultado: 5112 });
+    assert.equal(r.estado, 400);
+    assert.match(r.datos.error, /coma/);
+    await ok(entorno.api('PUT', `/api/viajes/${viaje.id_viaje}`, { estado: 'FINALIZADO', resultado: 30.12 }));
+  });
+
+  test('una empresa monotributista no suma IVA al facturar un viaje', async () => {
+    await entorno.pool.query("UPDATE EMPRESAS SET condicion_iva = 'MONOTRIBUTO' WHERE id_empresa = 1");
+    try {
+      const cliente = await crearCuenta('CLIENTE');
+      const viaje = await ok(entorno.api('POST', '/api/viajes', viajeBase(cliente, { estado: 'FINALIZADO' })));
+      await ok(entorno.api('PUT', `/api/viajes/${viaje.id_viaje}`, { estado: 'FACTURADO', modo_facturacion: 'LIQUIDO_PRODUCTO' }));
+      assert.equal(await saldo(cliente.id_cuenta), -100000);
+    } finally {
+      await entorno.pool.query("UPDATE EMPRESAS SET condicion_iva = 'RESPONSABLE INSCRIPTO' WHERE id_empresa = 1");
+    }
+  });
+
   test('el rendimiento de combustible solo usa las cargas con los km cargados', async () => {
     const proveedor = await crearCuenta('PROVEEDOR');
     const equipo = await crearEquipo(await armarComposicion());

@@ -11,6 +11,7 @@
 // Todas las funciones reciben la conexión (db) de la transacción en curso.
 const { calcularMontoCuentaCliente, calcularLiquidacionChofer } = require('./viajes.calculos');
 const { ORIGEN, crearMovimientoAutomatico, eliminarMovimientosDeOrigen } = require('../cuentas/movimientos.servicio');
+const { discriminaIva } = require('../../lib/condicionFiscal');
 
 // ---------- Búsqueda de cuentas y chofer ----------
 
@@ -85,8 +86,9 @@ async function comprobanteDelViaje(db, idViaje, idEmpresa) {
   return factura || null;
 }
 
-function etiquetaFiscal(viaje) {
+function etiquetaFiscal(viaje, conIva = true) {
   const comision = Number(viaje.comision) || 0;
+  if (!conIva) return comision > 0 ? `(comisión ${comision}%, sin IVA)` : '(sin IVA)';
   const conComision = texto => (comision > 0 ? `comisión ${comision}% e ${texto}` : texto);
   if (viaje.modo_facturacion === 'SIN_FACTURAR') {
     return comision > 0 ? `(comisión ${comision}%, sin IVA)` : '(sin IVA)';
@@ -103,12 +105,13 @@ async function crearFacturacion(db, viaje, idEmpresa) {
   if (!viaje.pagador) return;
   const cuenta = await buscarCuentaPagador(db, viaje.pagador, idEmpresa);
   if (!cuenta) return;
-  const monto = calcularMontoCuentaCliente(viaje);
+  const conIva = await discriminaIva(idEmpresa, db);
+  const monto = calcularMontoCuentaCliente(viaje, { conIva });
   if (monto === 0) return;
 
   const concepto = `FACTURACION VIAJE #${viaje.id_viaje}, ${viaje.origen} a ${viaje.destino}` +
                    (viaje.numero_remito ? `, remito ${viaje.numero_remito}` : '') +
-                   ` ${etiquetaFiscal(viaje)}`;
+                   ` ${etiquetaFiscal(viaje, conIva)}`;
 
   await crearMovimientoAutomatico(db, {
     idEmpresa,

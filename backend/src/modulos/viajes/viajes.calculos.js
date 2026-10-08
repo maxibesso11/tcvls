@@ -35,9 +35,10 @@ function calcularNetoConComision(viaje) {
 //   LIQUIDO_PRODUCTO  → neto + IVA
 //   FACTURA           → neto + IVA (además se emite el comprobante formal)
 //   (NULL/otro)       → neto + IVA (compatibilidad con viajes previos)
-function calcularMontoCuentaCliente(viaje) {
+// Una empresa que no discrimina IVA (monotributo o exento) nunca suma IVA.
+function calcularMontoCuentaCliente(viaje, { conIva = true } = {}) {
   const neto = calcularNetoConComision(viaje);
-  if (viaje.modo_facturacion === 'SIN_FACTURAR') return neto;
+  if (!conIva || viaje.modo_facturacion === 'SIN_FACTURAR') return neto;
   return neto * (1 + IVA);
 }
 

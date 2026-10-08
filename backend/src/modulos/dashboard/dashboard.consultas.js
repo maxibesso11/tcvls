@@ -15,9 +15,13 @@ const SQL_NETO_VIAJE = `(${SQL_BASE_VIAJE} * (1 - COALESCE(v.comision, 0) / 100)
 // facturación lleva IVA (líquido producto o factura formal). Los viajes
 // marcados SIN_FACTURAR no generan IVA. Los viajes anteriores a la columna
 // modo_facturacion (NULL) se tratan como con IVA, igual que su imputación.
-const SQL_IVA_VIAJE = `(CASE WHEN v.estado = 'FACTURADO'
+// Si la empresa no discrimina IVA (monotributo o exento) es siempre 0, y un
+// viaje incluido en una factura C emitida tampoco lleva IVA.
+const sqlIvaViaje = conIva => (!conIva ? '0' : `(CASE WHEN v.estado = 'FACTURADO'
         AND COALESCE(v.modo_facturacion, 'LIQUIDO_PRODUCTO') <> 'SIN_FACTURAR'
-      THEN ${SQL_NETO_VIAJE} * ${IVA_ALICUOTA} ELSE 0 END)`;
+        AND NOT EXISTS (SELECT 1 FROM FACTURA_VIAJES fv JOIN FACTURAS f ON f.id_factura = fv.id_factura
+                         WHERE fv.id_viaje = v.id_viaje AND f.estado = 'EMITIDA' AND f.tipo_comprobante = 'C')
+      THEN ${SQL_NETO_VIAJE} * ${IVA_ALICUOTA} ELSE 0 END)`);
 
 // Camión (up) y acoplado (us) que hicieron el viaje: la foto guardada en el
 // viaje (migración 025) o, si falta, los que tiene hoy su equipo (alias "e").
@@ -51,4 +55,4 @@ function filtros(req, { colFecha = null, colEquipo = null, aliasEmpresa = 'id_em
   };
 }
 
-module.exports = { SQL_BASE_VIAJE, SQL_NETO_VIAJE, SQL_IVA_VIAJE, SQL_UNIDADES_DEL_VIAJE, sqlConsumoDelEquipo, filtros };
+module.exports = { SQL_BASE_VIAJE, SQL_NETO_VIAJE, sqlIvaViaje, SQL_UNIDADES_DEL_VIAJE, sqlConsumoDelEquipo, filtros };

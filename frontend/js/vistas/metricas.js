@@ -122,10 +122,10 @@ async function cargarMetrica(clave) {
       cont.innerHTML = `
         <div class="pulso">
           ${cifraSimple('Viajes en el período', filas.length)}
-          ${cifraSimple('Ingreso total (sin IVA)', fmtMillones(total))}
-          ${cifraSimple('IVA facturado', fmtMillones(totalIva), '', 'IVA de los viajes facturados con IVA. Se cobra al cliente pero se le debe a ARCA.')}
-          ${cifraSimple('Total con IVA', fmtMillones(total + totalIva))}
-          ${cifraSimple('Promedio por viaje', fmtMillones(filas.length ? total / filas.length : 0))}
+          ${cifraSimple('Ingreso total (sin IVA)', fmtDinero(total))}
+          ${cifraSimple('IVA facturado', fmtDinero(totalIva), '', 'IVA de los viajes facturados con IVA. Se cobra al cliente pero se le debe a ARCA.')}
+          ${cifraSimple('Total con IVA', fmtDinero(total + totalIva))}
+          ${cifraSimple('Promedio por viaje', fmtDinero(filas.length ? total / filas.length : 0))}
         </div>
         ${hojaHTML('Viajes del período', '', filas.length === 0 ? '<div class="vacio">Sin viajes para los filtros seleccionados.</div>' : `
           <div class="tabla-marco"><table class="tabla">
@@ -153,7 +153,7 @@ async function cargarMetrica(clave) {
       cont.innerHTML = `
         <div class="pulso">
           ${cifraSimple('Consumos en el período', filas.length)}
-          ${cifraSimple('Total gastado', fmtMillones(total))}
+          ${cifraSimple('Total gastado', fmtDinero(total))}
         </div>
         ${hojaHTML('Consumos del período', '', filas.length === 0 ? '<div class="vacio">Sin consumos para los filtros seleccionados.</div>' : `
           <div class="tabla-marco"><table class="tabla">
@@ -199,10 +199,10 @@ async function cargarMetrica(clave) {
 
       cont.innerHTML = `
         <div class="pulso">
-          ${cifraSimple('Ingresos sin IVA', fmtMillones(totalIngresos))}
-          ${cifraSimple('Costos de equipos', fmtMillones(totalCostos))}
-          ${cifraSimple('Gastos administrativos', fmtMillones(gAdmin))}
-          <div class="cifra"><span class="rotulo">Rentabilidad neta</span><span class="cifra-valor">${fmtMillones(rentNeta)}</span><span class="cifra-delta ${rentNeta >= 0 ? 'sube' : 'baja'}">${rentNeta >= 0 ? 'Resultado positivo' : 'Resultado negativo'}</span></div>
+          ${cifraSimple('Ingresos sin IVA', fmtDinero(totalIngresos))}
+          ${cifraSimple('Costos de equipos', fmtDinero(totalCostos))}
+          ${cifraSimple('Gastos administrativos', fmtDinero(gAdmin))}
+          <div class="cifra"><span class="rotulo">Rentabilidad neta</span><span class="cifra-valor">${fmtDinero(rentNeta)}</span><span class="cifra-delta ${rentNeta >= 0 ? 'sube' : 'baja'}">${rentNeta >= 0 ? 'Resultado positivo' : 'Resultado negativo'}</span></div>
         </div>
         ${cascada}
         ${hojaHTML('Rentabilidad por equipo', '', filas.length === 0 ? '<div class="vacio">Sin equipos para los filtros seleccionados.</div>' : `
@@ -271,7 +271,7 @@ async function cargarMetrica(clave) {
       cont.innerHTML = `
         <div class="pulso">
           ${cifraSimple('Gastos en el período', filas.length)}
-          ${cifraSimple('Total', fmtMillones(total))}
+          ${cifraSimple('Total', fmtDinero(total))}
         </div>
         ${hojaHTML('Gastos del período', '', filas.length === 0 ? '<div class="vacio">Sin gastos para los filtros seleccionados.</div>' : `
           <div class="tabla-marco"><table class="tabla">

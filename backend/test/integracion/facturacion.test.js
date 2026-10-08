@@ -162,6 +162,13 @@ describe('facturación electrónica', { skip: !HABILITADO && MOTIVO_OMISION }, (
       `SELECT origen_tipo, monto FROM MOVIMIENTOS WHERE id_cuenta = ?`, [c.id_cuenta]);
     assert.deepEqual(movs.map(m => [m.origen_tipo, Number(m.monto)]), [['FACTURA', -822195]]);
 
+    // El listado de viajes trae el comprobante que los incluye, con el neto de sus renglones.
+    const lista = await ok(entorno.api('GET', `/api/viajes?por_pagina=200&fecha_desde=2026-01-01&fecha_hasta=2026-12-31`));
+    const fila = lista.datos.find(x => x.id_viaje === v2.id_viaje);
+    assert.equal(fila.comprobante.tipo_comprobante, 'A');
+    assert.equal(fila.comprobante.numero, f.numero);
+    assert.equal(Number(fila.comprobante.neto), 579500);
+
     const pdf = await entorno.api('GET', `/api/facturacion/${f.id_factura}/pdf`);
     assert.equal(pdf.estado, 200);
     assert.match(pdf.cabeceras.get('content-type'), /pdf/);

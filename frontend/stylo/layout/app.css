@@ -22,7 +22,7 @@ body { background: var(--paper); color: var(--ink); }
 .barra-sup .espacio { flex: 1; }
 .btn-menu { display: none; }
 /* Pestaña para colapsar el menú, montada sobre su borde derecho */
-.rail-pestana { position: fixed; top: 22px; left: 220px; z-index: 30; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(15, 27, 45, .18); cursor: pointer; transition: left .2s ease, background .15s; }
+.rail-pestana { position: fixed; top: 76px; left: 220px; z-index: 30; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(15, 27, 45, .18); cursor: pointer; transition: left .2s ease, background .15s; }
 .rail-pestana:hover { background: var(--surface-sunk); }
 .rail-pestana svg { width: 14px; height: 14px; transition: transform .2s ease; }
 .app.rail-compacto .rail-pestana { left: 52px; }

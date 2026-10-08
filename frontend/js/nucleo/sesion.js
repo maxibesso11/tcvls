@@ -105,7 +105,7 @@ function aplicarModulosVisibles(modulos) {
   const activos = new Set(modulos);
   // Mostrar/ocultar cada enlace con data-vista según corresponda
   document.querySelectorAll('#nav-datos > a[data-vista]').forEach(a => {
-    const vista = a.dataset.vista;
+    const vista = a.dataset.modulo || a.dataset.vista;
     a.hidden = !(vista === 'dashboard' || activos.has(vista));
   });
   // Ocultar etiquetas de grupo que no tengan enlaces visibles a continuación

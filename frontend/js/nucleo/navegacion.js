@@ -16,7 +16,7 @@ function navegar() {
     else if (hash.startsWith('metrica/')) vistaActiva = 'dashboard';
     else if (hash.startsWith('unidad-detalle/')) vistaActiva = 'unidades';
     else if (hash.startsWith('chofer-detalle/')) vistaActiva = 'choferes';
-    else if (hash.startsWith('facturador')) vistaActiva = 'facturacion';
+    else if (hash.startsWith('facturador/')) vistaActiva = 'facturacion';
     else if (hash.startsWith('viaje-detalle/')) vistaActiva = 'viajes';
     else if (hash.startsWith('equipo-detalle/')) vistaActiva = 'equipos';
     if (a.dataset.vista === vistaActiva) a.setAttribute('aria-current', 'page');
@@ -83,6 +83,14 @@ function navegar() {
   else if (MODULOS[hash]) renderModulo(hash);
   else if (SESION && SESION.rol === 'ADMIN') renderAdminEmpresas();
   else renderDashboard();
+}
+
+// El logo del menú lleva al principio del tablero (aunque ya se esté en él).
+function irAlInicio(ev) {
+  ev.preventDefault();
+  if (location.hash === '#dashboard') navegar(); else location.hash = 'dashboard';
+  const principal = document.querySelector('.principal');
+  if (principal) principal.scrollTop = 0;
 }
 
 function esVistaAdmin(hash) {

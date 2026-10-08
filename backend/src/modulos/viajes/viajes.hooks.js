@@ -59,6 +59,18 @@ function validarEstado(data, anterior) {
     }
   }
 
+  // Toneladas descargadas muy por encima de lo cargado: casi siempre falta la
+  // coma (5112 en vez de 51,12) y el viaje se facturaría por cien veces más.
+  {
+    const tipoTarifa = data.tipo_tarifa ?? anterior?.tipo_tarifa;
+    const resultado = Number(data.resultado !== undefined ? data.resultado : anterior?.resultado);
+    const cargada = Number(data.cantidad_cargada !== undefined ? data.cantidad_cargada : anterior?.cantidad_cargada);
+    if (tipoTarifa === 'POR TONELADA' && cargada > 0 && resultado > cargada * 1.5) {
+      const f = n => n.toLocaleString('es-AR', { maximumFractionDigits: 3 });
+      return `Las toneladas descargadas (${f(resultado)}) son mucho más que las cargadas (${f(cargada)}). Revisá el dato: ¿falta la coma decimal?`;
+    }
+  }
+
   return null;
 }
 
@@ -120,6 +132,23 @@ async function comprobanteVigenteDelViaje(idViaje, idEmpresa) {
   return f || null;
 }
 
+// Agrega a cada viaje del listado el comprobante electrónico emitido que lo
+// incluye: letra, número y el neto de sus renglones (lo realmente facturado).
+async function comprobantesDeViajes(filas, req) {
+  const ids = filas.map(f => f.id_viaje);
+  const [comprobantes] = await pool.query(
+    `SELECT fv.id_viaje, f.id_factura, f.tipo_comprobante, f.punto_venta, f.numero,
+            COALESCE(SUM(fi.subtotal), 0) AS neto
+       FROM FACTURA_VIAJES fv
+       JOIN FACTURAS f ON f.id_factura = fv.id_factura AND f.estado = 'EMITIDA' AND f.clase = 'FACTURA'
+       LEFT JOIN FACTURA_ITEMS fi ON fi.id_factura = f.id_factura AND fi.id_viaje = fv.id_viaje
+      WHERE fv.id_viaje IN (?) AND f.id_empresa = ?
+      GROUP BY fv.id_viaje, f.id_factura, f.tipo_comprobante, f.punto_venta, f.numero`,
+    [ids, req.usuario.id_empresa]);
+  const porViaje = new Map(comprobantes.map(c => [c.id_viaje, c]));
+  filas.forEach(f => { f.comprobante = porViaje.get(f.id_viaje) || null; });
+}
+
 async function antesDeEliminarViaje(viaje) {
   if (viaje.estado === 'FACTURADO') {
     return 'Los viajes facturados no se pueden eliminar.';
@@ -161,6 +190,7 @@ module.exports = {
   antesDeCrearViaje,
   antesDeActualizarViaje,
   antesDeEliminarViaje,
+  comprobantesDeViajes,
   alCrearViaje,
   alActualizarViaje,
   alEliminarViaje

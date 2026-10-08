@@ -3,9 +3,9 @@
 
 /* ---------- Cifra (KPI) ---------- */
 .cifra { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.cifra-valor { font: 600 36px/36px var(--font-display); color: var(--ink); white-space: nowrap; }
+.cifra-valor { font: 600 30px/34px var(--font-display); color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cifra-valor small { font: 500 18px/1 var(--font-display); color: var(--ink-3); margin-left: 3px; }
-.cifra-xl .cifra-valor { font-size: 56px; line-height: 52px; letter-spacing: -.5px; }
+.cifra-xl .cifra-valor { font-size: 40px; line-height: 44px; letter-spacing: -.3px; }
 .cifra-delta { display: inline-flex; align-items: center; gap: 4px; font: 600 12.5px/16px var(--font-text); }
 .cifra-delta.sube { color: var(--ok); } .cifra-delta.baja { color: var(--danger); }
 .cifra-delta .tenue { font-weight: 400; }

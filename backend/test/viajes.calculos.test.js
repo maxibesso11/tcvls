@@ -88,3 +88,9 @@ for (const caso of CASOS) {
     }
   });
 }
+
+test('una empresa que no discrimina IVA (monotributo o exento) imputa siempre el neto', () => {
+  const viaje = { tipo_tarifa: 'UNICA', tarifa: 100000, comision: 0, modo_facturacion: 'LIQUIDO_PRODUCTO' };
+  assert.equal(calc.calcularMontoCuentaCliente(viaje), 121000);
+  assert.equal(calc.calcularMontoCuentaCliente(viaje, { conIva: false }), 100000);
+});

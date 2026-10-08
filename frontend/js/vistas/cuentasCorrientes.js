@@ -169,17 +169,17 @@ async function cargarCuentasCorrientes(q = '', pagina = 1) {
       </div>
       <div class="cifra">
         <span class="rotulo">Total a cobrar</span>
-        <span class="cifra-valor">${fmtMillones(totales.total_deudor)}</span>
+        <span class="cifra-valor">${fmtDinero(totales.total_deudor)}</span>
         <span class="cifra-delta tenue">${totales.deudoras} ${totales.deudoras === 1 ? 'cuenta adeuda' : 'cuentas adeudan'} a la empresa</span>
       </div>
       <div class="cifra">
         <span class="rotulo">Total a pagar</span>
-        <span class="cifra-valor">${fmtMillones(totales.total_acreedor)}</span>
+        <span class="cifra-valor">${fmtDinero(totales.total_acreedor)}</span>
         <span class="cifra-delta tenue">${totales.acreedoras} ${totales.acreedoras === 1 ? 'cuenta' : 'cuentas'} a las que la empresa adeuda</span>
       </div>
       <div class="cifra">
         <span class="rotulo">Posición neta</span>
-        <span class="cifra-valor">${fmtMillones(neta)}</span>
+        <span class="cifra-valor">${fmtDinero(neta)}</span>
         <span class="cifra-delta ${neta > 0 ? 'sube' : neta < 0 ? 'baja' : 'tenue'}">${neta >= 0 ? 'A favor de la empresa' : 'En contra de la empresa'}</span>
       </div>
     `;
@@ -254,15 +254,15 @@ async function renderDetalleCuenta(id) {
       <div class="pulso">
         <div class="cifra">
           <span class="rotulo" title="Montos en contra del titular: a favor de la empresa">Total débitos</span>
-          <span class="cifra-valor">${fmtMillones(resumen.total_debitos)}</span>
+          <span class="cifra-valor">${fmtDinero(resumen.total_debitos)}</span>
         </div>
         <div class="cifra">
           <span class="rotulo" title="Montos a favor del titular: la empresa debe">Total créditos</span>
-          <span class="cifra-valor">${fmtMillones(resumen.total_creditos)}</span>
+          <span class="cifra-valor">${fmtDinero(resumen.total_creditos)}</span>
         </div>
         <div class="cifra">
           <span class="rotulo">Saldo final</span>
-          <span class="cifra-valor">${fmtMillones(Math.abs(resumen.saldo_final))}</span>
+          <span class="cifra-valor">${fmtDinero(Math.abs(resumen.saldo_final))}</span>
           <span class="cifra-delta">${insigniaCondicion(resumen.condicion)}</span>
         </div>
         <div class="cifra">

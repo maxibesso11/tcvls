@@ -6,7 +6,7 @@
   <title>TCV LogiSuite ERP</title>
   <link rel="icon" type="image/svg+xml" href="/img/logo/isotipo.svg">
   <style>[hidden]{display:none!important}</style>
-  <link rel="stylesheet" href="/stylo/main.css?v=20261015">
+  <link rel="stylesheet" href="/stylo/main.css?v=20261016">
 </head>
 <body>
 
@@ -85,7 +85,7 @@
   <!-- Aplicación (oculta hasta autenticarse) -->
   <div class="app" id="app-contenedor" hidden>
     <nav class="rail" id="rail" aria-label="Navegación principal">
-      <div class="rail-marca"><img src="/img/logo/isotipo_claro.svg" alt=""><div><b id="brand-empresa">Empresa</b><span>TCV LogiSuite</span></div></div>
+      <a class="rail-marca" href="#dashboard" onclick="irAlInicio(event)" title="Ir al tablero"><img src="/img/logo/isotipo_claro.svg" alt=""><div><b id="brand-empresa">Empresa</b><span>TCV LogiSuite</span></div></a>
 
       <!-- Navegación de datos (usuarios operativos) -->
       <div id="nav-datos">
@@ -93,6 +93,7 @@
         <a href="#dashboard" data-vista="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Tablero</a>
         <a href="#viajes" data-vista="viajes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h13V6H3z"/><path d="M16 10h4l1 3v4h-5"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>Viajes</a>
         <a href="#equipos" data-vista="equipos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 16h12V7H2z"/><path d="M14 11h4l3 3v2h-7"/><circle cx="6" cy="17" r="1.5"/><circle cx="17" cy="17" r="1.5"/></svg>Equipos</a>
+        <a href="#facturador" data-vista="facturador" data-modulo="facturacion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M12 8v6M9 11h6"/></svg>Facturar</a>
 
         <div class="rail-grupo">Flota</div>
         <a href="#unidades" data-vista="unidades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="1"/><path d="M7 11h10"/></svg>Unidades</a>
@@ -204,29 +205,29 @@
   <!-- Orden de carga: cliente de la API, núcleo, vistas, sesión y arranque.
        Todas las funciones son globales (las usan los onclick del HTML generado).
        Al modificar un JS, actualizar ?v= para evitar la caché del navegador. -->
-  <script src="/js/api.js?v=20261015"></script>
-  <script src="/js/nucleo/modulos.js?v=20261015"></script>
-  <script src="/js/nucleo/utilidades.js?v=20261015"></script>
-  <script src="/js/nucleo/navegacion.js?v=20261015"></script>
-  <script src="/js/nucleo/graficos.js?v=20261015"></script>
-  <script src="/js/vistas/dashboard.js?v=20261015"></script>
-  <script src="/js/vistas/metricas.js?v=20261015"></script>
-  <script src="/js/vistas/facturacion.js?v=20261015"></script>
-  <script src="/js/vistas/cuentasCorrientes.js?v=20261015"></script>
-  <script src="/js/vistas/viajes.js?v=20261015"></script>
-  <script src="/js/vistas/stock.js?v=20261015"></script>
-  <script src="/js/vistas/equipos.js?v=20261015"></script>
-  <script src="/js/vistas/crud.js?v=20261015"></script>
-  <script src="/js/vistas/apariencia.js?v=20261015"></script>
-  <script src="/js/vistas/perfil.js?v=20261015"></script>
-  <script src="/js/vistas/detalles.js?v=20261015"></script>
-  <script src="/js/vistas/unidad.js?v=20261015"></script>
-  <script src="/js/vistas/admin.js?v=20261015"></script>
-  <script src="/js/vistas/sistema.js?v=20261015"></script>
-  <script src="/js/vistas/actividad.js?v=20261015"></script>
-  <script src="/js/vistas/miEmpresa.js?v=20261015"></script>
-  <script src="/js/vistas/multiempresa.js?v=20261015"></script>
-  <script src="/js/nucleo/sesion.js?v=20261015"></script>
-  <script src="/js/app.js?v=20261015"></script>
+  <script src="/js/api.js?v=20261016"></script>
+  <script src="/js/nucleo/modulos.js?v=20261016"></script>
+  <script src="/js/nucleo/utilidades.js?v=20261016"></script>
+  <script src="/js/nucleo/navegacion.js?v=20261016"></script>
+  <script src="/js/nucleo/graficos.js?v=20261016"></script>
+  <script src="/js/vistas/dashboard.js?v=20261016"></script>
+  <script src="/js/vistas/metricas.js?v=20261016"></script>
+  <script src="/js/vistas/facturacion.js?v=20261016"></script>
+  <script src="/js/vistas/cuentasCorrientes.js?v=20261016"></script>
+  <script src="/js/vistas/viajes.js?v=20261016"></script>
+  <script src="/js/vistas/stock.js?v=20261016"></script>
+  <script src="/js/vistas/equipos.js?v=20261016"></script>
+  <script src="/js/vistas/crud.js?v=20261016"></script>
+  <script src="/js/vistas/apariencia.js?v=20261016"></script>
+  <script src="/js/vistas/perfil.js?v=20261016"></script>
+  <script src="/js/vistas/detalles.js?v=20261016"></script>
+  <script src="/js/vistas/unidad.js?v=20261016"></script>
+  <script src="/js/vistas/admin.js?v=20261016"></script>
+  <script src="/js/vistas/sistema.js?v=20261016"></script>
+  <script src="/js/vistas/actividad.js?v=20261016"></script>
+  <script src="/js/vistas/miEmpresa.js?v=20261016"></script>
+  <script src="/js/vistas/multiempresa.js?v=20261016"></script>
+  <script src="/js/nucleo/sesion.js?v=20261016"></script>
+  <script src="/js/app.js?v=20261016"></script>
 </body>
 </html>

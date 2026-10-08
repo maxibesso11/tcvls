@@ -22,11 +22,6 @@ const fmtDineroSigno = n => {
   const v = Number(n || 0);
   return v === 0 ? fmtDinero(v) : `<span class="${v > 0 ? 'monto-pos' : 'monto-neg'}">${fmtDinero(v)}</span>`;
 };
-const fmtMillones = n => {
-  const v = Number(n || 0);
-  if (Math.abs(v) < 1e6) return fmtDinero(v); // debajo del millón no se abrevia
-  return (v < 0 ? '−' : '') + '$ ' + (Math.abs(v) / 1e6).toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' M';
-};
 const fmtNum = (n, d = 2) => {
   const v = Number(n || 0);
   return (v < 0 ? '−' : '') + Math.abs(v).toLocaleString('es-AR', { maximumFractionDigits: d });
@@ -403,6 +398,10 @@ function diasHasta(fecha) {
   const f = new Date(String(fecha).slice(0, 10) + 'T00:00:00');
   return Math.round((f - hoy) / 86400000);
 }
+
+// Solo un responsable inscripto discrimina IVA; un monotributista o exento
+// nunca suma IVA a sus viajes (el servidor aplica la misma regla).
+const empresaDiscriminaIva = () => !SESION || !SESION.condicion_iva_empresa || /INSCRIPTO/i.test(SESION.condicion_iva_empresa);
 
 // Ingresos y rentabilidad: solo para quien administra la empresa (no para el
 // rol USUARIO). El servidor aplica la misma regla.

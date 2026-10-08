@@ -134,22 +134,22 @@ async function renderDashboard() {
       <div class="pulso tablero">
         ${finanzas ? `<div class="cifra cifra-xl">
           <span class="rotulo">Resultado neto</span>
-          <span class="cifra-valor">${fmtMillones(ing.ganancia_neta)}</span>
+          <span class="cifra-valor">${fmtDinero(ing.ganancia_neta)}</span>
           <span class="cifra-delta ${ing.ganancia_neta >= 0 ? 'sube' : 'baja'}">${ing.ganancia_neta >= 0 ? '▲' : '▼'} ${fmtNum(ing.margen, 1)} % <span class="tenue">de margen</span></span>
         </div>
         <div class="cifra">
           <span class="rotulo">Ingresos</span>
-          <span class="cifra-valor">${fmtMillones(ing.ingresos_totales)}</span>
+          <span class="cifra-valor">${fmtDinero(ing.ingresos_totales)}</span>
           <span class="cifra-delta tenue">viajes finalizados y facturados</span>
         </div>` : ''}
         <div class="cifra${finanzas ? '' : ' cifra-xl'}">
           <span class="rotulo">Costos</span>
-          <span class="cifra-valor">${fmtMillones(kpis.costos_totales)}</span>
+          <span class="cifra-valor">${fmtDinero(kpis.costos_totales)}</span>
           <span class="cifra-delta tenue">${fmtDinero(kpis.combustible.gasto_combustible)} en combustible</span>
         </div>
         ${finanzas ? `<div class="cifra">
           <span class="rotulo">Pendiente de cobro</span>
-          <span class="cifra-valor">${fmtMillones(ing.pendiente_cobro)}</span>
+          <span class="cifra-valor">${fmtDinero(ing.pendiente_cobro)}</span>
           <span class="cifra-delta tenue">viajes sin cobrar</span>
         </div>` : ''}
         <div class="cifra">
@@ -297,7 +297,7 @@ async function renderDashboard() {
     const maxProv = Math.max(0, ...provs.map(p => Number(p.total)));
     const htmlGastosAdmin = (gastosAdmin.cantidad || 0) === 0
       ? '<div class="vacio">Sin gastos administrativos en el período.</div>'
-      : `<div class="hoja-cuerpo"><div class="cifra"><span class="rotulo">Total del período</span><span class="cifra-valor">${fmtMillones(gastosAdmin.total)}</span><span class="cifra-delta tenue">${gastosAdmin.cantidad} gasto${gastosAdmin.cantidad === 1 ? '' : 's'} registrado${gastosAdmin.cantidad === 1 ? '' : 's'}</span></div></div>` +
+      : `<div class="hoja-cuerpo"><div class="cifra"><span class="rotulo">Total del período</span><span class="cifra-valor">${fmtDinero(gastosAdmin.total)}</span><span class="cifra-delta tenue">${gastosAdmin.cantidad} gasto${gastosAdmin.cantidad === 1 ? '' : 's'} registrado${gastosAdmin.cantidad === 1 ? '' : 's'}</span></div></div>` +
         tablaSimple(
           ['Proveedor', 'Participación', 'Gastos', 'Total'],
           top7(provs).map(r => [

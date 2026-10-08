@@ -102,32 +102,36 @@ async function guardarResultadoYAvanzar() {
 }
 
 // Modal que se abre al marcar un viaje como FACTURADO. Ofrece tres caminos de
-// imputación en la cuenta del cliente: emitir factura formal, líquido producto
-// (con IVA) o sin facturar (sin IVA). El monto se previsualiza localmente.
+// imputación en la cuenta del cliente: factura electrónica, líquido producto
+// o sin facturar. El IVA solo existe si la empresa es responsable inscripta.
 function calcularMontosViaje(datos) {
   const base = datos.tipo_tarifa === 'UNICA'
     ? Number(datos.tarifa) || 0
     : (Number(datos.tarifa) || 0) * (Number(datos.resultado ?? datos.cantidad_cargada) || 0);
   const comision = Number(datos.comision) || 0;
   const neto = base * (1 - comision / 100);
-  const conIVA = neto * 1.21;
+  const conIVA = empresaDiscriminaIva() ? neto * 1.21 : neto;
   return { base, comision, neto, conIVA };
 }
 
-// Valor imputado en la cuenta del cliente para un viaje ya FACTURADO.
-// Depende del modo de facturación elegido: sin factura no lleva IVA, líquido
-// producto y factura formal sí. Los viajes anteriores a esa columna (NULL)
-// se muestran con IVA, igual que como fueron imputados.
+// Valor facturado de un viaje FACTURADO, según cómo se facturó:
+//   con comprobante electrónico → lo que dice el comprobante (A y B con IVA, C sin IVA);
+//   líquido producto → neto más IVA (si la empresa discrimina IVA);
+//   sin facturar → neto, sin IVA.
 function valorViajeFacturado(fila) {
-  if (fila.estado !== 'FACTURADO') {
-    return '<span class="tenue">—</span>';
+  if (fila.estado !== 'FACTURADO') return '<span class="tenue">—</span>';
+  const c = fila.comprobante;
+  if (c) {
+    const total = c.tipo_comprobante === 'C' ? Number(c.neto) : Number(c.neto) * 1.21;
+    const nro = `${String(c.punto_venta).padStart(5, '0')}-${String(c.numero).padStart(8, '0')}`;
+    return `<strong>${fmtDinero(total)}</strong><br><span class="tenue">Factura ${c.tipo_comprobante} ${nro}</span>`;
   }
   const { neto, conIVA } = calcularMontosViaje(fila);
-  const sinIva = fila.modo_facturacion === 'SIN_FACTURAR';
-  const total = sinIva ? neto : conIVA;
-  const detalle = sinIva ? 'sin IVA'
-    : fila.modo_facturacion === 'FACTURA' ? 'factura electrónica'
-    : 'líquido producto, IVA incluido';
+  const sinIva = fila.modo_facturacion === 'SIN_FACTURAR' || !empresaDiscriminaIva();
+  const total = fila.modo_facturacion === 'SIN_FACTURAR' ? neto : conIVA;
+  const detalle = fila.modo_facturacion === 'SIN_FACTURAR' ? 'sin facturar, sin IVA'
+    : fila.modo_facturacion === 'FACTURA' ? 'facturado por fuera del sistema'
+    : `líquido producto${sinIva ? '' : ', IVA incluido'}`;
   return `<strong>${fmtDinero(total)}</strong><br><span class="tenue">${detalle}</span>`;
 }
 
@@ -137,6 +141,7 @@ function abrirModalFacturarViaje(datos) {
   const { base, comision, neto, conIVA } = calcularMontosViaje(datos);
   // La factura A solo se ofrece si la facturación está habilitada en el sistema.
   const conFactura = moduloActivo('facturacion');
+  const iva = empresaDiscriminaIva();
   const filaComision = comision > 0
     ? `<tr><td>Comisión (${fmtNum(comision)} %)</td><td class="num">− ${fmtDinero(base - neto)}</td></tr>`
     : '';
@@ -149,20 +154,20 @@ function abrirModalFacturarViaje(datos) {
         <tr><td>Base del viaje</td><td class="num">${fmtDinero(base)}</td></tr>
         ${filaComision}
         <tr><td class="fuerte">Neto (a cobrar)</td><td class="num fuerte">${fmtDinero(neto)}</td></tr>
-        <tr><td>+ IVA 21 %</td><td class="num">${fmtDinero(conIVA - neto)}</td></tr>
+        ${iva ? `<tr><td>IVA 21 %</td><td class="num">${fmtDinero(conIVA - neto)}</td></tr>` : ''}
       </tbody>
-      <tfoot><tr><td>Total con IVA</td><td class="num">${fmtDinero(conIVA)}</td></tr></tfoot>
+      <tfoot><tr><td>${iva ? 'Total con IVA' : 'Total (la empresa no discrimina IVA)'}</td><td class="num">${fmtDinero(conIVA)}</td></tr></tfoot>
     </table></div>
     <div class="grupo-titulo"></div>
     <div class="acciones">
       ${conFactura ? `<button class="btn btn-primario" onclick="confirmarFacturarViaje('COMPROBANTE')">Armar factura electrónica…</button>` : ''}
-      <button class="btn ${conFactura ? '' : 'btn-primario'}" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Facturar líquido producto con IVA, ${fmtDinero(conIVA)}</button>
-      <button class="btn" onclick="confirmarFacturarViaje('SIN_FACTURAR')">Continuar sin facturar ni IVA, ${fmtDinero(neto)}</button>
+      <button class="btn ${conFactura ? '' : 'btn-primario'}" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Líquido producto${iva ? ' con IVA' : ''}, ${fmtDinero(conIVA)}</button>
+      <button class="btn" onclick="confirmarFacturarViaje('SIN_FACTURAR')">Sin facturar${iva ? ', sin IVA' : ''}, ${fmtDinero(neto)}</button>
     </div>
     <p class="tenue">
       ${conFactura ? '<strong>Factura electrónica</strong> deja el viaje finalizado y abre el facturador con este viaje (podés sumar otros del mismo cliente); al emitir, el viaje pasa a facturado y el total se imputa en la cuenta.' : ''}
-      <strong>Líquido producto</strong> imputa el total con IVA sin emitir comprobante.
-      <strong>Sin facturar</strong> imputa solo el neto, sin IVA.
+      <strong>Líquido producto</strong>: el comprobante lo emite otro (el acopio o el dador de carga); se imputa el total${iva ? ' con IVA' : ''} sin emitir nada.
+      <strong>Sin facturar</strong> imputa solo el neto${iva ? ', sin IVA' : ''}.
     </p>`;
   $('#btn-guardar').hidden = true;
   $('#btn-cancelar').hidden = false;

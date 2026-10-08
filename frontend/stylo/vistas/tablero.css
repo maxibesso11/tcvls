@@ -1,8 +1,14 @@
 /* vistas/tablero.css
    Pulso del tablero, estado de flota, gráficos SVG, antigüedad de saldos. */
 
-.pulso.tablero { grid-template-columns: minmax(250px, 1.7fr) repeat(5, minmax(0, 1fr)); }
-.pulso.tablero .cifra-xl .cifra-valor { font-size: 50px; line-height: 48px; }
+/* Montos exactos: las tarjetas se acomodan al ancho (pasan a una segunda fila
+   si no entran) y el resultado neto ocupa dos lugares. */
+.pulso.tablero { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.pulso.tablero > .cifra-xl { grid-column: span 2; }
+.pulso.tablero .cifra-valor { font-size: 28px; line-height: 32px; }
+.pulso.tablero .cifra-xl .cifra-valor { font-size: 40px; line-height: 44px; }
+.pulso.tablero > .cifra { border-top: 1px solid var(--line); margin-top: -1px; }
+@media (max-width: 560px) { .pulso.tablero > .cifra-xl { grid-column: auto; } }
 
 /* Estado de flota: una fila por equipo */
 .flota-fila { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }

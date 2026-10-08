@@ -17,6 +17,7 @@ const pool = require('../backend/src/config/db');
 const { calcularMontoCuentaCliente, calcularLiquidacionChofer } = require('../backend/src/modulos/viajes/viajes.calculos');
 const { buscarCuentaPagador, obtenerChoferDelViaje, comprobanteDelViaje } = require('../backend/src/modulos/viajes/viajes.servicio');
 const { buscarCuentaProveedor } = require('../backend/src/modulos/cuentas/cuentas.servicio');
+const { discriminaIva } = require('../backend/src/lib/condicionFiscal');
 
 const MOSTRAR_TODO = process.argv.includes('--todo');
 const TOLERANCIA = 0.01;
@@ -82,7 +83,7 @@ async function auditarViajes(idEmpresa, mapa) {
     let facturacion = null;
     if (v.estado === 'FACTURADO' && !(await comprobanteDelViaje(pool, v.id_viaje, idEmpresa))) {
       const cuenta = await buscarCuentaPagador(pool, v.pagador, idEmpresa);
-      const monto = calcularMontoCuentaCliente(v);
+      const monto = calcularMontoCuentaCliente(v, { conIva: await discriminaIva(idEmpresa) });
       if (cuenta && monto !== 0) facturacion = { idCuenta: cuenta.id_cuenta, monto: -Math.abs(monto) };
       if (!cuenta) anotar('PAGADOR', `${etiqueta}: el pagador "${v.pagador}" no tiene cuenta CLIENTE/PROVEEDOR`);
     }
