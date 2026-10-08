@@ -99,7 +99,7 @@ async function validarDisponibilidad(db, idEmpresa, composicion, idEquipoPropio 
   const queCosa = [up, us].includes(o.id_unidad_principal) ? `El camión ${o.patente_principal}`
     : [up, us].includes(o.id_unidad_secundaria) ? `El acoplado ${o.patente_secundaria}`
     : `El chofer ${o.chofer}`;
-  return `${queCosa} ya está en el equipo #${o.id_equipo} (${o.patente_principal} / ${o.patente_secundaria} · ${o.chofer}). ` +
+  return `${queCosa} ya está en el equipo #${o.id_equipo} (${o.patente_principal} y ${o.patente_secundaria}, chofer ${o.chofer}). ` +
     'Si cambió el chofer, editá ese equipo y cambiale el chofer; si ese equipo ya no trabaja, dalo de baja primero.';
 }
 

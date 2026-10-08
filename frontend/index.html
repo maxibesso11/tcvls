@@ -6,7 +6,7 @@
   <title>TCV LogiSuite ERP</title>
   <link rel="icon" type="image/svg+xml" href="/img/logo/isotipo.svg">
   <style>[hidden]{display:none!important}</style>
-  <link rel="stylesheet" href="/stylo/main.css?v=20261014">
+  <link rel="stylesheet" href="/stylo/main.css?v=20261015">
 </head>
 <body>
 
@@ -20,8 +20,8 @@
         <h2>Tu operación,<br><em>en orden.</em></h2>
       </div>
       <ul class="acceso-tarjetas">
-        <li><span class="punto ok"></span><div><b>Factura A 00002-00000148</b><small>Emitida · CAE 86410964917115</small></div></li>
-        <li><span class="punto info"></span><div><b>Viaje #212 finalizado</b><small>San José Boquerón → Rosario · 30,68 tn</small></div></li>
+        <li><span class="punto ok"></span><div><b>Factura A 00002-00000148</b><small>Emitida con CAE 86410964917115</small></div></li>
+        <li><span class="punto info"></span><div><b>Viaje #212 finalizado</b><small>San José Boquerón a Rosario, 30,68 tn</small></div></li>
         <li><span class="punto aviso"></span><div><b>Seguro AB 123 CD</b><small>Vence en 5 días</small></div></li>
       </ul>
       <p class="acceso-pie">TCV LogiSuite</p>
@@ -158,8 +158,8 @@
         <div class="espacio"></div>
         <div class="rel" id="menu-usuario">
           <button class="btn btn-fantasma" id="btn-usuario" aria-haspopup="menu" aria-expanded="false" aria-label="Menú de usuario">
+            <span class="usuario"><b id="usuario-barra">usuario</b><span id="rol-barra"></span></span>
             <span class="avatar" id="avatar-usuario">U</span>
-            <span class="usuario"><b id="usuario-barra">usuario</b><span id="rol-barra">—</span></span>
           </button>
           <div class="menu-flot" id="menu-usuario-lista" role="menu" hidden>
             <button role="menuitem" id="mi-perfil-menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg> Mi perfil</button>
@@ -204,28 +204,29 @@
   <!-- Orden de carga: cliente de la API, núcleo, vistas, sesión y arranque.
        Todas las funciones son globales (las usan los onclick del HTML generado).
        Al modificar un JS, actualizar ?v= para evitar la caché del navegador. -->
-  <script src="/js/api.js?v=20261014"></script>
-  <script src="/js/nucleo/modulos.js?v=20261011"></script>
-  <script src="/js/nucleo/utilidades.js?v=20261012"></script>
-  <script src="/js/nucleo/navegacion.js?v=20261011"></script>
-  <script src="/js/nucleo/graficos.js?v=20261012"></script>
-  <script src="/js/vistas/dashboard.js?v=20261012"></script>
-  <script src="/js/vistas/metricas.js?v=20261012"></script>
-  <script src="/js/vistas/facturacion.js?v=20261014"></script>
-  <script src="/js/vistas/cuentasCorrientes.js?v=20261007"></script>
-  <script src="/js/vistas/viajes.js?v=20261011"></script>
-  <script src="/js/vistas/stock.js?v=20261003"></script>
-  <script src="/js/vistas/equipos.js?v=20261008"></script>
-  <script src="/js/vistas/crud.js?v=20261008"></script>
-  <script src="/js/vistas/apariencia.js?v=20261003"></script>
-  <script src="/js/vistas/perfil.js?v=20261003"></script>
-  <script src="/js/vistas/unidad.js?v=20261009"></script>
-  <script src="/js/vistas/admin.js?v=20261006"></script>
-  <script src="/js/vistas/sistema.js?v=20261011"></script>
-  <script src="/js/vistas/actividad.js?v=20261011"></script>
-  <script src="/js/vistas/miEmpresa.js?v=20261006"></script>
-  <script src="/js/vistas/multiempresa.js?v=20261006"></script>
-  <script src="/js/nucleo/sesion.js?v=20261014"></script>
-  <script src="/js/app.js?v=20261003"></script>
+  <script src="/js/api.js?v=20261015"></script>
+  <script src="/js/nucleo/modulos.js?v=20261015"></script>
+  <script src="/js/nucleo/utilidades.js?v=20261015"></script>
+  <script src="/js/nucleo/navegacion.js?v=20261015"></script>
+  <script src="/js/nucleo/graficos.js?v=20261015"></script>
+  <script src="/js/vistas/dashboard.js?v=20261015"></script>
+  <script src="/js/vistas/metricas.js?v=20261015"></script>
+  <script src="/js/vistas/facturacion.js?v=20261015"></script>
+  <script src="/js/vistas/cuentasCorrientes.js?v=20261015"></script>
+  <script src="/js/vistas/viajes.js?v=20261015"></script>
+  <script src="/js/vistas/stock.js?v=20261015"></script>
+  <script src="/js/vistas/equipos.js?v=20261015"></script>
+  <script src="/js/vistas/crud.js?v=20261015"></script>
+  <script src="/js/vistas/apariencia.js?v=20261015"></script>
+  <script src="/js/vistas/perfil.js?v=20261015"></script>
+  <script src="/js/vistas/detalles.js?v=20261015"></script>
+  <script src="/js/vistas/unidad.js?v=20261015"></script>
+  <script src="/js/vistas/admin.js?v=20261015"></script>
+  <script src="/js/vistas/sistema.js?v=20261015"></script>
+  <script src="/js/vistas/actividad.js?v=20261015"></script>
+  <script src="/js/vistas/miEmpresa.js?v=20261015"></script>
+  <script src="/js/vistas/multiempresa.js?v=20261015"></script>
+  <script src="/js/nucleo/sesion.js?v=20261015"></script>
+  <script src="/js/app.js?v=20261015"></script>
 </body>
 </html>

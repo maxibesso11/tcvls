@@ -35,7 +35,7 @@ body { background: var(--paper); color: var(--ink); }
 
 .vista { padding: 24px; display: flex; flex-direction: column; gap: 24px; max-width: 1440px; width: 100%; }
 .vista-cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
-.vista-cab h1 { margin: 0; font: 600 30px/32px var(--font-display); letter-spacing: .2px; text-wrap: balance; }
+.vista-cab h1 { margin: 0; font: 800 27px/32px var(--font-titulo); font-stretch: var(--ancho-titulo); letter-spacing: -.01em; text-wrap: balance; }
 .vista-cab p { margin: 4px 0 0; color: var(--ink-2); max-width: 70ch; }
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .migas { font-size: 12.5px; color: var(--ink-3); margin-bottom: 6px; }

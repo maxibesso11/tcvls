@@ -17,6 +17,8 @@ function navegar() {
     else if (hash.startsWith('unidad-detalle/')) vistaActiva = 'unidades';
     else if (hash.startsWith('chofer-detalle/')) vistaActiva = 'choferes';
     else if (hash.startsWith('facturador')) vistaActiva = 'facturacion';
+    else if (hash.startsWith('viaje-detalle/')) vistaActiva = 'viajes';
+    else if (hash.startsWith('equipo-detalle/')) vistaActiva = 'equipos';
     if (a.dataset.vista === vistaActiva) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
@@ -27,6 +29,8 @@ function navegar() {
   else if (hash.startsWith('unidad-detalle/')) claveModulo = 'unidades';
   else if (hash.startsWith('chofer-detalle/')) claveModulo = 'choferes';
   else if (hash.startsWith('facturador')) claveModulo = 'facturacion';
+  else if (hash.startsWith('viaje-detalle/')) claveModulo = 'viajes';
+  else if (hash.startsWith('equipo-detalle/')) claveModulo = 'equipos';
 
   if (!esVistaAdmin(hash) && !moduloActivo(claveModulo) && (MODULOS[hash] || claveModulo === 'cuentas-corrientes' || claveModulo === 'unidades' || claveModulo === 'choferes' || claveModulo === 'facturacion')) {
     mostrarToast('Ese módulo no está habilitado para tu empresa.', true);
@@ -73,6 +77,8 @@ function navegar() {
   else if (hash === 'facturacion') renderFacturacion();
   else if (hash === 'facturador') renderFacturador(null);
   else if (hash.startsWith('facturador/')) renderFacturador(hash.split('/')[1]);
+  else if (hash.startsWith('viaje-detalle/')) renderViajeDetalle(hash.split('/')[1]);
+  else if (hash.startsWith('equipo-detalle/')) renderEquipoDetalle(hash.split('/')[1]);
   else if (hash.startsWith('cuenta-corriente/')) renderDetalleCuenta(hash.split('/')[1]);
   else if (MODULOS[hash]) renderModulo(hash);
   else if (SESION && SESION.rol === 'ADMIN') renderAdminEmpresas();

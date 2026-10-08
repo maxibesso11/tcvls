@@ -13,8 +13,9 @@
 .tabla td.fuerte { font-weight: 600; }
 .tabla tfoot td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0; }
 .tabla td.nowrap { white-space: nowrap; }
-/* Tablas sin scroll lateral: las celdas de texto se parten en vez de ensanchar la tabla */
-.tabla td { overflow-wrap: anywhere; }
+/* Las celdas de texto se parten entre palabras; una palabra muy larga
+   (un código, un correo) se corta solo si no entra entera. */
+.tabla td { overflow-wrap: break-word; }
 .tabla td.mono.nowrap, .tabla td.num { overflow-wrap: normal; }
 
 /* Detalle de un registro (modal «Ver detalle») */
@@ -31,6 +32,3 @@
 .barra { position: relative; height: 8px; min-width: 80px; background: var(--surface-sunk); border-radius: var(--radius-s); overflow: hidden; }
 .barra > i { position: absolute; inset: 0 auto 0 0; background: var(--chart-income); border-radius: var(--radius-s); }
 .barra.costo > i { background: var(--chart-cost); }
-.barra-doble { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; align-items: center; }
-.barra-doble .izq { direction: rtl; }
-.barra-doble .izq > i { inset: 0 0 0 auto; background: var(--chart-cost); }

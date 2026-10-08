@@ -52,6 +52,10 @@ router.get('/', manejar(async (req, res) => {
   const valores = [idEmpresa];
   if (req.query.estado) { filtros.push('f.estado = ?'); valores.push(String(req.query.estado)); }
   if (req.query.id_cuenta) { filtros.push('f.id_cuenta = ?'); valores.push(Number(req.query.id_cuenta)); }
+  if (req.query.id_viaje) {
+    filtros.push('EXISTS (SELECT 1 FROM FACTURA_VIAJES fv WHERE fv.id_factura = f.id_factura AND fv.id_viaje = ?)');
+    valores.push(Number(req.query.id_viaje));
+  }
   const donde = filtros.join(' AND ');
   const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM FACTURAS f WHERE ${donde}`, valores);
   const { pagina, porPagina, totalPaginas, offset } = calcularPaginacion(req.query, total);

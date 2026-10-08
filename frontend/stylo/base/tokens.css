@@ -58,7 +58,9 @@
   --shadow-pop: 0 8px 24px rgba(15,27,45,0.18), 0 1px 2px rgba(15,27,45,0.12);
 
   /* Tipografía */
-  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;   /* Cifras y patentes */
+  --font-titulo: "Archivo", system-ui, sans-serif;                  /* Títulos, en su versión ancha (como el logo) */
+  --ancho-titulo: 112%;
   --font-text: "Archivo", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }

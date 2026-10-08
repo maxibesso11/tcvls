@@ -50,7 +50,7 @@ async function avanzarEstadoViaje(idViaje) {
   try {
     await API.actualizar('viajes', idViaje, datos);
     mostrarToast(`Viaje #${idViaje} avanzado a ${siguiente}`);
-    cargarTabla('viajes', $('#buscador')?.value || '', $('#filtro-equipo')?.value || '', $('#filtro-deposito')?.value || '', recogerExtras(), 1);
+    recargarVistaModulo('viajes');
   } catch (err) {
     mostrarToast(err.message, true);
   }
@@ -61,12 +61,12 @@ function abrirModalResultado(viaje, siguienteEstado) {
 
   const unidad = viaje.tipo_tarifa === 'POR KM' ? 'Kilómetros recorridos' : 'Toneladas descargadas';
 
-  $('#modal-titulo').textContent = `Finalizar viaje · ${unidad}`;
+  $('#modal-titulo').textContent = `Finalizar viaje de ${unidad}`;
   $('#modal-cuerpo').innerHTML = `
     <div class="formulario">
       <div class="campo ancho">
         <span><strong>${esc(viaje.origen)}</strong> → <strong>${esc(viaje.destino)}</strong></span>
-        <span class="ayuda">Tarifa: ${fmtDinero(viaje.tarifa)} · ${viaje.tipo_tarifa}${viaje.cantidad_cargada ? ` · Cantidad cargada: ${fmtNum(viaje.cantidad_cargada)}` : ''}</span>
+        <span class="ayuda">Tarifa ${fmtDinero(viaje.tarifa)} ${String(viaje.tipo_tarifa).toLowerCase()}${viaje.cantidad_cargada ? `, cantidad cargada ${fmtNum(viaje.cantidad_cargada)}` : ''}</span>
       </div>
       <div class="campo ancho">
         <label for="res-valor">${unidad} *</label>
@@ -95,7 +95,7 @@ async function guardarResultadoYAvanzar() {
     await API.actualizar('viajes', idViaje, datos);
     mostrarToast(`Viaje #${idViaje} finalizado`);
     cerrarModal();
-    cargarTabla('viajes', $('#buscador')?.value || '', $('#filtro-equipo')?.value || '', $('#filtro-deposito')?.value || '', recogerExtras(), 1);
+    recargarVistaModulo('viajes');
   } catch (err) {
     mostrarToast(err.message, true);
   }
@@ -127,7 +127,7 @@ function valorViajeFacturado(fila) {
   const total = sinIva ? neto : conIVA;
   const detalle = sinIva ? 'sin IVA'
     : fila.modo_facturacion === 'FACTURA' ? 'factura electrónica'
-    : 'líquido producto · IVA incl.';
+    : 'líquido producto, IVA incluido';
   return `<strong>${fmtDinero(total)}</strong><br><span class="tenue">${detalle}</span>`;
 }
 
@@ -156,8 +156,8 @@ function abrirModalFacturarViaje(datos) {
     <div class="grupo-titulo"></div>
     <div class="acciones">
       ${conFactura ? `<button class="btn btn-primario" onclick="confirmarFacturarViaje('COMPROBANTE')">Armar factura electrónica…</button>` : ''}
-      <button class="btn ${conFactura ? '' : 'btn-primario'}" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Facturar líquido producto (con IVA) · ${fmtDinero(conIVA)}</button>
-      <button class="btn" onclick="confirmarFacturarViaje('SIN_FACTURAR')">Continuar sin facturar (sin IVA) · ${fmtDinero(neto)}</button>
+      <button class="btn ${conFactura ? '' : 'btn-primario'}" onclick="confirmarFacturarViaje('LIQUIDO_PRODUCTO')">Facturar líquido producto con IVA, ${fmtDinero(conIVA)}</button>
+      <button class="btn" onclick="confirmarFacturarViaje('SIN_FACTURAR')">Continuar sin facturar ni IVA, ${fmtDinero(neto)}</button>
     </div>
     <p class="tenue">
       ${conFactura ? '<strong>Factura electrónica</strong> deja el viaje finalizado y abre el facturador con este viaje (podés sumar otros del mismo cliente); al emitir, el viaje pasa a facturado y el total se imputa en la cuenta.' : ''}
@@ -202,7 +202,7 @@ async function confirmarFacturarViaje(modo) {
 
     _datosViajeFacturar = null;
     cerrarModal();
-    cargarTabla(moduloActual, $('#buscador')?.value || '', $('#filtro-equipo')?.value || '', $('#filtro-deposito')?.value || '', recogerExtras(), 1);
+    recargarVistaModulo(moduloActual);
   } catch (err) {
     mostrarToast(err.message, true);
   }

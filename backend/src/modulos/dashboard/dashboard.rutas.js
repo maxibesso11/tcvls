@@ -14,6 +14,12 @@ const emp = req => req.usuario.id_empresa;
 // Las métricas de ingresos y rentabilidad son para quien administra la
 // empresa: un usuario común (rol USUARIO) ve rendimiento, consumos y reportes.
 const veFinanzas = req => req.usuario.rol !== 'USUARIO';
+
+// Rendimiento de combustible: solo cuentan las cargas con los km recorridos
+// cargados (10 km o más; un 0 o un 1 es un dato de relleno). Si se sumaran
+// los litros de las cargas sin km, el km/L quedaría artificialmente bajo.
+const KM_VALIDO = 10;
+const CON_KM = `cc.km_recorridos >= ${KM_VALIDO}`;
 function soloFinanzas(req, res, next) {
   if (veFinanzas(req)) return next();
   res.status(403).json({ error: 'Las métricas de ingresos y rentabilidad son solo para quienes administran la empresa.' });
@@ -60,7 +66,9 @@ router.get('/kpis', async (req, res) => {
     const [[combustible]] = await pool.query(`
       SELECT COALESCE(SUM(cantidad_litros), 0) AS litros_totales,
         COALESCE(SUM(cantidad_litros * precio_por_litro), 0) AS gasto_combustible,
-        COALESCE(SUM(km_recorridos) / NULLIF(SUM(cantidad_litros), 0), 0) AS rendimiento_global
+        COALESCE(SUM(CASE WHEN km_recorridos >= ${KM_VALIDO} THEN km_recorridos END)
+          / NULLIF(SUM(CASE WHEN km_recorridos >= ${KM_VALIDO} THEN cantidad_litros END), 0), 0) AS rendimiento_global,
+        COUNT(*) AS cargas, SUM(km_recorridos >= ${KM_VALIDO}) AS cargas_con_km
       FROM CONSUMOS_COMBUSTIBLE${fComb.clausula}
     `, fComb.params);
 
@@ -97,7 +105,9 @@ router.get('/kpis', async (req, res) => {
       combustible: {
         litros_totales: Number(combustible.litros_totales),
         gasto_combustible: Number(combustible.gasto_combustible),
-        rendimiento_global: Number(combustible.rendimiento_global)
+        rendimiento_global: Number(combustible.rendimiento_global),
+        cargas: Number(combustible.cargas),
+        cargas_con_km: Number(combustible.cargas_con_km || 0)
       },
       gastos_generales: Number(gastosGenerales.total),
       gastos_administrativos: Number(gastosAdmin.total),
@@ -234,10 +244,14 @@ router.get('/rendimiento-equipos', async (req, res) => {
       SELECT e.id_equipo, e.activo, e.fecha_baja, up.patente AS patente_principal, us.patente AS patente_secundaria,
         ch.nombre AS chofer,
         COALESCE(SUM(cc.cantidad_litros), 0) AS litros,
-        COALESCE(SUM(cc.km_recorridos), 0) AS km,
         COALESCE(SUM(cc.cantidad_litros * cc.precio_por_litro), 0) AS gasto,
-        COALESCE(SUM(cc.km_recorridos) / NULLIF(SUM(cc.cantidad_litros), 0), 0) AS km_por_litro,
-        COALESCE(SUM(cc.cantidad_litros * cc.precio_por_litro) / NULLIF(SUM(cc.km_recorridos), 0), 0) AS costo_por_km
+        COUNT(cc.id_consumo_combustible) AS cargas,
+        COALESCE(SUM(${CON_KM}), 0) AS cargas_con_km,
+        COALESCE(SUM(CASE WHEN ${CON_KM} THEN cc.km_recorridos END), 0) AS km,
+        COALESCE(SUM(CASE WHEN ${CON_KM} THEN cc.km_recorridos END)
+          / NULLIF(SUM(CASE WHEN ${CON_KM} THEN cc.cantidad_litros END), 0), 0) AS km_por_litro,
+        COALESCE(SUM(CASE WHEN ${CON_KM} THEN cc.cantidad_litros * cc.precio_por_litro END)
+          / NULLIF(SUM(CASE WHEN ${CON_KM} THEN cc.km_recorridos END), 0), 0) AS costo_por_km
       FROM EQUIPO e
       JOIN UNIDADES up ON up.id_unidad = e.id_unidad_principal
       JOIN UNIDADES us ON us.id_unidad = e.id_unidad_secundaria

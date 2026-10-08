@@ -155,12 +155,12 @@ async function renderDashboard() {
         <div class="cifra">
           <span class="rotulo">Rendimiento</span>
           <span class="cifra-valor">${fmtNum(kpis.combustible.rendimiento_global)}<small>km/L</small></span>
-          <span class="cifra-delta tenue">${fmtNum(kpis.combustible.litros_totales, 0)} L cargados</span>
+          <span class="cifra-delta tenue">${kpis.combustible.cargas_con_km ? `${kpis.combustible.cargas_con_km} de ${kpis.combustible.cargas} cargas con km` : 'faltan los km de las cargas'}</span>
         </div>
         <div class="cifra">
           <span class="rotulo">Viajes activos</span>
           <span class="cifra-valor">${kpis.viajes.viajes_activos || 0}</span>
-          <span class="cifra-delta tenue">${kpis.flota.total_equipos} equipos · ${kpis.flota.total_unidades} unidades · ${kpis.flota.total_choferes} choferes</span>
+          <span class="cifra-delta tenue">${kpis.flota.total_equipos} equipos, ${kpis.flota.total_unidades} unidades y ${kpis.flota.total_choferes} choferes</span>
         </div>
       </div>
     `;
@@ -185,7 +185,7 @@ async function renderDashboard() {
       ? '<div class="vacio">Sin alertas. Todo en orden.</div>'
       : `<ul class="alertas">${alertasMostradas.map(filaAlertaUnificada).join('')}</ul>`;
     const pieAlertas = restantesAlertas > 0
-      ? `y ${restantesAlertas} alerta${restantesAlertas === 1 ? '' : 's'} más — <a href="#alertas">ver todas</a>`
+      ? `y ${restantesAlertas} alerta${restantesAlertas === 1 ? '' : 's'} más. <a href="#alertas">Ver todas</a>`
       : '';
 
     // Limita una lista a 7 elementos en el tablero; el resto se ve en la
@@ -194,7 +194,7 @@ async function renderDashboard() {
     const top7 = arr => (arr || []).slice(0, TOPE_DASH);
     const pieResto = (arr, claveMetrica) => {
       const restantes = (arr || []).length - TOPE_DASH;
-      return restantes > 0 ? `y ${restantes} más — <a href="#metrica/${claveMetrica}">ver todos</a>` : '';
+      return restantes > 0 ? `y ${restantes} más. <a href="#metrica/${claveMetrica}">Ver todos</a>` : '';
     };
     const botonAmpliar = clave => `<button class="btn btn-chico" onclick="location.hash='metrica/${clave}'">Ampliar</button>`;
 
@@ -203,7 +203,7 @@ async function renderDashboard() {
     const htmlEquipos = rendEquipos.length === 0
       ? '<div class="vacio">Sin datos de consumo todavía.</div>'
       : `<div class="hoja-cuerpo">${graficoPuntosPromedio(top7(conRend).map(r => ({
-          rotulo: `${r.patente_principal} · ${String(r.chofer || '').split(' ').slice(-1)[0]}`,
+          rotulo: `${r.patente_principal} ${String(r.chofer || '').split(' ').slice(-1)[0]}`,
           valor: Number(r.km_por_litro)
         })))}</div>` +
         tablaSimple(
@@ -211,8 +211,8 @@ async function renderDashboard() {
           top7(rendEquipos).map(r => [
             patentesEquipo(r),
             esc(r.chofer) + marcaBaja(r),
-            `<td class="num">${fmtNum(r.km_por_litro)}</td>`,
-            `<td class="num">${fmtDinero(r.costo_por_km)}</td>`
+            `<td class="num">${kmPorLitroHTML(r)}</td>`,
+            `<td class="num">${Number(r.cargas_con_km) > 0 ? fmtDinero(r.costo_por_km) : '<span class="tenue">sin dato</span>'}</td>`
           ])
         );
 
@@ -252,36 +252,35 @@ async function renderDashboard() {
           ])
         );
 
-    // --- Rentabilidad por equipo: barra doble (costos ← | → ingresos) ---
+    // --- Rentabilidad por equipo: ingresos, costos, rentabilidad y margen ---
     const rentEquipos = rentabilidad.equipos || [];
-    const maxRent = Math.max(0, ...rentEquipos.map(r => Math.max(Number(r.ingresos), Number(r.costos))));
     const htmlRentabilidad = rentEquipos.length === 0
       ? '<div class="vacio">Sin equipos para calcular rentabilidad.</div>'
       : tablaSimple(
-          ['Equipo', 'Costos ← → Ingresos', 'Ingresos', 'Costos', 'Rentabilidad'],
+          ['Equipo', 'Ingresos', 'Costos', 'Rentabilidad', 'Margen'],
           top7(rentEquipos).map(r => [
-            patentesEquipo(r),
-            `<td>${barraDoble(r.costos, r.ingresos, maxRent)}</td>`,
+            patentesEquipo(r) + marcaBaja(r),
             `<td class="num">${fmtDinero(r.ingresos)}</td>`,
             `<td class="num">${fmtDinero(r.costos)}</td>`,
-            `<td class="num fuerte"><span class="${r.rentabilidad >= 0 ? 'cifra-delta sube' : 'cifra-delta baja'}">${fmtDinero(r.rentabilidad)}</span></td>`
+            `<td class="num fuerte"><span class="${r.rentabilidad >= 0 ? 'cifra-delta sube' : 'cifra-delta baja'}">${fmtDinero(r.rentabilidad)}</span></td>`,
+            `<td class="num">${Number(r.ingresos) > 0 ? fmtNum(r.margen, 0) + ' %' : '<span class="tenue">sin ingresos</span>'}</td>`
           ])
         );
     const resumenRent = rentEquipos.length === 0 ? '' : `
       <div class="tabla-marco"><table class="tabla">
         <tbody>
           <tr><td>Rentabilidad de equipos</td><td class="num">${fmtDinero(rentabilidad.rentabilidad_equipos || 0)}</td></tr>
-          <tr><td>− Gastos administrativos</td><td class="num">${fmtDinero(rentabilidad.gastos_administrativos || 0)}</td></tr>
-          ${rentabilidad.gastos_unidades_sin_equipo ? `<tr title="Consumos de unidades que en esa fecha no estaban en ningún equipo (por ejemplo, en el taller)"><td>− Gastos de unidades sin equipo</td><td class="num">${fmtDinero(rentabilidad.gastos_unidades_sin_equipo)}</td></tr>` : ''}
+          <tr><td>Menos gastos administrativos</td><td class="num">${fmtDinero(rentabilidad.gastos_administrativos || 0)}</td></tr>
+          ${rentabilidad.gastos_unidades_sin_equipo ? `<tr title="Consumos de unidades que en esa fecha no estaban en ningún equipo (por ejemplo, en el taller)"><td>Menos gastos de unidades sin equipo</td><td class="num">${fmtDinero(rentabilidad.gastos_unidades_sin_equipo)}</td></tr>` : ''}
         </tbody>
         <tfoot><tr><td>Rentabilidad neta</td><td class="num">${fmtDinero(rentabilidad.rentabilidad_neta || 0)}</td></tr></tfoot>
       </table></div>`;
 
-    // --- Resultado del período en cascada ---
+    // --- Resultado del período: desglose de ingresos menos cada costo ---
     const suma = clave => rentEquipos.reduce((s, r) => s + Number(r[clave] || 0), 0);
     const htmlCascada = rentEquipos.length === 0 || suma('ingresos') <= 0
-      ? '<div class="vacio">Sin ingresos en el período para armar la cascada.</div>'
-      : `<div class="hoja-cuerpo">${graficoCascada({
+      ? '<div class="vacio">Sin ingresos en el período.</div>'
+      : `<div class="hoja-cuerpo">${desgloseResultado({
           ingresos: suma('ingresos'),
           costos: [
             { nombre: 'Combustible', valor: suma('costo_combustible') },
@@ -332,7 +331,7 @@ async function renderDashboard() {
           ])
         );
     const pieIngresosViaje = ipv.cantidad_viajes > topViajes.length
-      ? `Mostrando los ${topViajes.length} de mayor ingreso — <a href="#metrica/ingresos-por-viaje">ver todos los ${ipv.cantidad_viajes}</a>`
+      ? `Mostrando los ${topViajes.length} de mayor ingreso. <a href="#metrica/ingresos-por-viaje">Ver todos los ${ipv.cantidad_viajes}</a>`
       : '';
 
     // Cada hoja se muestra solo si su módulo está activo. Las alertas
@@ -343,11 +342,11 @@ async function renderDashboard() {
     const finanzasViajes = delViajes && finanzas;
     // Las hojas son las mismas de siempre; solo se agrupan por tema, con un título
     // de sección, para leer el tablero de arriba hacia abajo.
-    const hoja_cascada = finanzasViajes && hojaHTML('Resultado del período', 'Ingresos menos cada costo, como porcentaje de los ingresos', htmlCascada, botonAmpliar('rentabilidad-equipos'));
+    const hoja_cascada = finanzasViajes && hojaHTML('Resultado del período', 'Ingresos menos cada costo, con su peso sobre los ingresos', htmlCascada, botonAmpliar('rentabilidad-equipos'));
     const hoja_alertas = hayFlota && hojaHTML(`Alertas ${insignia(totalAlertas, totalAlertas ? 'peligro' : 'ok')}`, 'Ordenadas por urgencia', htmlAlertas,
       totalAlertas > 0 ? `<button class="btn btn-chico" onclick="location.hash='alertas'">Ampliar</button>` : '', pieAlertas);
     const hoja_rentabilidad = finanzasViajes && hojaHTML('Rentabilidad por equipo', 'Ingresos menos costos de combustible, consumos y sueldo del chofer', htmlRentabilidad + resumenRent, botonAmpliar('rentabilidad-equipos'), pieResto(rentEquipos, 'rentabilidad-equipos'));
-    const hoja_rendimiento = moduloActivo('consumos-combustible') && hojaHTML('Rendimiento por equipo', 'Kilómetros por litro contra el promedio de la flota', htmlEquipos, botonAmpliar('rendimiento-equipos'), pieResto(rendEquipos, 'rendimiento-equipos'));
+    const hoja_rendimiento = moduloActivo('consumos-combustible') && hojaHTML('Rendimiento por equipo', 'Kilómetros por litro contra el promedio de la flota. Solo cuentan las cargas con los km anotados.', htmlEquipos, botonAmpliar('rendimiento-equipos'), pieResto(rendEquipos, 'rendimiento-equipos'));
     const hoja_ingresosViaje = finanzasViajes && hojaHTML('Ingresos por viaje', 'Viajes con más ingresos del período', htmlIngresosViaje, botonAmpliar('ingresos-por-viaje'), pieIngresosViaje);
     const hoja_gastosAdmin = moduloActivo('gastos-administrativos') && hojaHTML('Gastos administrativos', 'Gastos de estructura por proveedor', htmlGastosAdmin, botonAmpliar('gastos-administrativos'), pieResto(provs, 'gastos-administrativos'));
     const hoja_consumos = moduloActivo('consumos-generales') && hojaHTML('Consumos generales por equipo', '', htmlConsumosEq, botonAmpliar('consumos-por-equipo'), pieResto(consumosEq, 'consumos-por-equipo'));
@@ -386,35 +385,37 @@ function unificarAlertas(alertas) {
   const PRIORIDAD = { cobro: 1, vencimiento: 2, mantenimiento: 3, carnet: 4, descanso: 5 };
 
   const items = [];
+  const vence = (f, dias) => `${dias < 0 ? 'Venció' : 'Vence'} el ${fmtFecha(f)}`;
+  const deUnidad = p => (p ? patenteHTML(p) : '<span class="tenue">General de la flota</span>');
   (alertas.cobros || []).forEach(a => items.push({
     tipo: 'cobro', dias: -a.dias_excedido, diasExcedido: a.dias_excedido,
-    titulo: `Cobro vencido · ${esc(a.nombre)}`,
-    detalle: `${fmtDinero(a.saldo_adeudado)} · plazo de pago ${a.plazo_pago_dias} días`,
-    hash: 'cuentas-corrientes', accion: 'Cobrar'
+    titulo: `Cobro vencido de ${esc(a.nombre)}`,
+    detalle: `Debe ${fmtDinero(a.saldo_adeudado)} con plazo de pago de ${a.plazo_pago_dias} días`,
+    abrir: `location.hash='cuenta-corriente/${a.id_cuenta}'`, accion: 'Ver cuenta'
   }));
   (alertas.vencimientos || []).forEach(a => items.push({
     tipo: 'vencimiento', dias: a.dias_restantes,
-    titulo: `${esc(a.concepto)} · ${a.patente ? patenteHTML(a.patente) : '<span class="tenue">General de la flota</span>'}`,
-    detalle: `Vencimiento documental · ${fmtFecha(a.fecha_vencimiento)}`,
-    hash: 'vencimientos', accion: 'Renovar'
+    titulo: `<span class="con-patente-linea"><span>${esc(a.concepto)}</span>${deUnidad(a.patente)}</span>`,
+    detalle: vence(a.fecha_vencimiento, a.dias_restantes),
+    abrir: `abrirModal('vencimientos', ${a.id_vencimiento})`, accion: 'Renovar'
   }));
   (alertas.mantenimientos || []).forEach(a => items.push({
     tipo: 'mantenimiento', dias: a.dias_restantes,
-    titulo: `${esc(a.concepto)} · ${a.patente ? patenteHTML(a.patente) : '<span class="tenue">General de la flota</span>'}`,
-    detalle: `Mantenimiento programado · ${fmtFecha(a.fecha_vencimiento)}`,
-    hash: 'mantenimientos', accion: 'Programar'
+    titulo: `<span class="con-patente-linea"><span>${esc(a.concepto)}</span>${deUnidad(a.patente)}</span>`,
+    detalle: `Mantenimiento programado para el ${fmtFecha(a.fecha_vencimiento)}`,
+    abrir: `abrirModal('mantenimientos', ${a.id_mantenimiento})`, accion: 'Reprogramar'
   }));
   (alertas.carnets || []).forEach(a => items.push({
     tipo: 'carnet', dias: a.dias_restantes,
     titulo: `Carnet de ${esc(a.nombre)}`,
-    detalle: `Licencia de conducir · ${fmtFecha(a.vencimiento_carnet)}`,
-    hash: 'choferes', accion: 'Ver chofer'
+    detalle: vence(a.vencimiento_carnet, a.dias_restantes),
+    abrir: `location.hash='chofer-detalle/${a.id_chofer}'`, accion: 'Ver chofer'
   }));
   (alertas.descansos || []).forEach(a => items.push({
     tipo: 'descanso', dias: null, diasSinDescanso: a.dias_sin_descanso,
     titulo: `Descanso de ${esc(a.nombre)}`,
-    detalle: `Última jornada de descanso · ${fmtFecha(a.ultima_jornada_descanso)}`,
-    hash: 'choferes', accion: 'Ver chofer'
+    detalle: `Último descanso el ${fmtFecha(a.ultima_jornada_descanso)}`,
+    abrir: `location.hash='chofer-detalle/${a.id_chofer}'`, accion: 'Ver chofer'
   }));
 
   return items.sort((a, b) => {
@@ -429,7 +430,7 @@ function unificarAlertas(alertas) {
 
 // Renderiza una fila de alerta unificada: cuenta regresiva + texto + acción.
 function filaAlertaUnificada(it) {
-  const accion = `<button class="btn btn-chico" onclick="location.hash='${it.hash}'">${it.accion}</button>`;
+  const accion = `<button class="btn btn-chico" onclick="${it.abrir}">${it.accion}</button>`;
   if (it.tipo === 'descanso') {
     return alertaHTML({ dias: null, sinDias: { valor: it.diasSinDescanso, unidad: 'sin desc.' }, urgente: true, titulo: it.titulo, detalle: it.detalle, accion });
   }

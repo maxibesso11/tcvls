@@ -1,0 +1,28 @@
+/* vistas/facturacion.css
+   Facturador: plantillas desplegables, lista de viajes plegable con alto
+   limitado y tabla de renglones editable con columnas fijas y campos alineados. */
+
+/* Desplegable genérico (details/summary) dentro de una hoja */
+.plegable { margin-top: var(--space-4); border-top: 1px solid var(--line); padding-top: var(--space-3); }
+.plegable > summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: var(--space-2); font: 600 13.5px/1 var(--font-text); color: var(--accent-text); }
+.plegable > summary::-webkit-details-marker { display: none; }
+.plegable > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s ease; }
+.plegable[open] > summary::before { transform: rotate(45deg); }
+.plegable > p { margin: var(--space-3) 0; font-size: 13px; }
+
+/* Lista de viajes: alto limitado con scroll propio; se puede plegar entera */
+.fd-viajes { max-height: 380px; overflow-y: auto; }
+.fd-viajes.plegado { display: none; }
+.fd-viajes .tabla th { top: 0; }
+
+/* Tabla de renglones editable */
+.tabla-edicion td { padding-top: 8px; padding-bottom: 8px; }
+.tabla-edicion .entrada { height: 36px; }
+.tabla-edicion .entrada.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tabla-edicion .col-viaje { width: 72px; white-space: nowrap; }
+.tabla-edicion .col-cant { width: 116px; }
+.tabla-edicion .col-unidad { width: 92px; }
+.tabla-edicion .col-precio { width: 148px; }
+.tabla-edicion .col-subtotal { width: 140px; white-space: nowrap; }
+.tabla-edicion .col-quitar { width: 44px; text-align: center; }
+.tabla-edicion .col-quitar .btn { width: 32px; padding: 0; justify-content: center; color: var(--danger); }

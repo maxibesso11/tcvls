@@ -302,7 +302,7 @@ async function completarEmision(db, idEmpresa, f, autorizacion) {
     // Débito al cliente por el total del comprobante.
     await crearMovimientoAutomatico(db, {
       idEmpresa, idCuenta: f.id_cuenta, monto: -Math.abs(Number(f.total)), fecha: f.fecha_emision,
-      concepto: `${etiqueta}` + (viajes.length ? ` · viajes ${viajes.map(v => '#' + v.id_viaje).join(', ')}` : ''),
+      concepto: `${etiqueta}` + (viajes.length ? `, viajes ${viajes.map(v => '#' + v.id_viaje).join(', ')}` : ''),
       origenTipo: ORIGEN.FACTURA, origenId: f.id_factura
     });
     // Los viajes pasan a FACTURADO con comprobante (su movimiento es el de la factura).
@@ -354,7 +354,7 @@ function detalleArca(f, empresaCuit, asociada) {
 }
 
 const textoRespuesta = r => [...(r.errores || []), ...(r.observaciones || [])]
-  .map(e => `[${e.codigo}] ${e.mensaje}`).join(' · ') || 'ARCA rechazó el comprobante sin informar el motivo.';
+  .map(e => `[${e.codigo}] ${e.mensaje}`).join('; ') || 'ARCA rechazó el comprobante sin informar el motivo.';
 
 // Emite un comprobante (factura o nota de crédito) que está en BORRADOR.
 async function emitir(idEmpresa, idFactura) {

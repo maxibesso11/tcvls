@@ -37,7 +37,7 @@ function enviarResumenLiquidacionesPDF(res, { periodo, liquidaciones, total }, n
   const doc = new PDFDocument({ size: 'A4', margin: 50 });
   doc.pipe(res);
 
-  encabezado(doc, nombreEmpresa, `Liquidación de sueldos fijos — ${fmtPeriodo(periodo)}`);
+  encabezado(doc, nombreEmpresa, `Liquidación de sueldos fijos de ${fmtPeriodo(periodo)}`);
 
   let y = 140;
   doc.fillColor(VERDE).fontSize(12).font('Helvetica-Bold').text('Choferes liquidados', 50, y);

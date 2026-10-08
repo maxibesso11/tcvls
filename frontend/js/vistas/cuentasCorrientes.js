@@ -243,7 +243,7 @@ async function renderDetalleCuenta(id) {
         <div>
           <div class="migas"><button onclick="location.hash='cuentas-corrientes'">Cuentas corrientes</button> / ${esc(cuenta.nombre)}</div>
           <h1>${esc(cuenta.nombre)}</h1>
-          <p>${esc(cuenta.tipo)} · CUIL ${esc(cuenta.cuil)}${cuenta.telefono ? ' · Tel. ' + esc(cuenta.telefono) : ''}</p>
+          <p>${esc(cuenta.tipo)}, CUIL ${esc(cuenta.cuil)}${cuenta.telefono ? ', tel. ' + esc(cuenta.telefono) : ''}</p>
         </div>
         <div class="acciones">
           <button class="btn" onclick="descargarPdfCuenta(${cuenta.id_cuenta})">Descargar resumen PDF</button>
@@ -385,7 +385,7 @@ async function guardarRecibo() {
     const numero = $('#r-numero').value.trim();
     if (!numero) { mostrarToast('Indicá el número de recibo', true); return; }
     const detalle = $('#r-detalle').value.trim();
-    concepto = `RECIBO N° ${numero}${detalle ? ' — ' + detalle : ''}`;
+    concepto = `RECIBO N° ${numero}${detalle ? ', ' + detalle : ''}`;
   }
 
   const datos = {

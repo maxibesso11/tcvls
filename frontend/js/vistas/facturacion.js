@@ -172,13 +172,13 @@ async function renderFacturador(id) {
       <div class="hoja-cuerpo"><div class="formulario">
         <div class="campo ancho"><label for="fd-cliente">Cliente</label>
           <select id="fd-cliente" ${factura ? 'disabled' : ''} onchange="_fdElegirCliente(this.value)">
-            <option value="">— Elegí el cliente —</option>
-            ${clientes.map(c => `<option value="${c.id_cuenta}"${c.id_cuenta === F.id_cuenta ? ' selected' : ''}>${esc(c.nombre)} — ${esc(c.cuil)}${c.tipo === 'PROVEEDOR' ? ' (proveedor)' : ''}${c.viajes_pendientes ? ` · ${c.viajes_pendientes} viaje${c.viajes_pendientes === 1 ? '' : 's'} por facturar` : ''}</option>`).join('')}
+            <option value="">Elegí el cliente</option>
+            ${clientes.map(c => `<option value="${c.id_cuenta}"${c.id_cuenta === F.id_cuenta ? ' selected' : ''}>${esc(c.nombre)} (${c.tipo === 'PROVEEDOR' ? 'proveedor, ' : ''}${esc(c.cuil)})${c.viajes_pendientes ? `, ${c.viajes_pendientes} viaje${c.viajes_pendientes === 1 ? '' : 's'} por facturar` : ''}</option>`).join('')}
           </select>
         </div>
         <div class="campo"><label for="fd-condicion">Condición frente al IVA del cliente</label>
           <select id="fd-condicion" onchange="F.receptor_condicion_iva = this.value || null; _fdLetra()">
-            <option value="">— Indicá la condición —</option>
+            <option value="">Indicá la condición</option>
             ${FAC_CONDICIONES.map(c => `<option value="${c}">${c}</option>`).join('')}
           </select>
           <span class="ayuda">Define la letra del comprobante. Si el cliente no la tenía cargada, queda guardada.</span>
@@ -186,12 +186,27 @@ async function renderFacturador(id) {
         <div class="campo"><label for="fd-documento">CUIT del cliente (o DNI si es consumidor final)</label>
           <input id="fd-documento" class="mono" oninput="F.receptor_documento = this.value.trim()">
         </div>
-      </div></div>
+      </div>
+      <details class="plegable" id="fd-plantillas-hoja" hidden>
+        <summary>Plantillas de texto de este cliente</summary>
+        <p class="tenue">Cómo se arma la descripción de cada renglón y las observaciones. Quedan guardadas para las próximas facturas del cliente.</p>
+        <div class="formulario">
+          <div class="campo ancho"><label for="fd-pl-item">Renglón de cada viaje</label><input id="fd-pl-item" maxlength="255">
+            <span class="ayuda">Marcadores: ${FAC_MARCADORES_ITEM}</span></div>
+          <div class="campo ancho"><label for="fd-pl-obs">Observaciones</label><input id="fd-pl-obs" maxlength="2000">
+            <span class="ayuda">Marcadores: ${FAC_MARCADORES_OBS}. Ejemplo: "CTG {remitos}, KM {km_total}, período {periodo}"</span></div>
+          <div class="campo ancho"><div class="acciones">
+            <button class="btn btn-chico" onclick="_fdGuardarPlantillas(true)">Guardar y aplicar a esta factura</button>
+          </div></div>
+        </div>
+      </details>
+      </div>
     </section>
 
     <section class="hoja" style="margin-bottom:12px" id="fd-viajes-hoja">
-      <header class="hoja-cabecera"><div><h2 class="hoja-titulo">Viajes a facturar</h2><div class="hoja-sub">Viajes finalizados del cliente que todavía no están en otro comprobante.</div></div></header>
-      <div id="fd-viajes"><div class="vacio">Elegí el cliente.</div></div>
+      <header class="hoja-cabecera"><div><h2 class="hoja-titulo">Viajes a facturar</h2><div class="hoja-sub" id="fd-viajes-resumen">Viajes finalizados del cliente que todavía no están en otro comprobante.</div></div>
+        <button class="btn btn-chico" id="fd-viajes-plegar" hidden onclick="_fdPlegarViajes()">Ocultar lista</button></header>
+      <div id="fd-viajes" class="fd-viajes"><div class="vacio">Elegí el cliente.</div></div>
     </section>
 
     <section class="hoja" style="margin-bottom:12px">
@@ -212,20 +227,6 @@ async function renderFacturador(id) {
           <textarea id="fd-obs" rows="3" maxlength="2000" oninput="F.observaciones = this.value; F.obsEditada = true"></textarea></div>
       </div>
       <p class="tenue">La fecha puede estar hasta 10 días antes o después de hoy. El período va del primer al último viaje.</p></div>
-    </section>
-
-    <section class="hoja" style="margin-bottom:12px" id="fd-plantillas-hoja" hidden>
-      <header class="hoja-cabecera"><div><h2 class="hoja-titulo">Plantillas de este cliente</h2>
-        <div class="hoja-sub">Cómo se arma el texto de cada renglón y de las observaciones. Se guardan para las próximas facturas del cliente.</div></div></header>
-      <div class="hoja-cuerpo"><div class="formulario">
-        <div class="campo ancho"><label for="fd-pl-item">Renglón de cada viaje</label><input id="fd-pl-item" maxlength="255">
-          <span class="ayuda">Marcadores: ${FAC_MARCADORES_ITEM}</span></div>
-        <div class="campo ancho"><label for="fd-pl-obs">Observaciones</label><input id="fd-pl-obs" maxlength="2000">
-          <span class="ayuda">Marcadores: ${FAC_MARCADORES_OBS}. Ej.: "CTG: {remitos} · KM: {km_total} · Período: {periodo}"</span></div>
-        <div class="campo ancho"><div class="acciones">
-          <button class="btn btn-chico" onclick="_fdGuardarPlantillas(true)">Guardar y aplicar a esta factura</button>
-        </div></div>
-      </div></div>
     </section>
 
     <div class="acciones" style="justify-content:flex-end;margin-bottom:24px">
@@ -271,7 +272,7 @@ async function _fdElegirCliente(idCuenta, { conservar = false, viajes = [] } = {
   $('#fd-plantillas-hoja').hidden = !c;
   if (c) {
     $('#fd-pl-item').value = c.plantilla_item || '';
-    $('#fd-pl-item').placeholder = 'Flete de {carga} de {origen} a {destino} · Remito {remito} · {fecha}';
+    $('#fd-pl-item').placeholder = 'Flete de {carga} de {origen} a {destino}, remito {remito}, {fecha}';
     $('#fd-pl-obs').value = c.plantilla_observaciones || '';
   }
   _fdLetra();
@@ -291,8 +292,24 @@ async function _fdElegirCliente(idCuenta, { conservar = false, viajes = [] } = {
   _fdPintarItems();
 }
 
+function _fdPlegarViajes(forzar) {
+  const cont = $('#fd-viajes');
+  const plegado = forzar !== undefined ? forzar : !cont.classList.contains('plegado');
+  cont.classList.toggle('plegado', plegado);
+  $('#fd-viajes-plegar').textContent = plegado ? 'Mostrar lista' : 'Ocultar lista';
+}
+
+function _fdResumenViajes() {
+  const n = F.viajesDisponibles.length, elegidos = F.viajes.size;
+  $('#fd-viajes-resumen').textContent = n
+    ? `${n} viaje${n === 1 ? '' : 's'} disponible${n === 1 ? '' : 's'}, ${elegidos} elegido${elegidos === 1 ? '' : 's'}.`
+    : 'Viajes finalizados del cliente que todavía no están en otro comprobante.';
+  $('#fd-viajes-plegar').hidden = n === 0;
+}
+
 function _fdPintarViajes() {
   const lista = F.viajesDisponibles;
+  _fdResumenViajes();
   if (!lista.length) {
     $('#fd-viajes').innerHTML = '<div class="vacio">Este cliente no tiene viajes finalizados sin facturar. Podés cargar renglones a mano.</div>';
     return;
@@ -314,6 +331,7 @@ function _fdPintarViajes() {
 
 async function _fdMarcar(idViaje, marcado) {
   if (marcado) F.viajes.add(idViaje); else F.viajes.delete(idViaje);
+  _fdResumenViajes();
   await _fdRecalcular();
 }
 
@@ -377,16 +395,17 @@ function _fdPintarItems() {
   if (!F.items.length) {
     $('#fd-items').innerHTML = '<div class="vacio">Sin renglones. Elegí viajes o agregá un renglón.</div>';
   } else {
-    $('#fd-items').innerHTML = `<div class="tabla-marco"><table class="tabla">
-      <thead><tr><th style="width:50%">Descripción</th><th class="num">Cantidad</th><th>Unidad</th><th class="num">${sinIva ? 'Precio unit. sin IVA' : 'Precio unitario'}</th><th class="num">Subtotal</th><th></th></tr></thead>
+    $('#fd-items').innerHTML = `<div class="tabla-marco"><table class="tabla tabla-edicion">
+      <thead><tr><th class="col-viaje">Viaje</th><th>Descripción</th><th class="num col-cant">Cantidad</th><th class="col-unidad">Unidad</th>
+        <th class="num col-precio">${sinIva ? 'Precio sin IVA' : 'Precio'}</th><th class="num col-subtotal">Subtotal</th><th class="col-quitar"></th></tr></thead>
       <tbody>${F.items.map((it, i) => `<tr>
-        <td><input class="entrada" value="${esc(it.descripcion)}" maxlength="255" oninput="F.items[${i}].descripcion = this.value" aria-label="Descripción">
-          ${it.id_viaje ? `<span class="tenue">viaje #${it.id_viaje}</span>` : ''}</td>
-        <td><input class="entrada num" type="number" step="0.001" min="0" value="${it.cantidad}" style="width:100px" oninput="F.items[${i}].cantidad = parseFloat(this.value) || 0; _fdTotales()" aria-label="Cantidad"></td>
-        <td><input class="entrada" value="${esc(it.unidad || '')}" maxlength="20" style="width:80px" oninput="F.items[${i}].unidad = this.value" aria-label="Unidad"></td>
-        <td><input class="entrada num" type="number" step="0.01" min="0" value="${it.precio_unitario}" style="width:130px" oninput="F.items[${i}].precio_unitario = parseFloat(this.value) || 0; _fdTotales()" aria-label="Precio unitario"></td>
+        <td class="col-viaje">${it.id_viaje ? `<span class="insignia sin-punto">#${it.id_viaje}</span>` : '<span class="tenue">Manual</span>'}</td>
+        <td><input class="entrada" value="${esc(it.descripcion)}" maxlength="255" oninput="F.items[${i}].descripcion = this.value" aria-label="Descripción del renglón ${i + 1}"></td>
+        <td><input class="entrada num" type="number" step="0.001" min="0" value="${it.cantidad}" oninput="F.items[${i}].cantidad = parseFloat(this.value) || 0; _fdTotales()" aria-label="Cantidad"></td>
+        <td><input class="entrada" value="${esc(it.unidad || '')}" maxlength="20" oninput="F.items[${i}].unidad = this.value" aria-label="Unidad"></td>
+        <td><input class="entrada num" type="number" step="0.01" min="0" value="${it.precio_unitario}" oninput="F.items[${i}].precio_unitario = parseFloat(this.value) || 0; _fdTotales()" aria-label="Precio unitario"></td>
         <td class="num fuerte" id="fd-sub-${i}"></td>
-        <td><button class="btn btn-chico btn-peligro" onclick="_fdQuitar(${i})" aria-label="Quitar renglón">Quitar</button></td>
+        <td class="col-quitar"><button class="btn btn-chico btn-fantasma" onclick="_fdQuitar(${i})" aria-label="Quitar renglón" title="Quitar renglón">${icono('borrar')}</button></td>
       </tr>`).join('')}</tbody></table></div>`;
   }
   _fdTotales();
@@ -514,7 +533,7 @@ function renderComprobanteEmitido(f, config) {
     <div class="vista-cab">
       <div>
         <h1>${nombreComprobante(f)} <span class="mono">${numeroComprobante(f)}</span></h1>
-        <p>${insigniaFactura(f)}${f.entorno === 'HOMOLOGACION' ? ' <span class="insignia sin-punto">PRUEBA · SIN VALIDEZ FISCAL</span>' : ''}</p>
+        <p>${insigniaFactura(f)}${f.entorno === 'HOMOLOGACION' ? ' <span class="insignia sin-punto">PRUEBA SIN VALIDEZ FISCAL</span>' : ''}</p>
       </div>
       <div class="acciones"><button class="btn" onclick="location.hash='facturacion'">Volver</button>${acciones.join('')}</div>
     </div>

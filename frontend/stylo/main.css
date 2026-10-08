@@ -29,4 +29,6 @@
 @import url('./vistas/configuracion.css');
 @import url('./vistas/admin.css');
 @import url('./vistas/acceso.css');
+@import url('./vistas/facturacion.css');
+@import url('./vistas/detalle.css');
 @import url('./layout/responsive.css');

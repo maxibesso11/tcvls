@@ -80,7 +80,7 @@ async function liquidarSueldosFijosDelMes(db, idEmpresa, periodo, idChoferes) {
       idCuenta: chofer.id_cuenta,
       monto,
       fecha: `${periodo}-01`,
-      concepto: `SUELDO FIJO ${periodo} — ${chofer.nombre}`,
+      concepto: `SUELDO FIJO ${periodo}, ${chofer.nombre}`,
       origenTipo: ORIGEN.LIQUIDACION_SUELDO_FIJO,
       origenId: resultado.insertId
     });

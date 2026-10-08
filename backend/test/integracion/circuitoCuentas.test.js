@@ -324,6 +324,23 @@ describe('circuito de cuentas corrientes', { skip: !HABILITADO && MOTIVO_OMISION
     assert.equal(await saldo(proveedor.id_cuenta), 951201);
   });
 
+  test('el rendimiento de combustible solo usa las cargas con los km cargados', async () => {
+    const proveedor = await crearCuenta('PROVEEDOR');
+    const equipo = await crearEquipo(await armarComposicion());
+    const carga = extra => ok(entorno.api('POST', '/api/consumos-combustible', {
+      proveedor: proveedor.nombre, estacion_carga: 'YPF', id_equipo: equipo.id_equipo,
+      cantidad_litros: 300, precio_por_litro: 1000, fecha: '2026-09-05', ...extra }));
+    await carga({ km_recorridos: 900 });   // 3 km/L: la única carga con km reales
+    await carga({});                       // sin km
+    await carga({ km_recorridos: 1 });     // km de relleno
+    const filas = await ok(entorno.api('GET', '/api/dashboard/rendimiento-equipos'));
+    const r = filas.find(f => f.id_equipo === equipo.id_equipo);
+    assert.equal(Number(r.km_por_litro), 3);
+    assert.equal(Number(r.cargas), 3);
+    assert.equal(Number(r.cargas_con_km), 1);
+    assert.ok(Math.abs(Number(r.costo_por_km) - 1000 / 3) < 0.01);
+  });
+
   test('editar solo el teléfono de un chofer actualiza su cuenta sin perder el CUIL', async () => {
     secuencia += 1;
     const cuil = `20-${String(30000000 + secuencia * 104729).slice(-8)}-${secuencia % 10}`;

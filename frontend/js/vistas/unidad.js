@@ -145,8 +145,8 @@ async function renderUnidadDetalle(idStr) {
 
     // --- Pestañas ---
     const alertasUnidad = [
-      ...misVenc.map(v => ({ dias: diasHasta(v.fecha_vencimiento), titulo: esc(v.concepto), detalle: `Vencimiento documental · ${fmtFecha(v.fecha_vencimiento)}`, abrir: `abrirModal('vencimientos', ${v.id_vencimiento}, ${OPC_UNIDAD})`, accion: 'Renovar' })),
-      ...misMant.map(m => ({ dias: diasHasta(m.fecha_vencimiento), titulo: esc(m.concepto), detalle: `Mantenimiento · ${esc(m.periodicidad)} · ${fmtFecha(m.fecha_vencimiento)}`, abrir: `abrirModal('mantenimientos', ${m.id_mantenimiento}, ${OPC_UNIDAD})`, accion: 'Programar' }))
+      ...misVenc.map(v => ({ dias: diasHasta(v.fecha_vencimiento), titulo: esc(v.concepto), detalle: `Vence el ${fmtFecha(v.fecha_vencimiento)}`, abrir: `abrirModal('vencimientos', ${v.id_vencimiento}, ${OPC_UNIDAD})`, accion: 'Renovar' })),
+      ...misMant.map(m => ({ dias: diasHasta(m.fecha_vencimiento), titulo: esc(m.concepto), detalle: `Mantenimiento ${esc(String(m.periodicidad).toLowerCase())}, programado para el ${fmtFecha(m.fecha_vencimiento)}`, abrir: `abrirModal('mantenimientos', ${m.id_mantenimiento}, ${OPC_UNIDAD})`, accion: 'Programar' }))
     ].filter(a => a.dias !== null && a.dias <= 30).sort((a, b) => a.dias - b.dias);
 
     const composicion = equipo ? `
@@ -204,7 +204,7 @@ async function renderUnidadDetalle(idStr) {
       vencimientos: hojaHTML('Vencimientos documentales', '',
         misVenc.length === 0 ? '<div class="vacio">No hay vencimientos cargados.</div>' :
           `<ul class="alertas">${misVenc.map(v => alertaHTML({
-            dias: diasHasta(v.fecha_vencimiento), titulo: esc(v.concepto), detalle: `Vencimiento documental · ${fmtFecha(v.fecha_vencimiento)}`,
+            dias: diasHasta(v.fecha_vencimiento), titulo: esc(v.concepto), detalle: `Vence el ${fmtFecha(v.fecha_vencimiento)}`,
             accion: `<button class="btn btn-chico" onclick="abrirModal('vencimientos', ${v.id_vencimiento}, ${OPC_UNIDAD})">Editar</button>`
           })).join('')}</ul>`,
         botonNuevo('vencimientos', 'Nuevo vencimiento'))

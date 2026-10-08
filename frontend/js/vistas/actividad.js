@@ -69,7 +69,7 @@ async function renderActividad({ titulo, sub, cargar, global = false, empresas =
         ['Fecha y hora', 'Usuario', 'Acción', 'Entidad afectada', 'IP', 'Estado', ''],
         r.datos.map(a => [
           `<td class="nowrap"><div class="celda-doble"><b>${fmtFecha(a.fecha)}</b><span>${new Date(a.fecha).toLocaleTimeString('es-AR')}</span></div></td>`,
-          `<div class="celda-doble"><b>${esc(a.nombre_usuario || '—')}</b><span>${esc(ROL_CORTO[a.rol] || a.rol || 'sin sesión')}${global && a.nombre_empresa ? ' · ' + esc(a.nombre_empresa) : ''}</span></div>`,
+          `<div class="celda-doble"><b>${esc(a.nombre_usuario || '—')}</b><span>${esc(ROL_CORTO[a.rol] || a.rol || 'sin sesión')}${global && a.nombre_empresa ? ', ' + esc(a.nombre_empresa) : ''}</span></div>`,
           esc(etiquetaAccion(a.accion)),
           `<div class="celda-doble"><b>${esc(etiquetaEntidad(a.entidad))}</b><span>${a.id_entidad ? '#' + esc(a.id_entidad) : '&nbsp;'}</span></div>`,
           `<td class="mono nowrap">${esc(a.ip || '—')}</td>`,

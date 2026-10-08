@@ -25,7 +25,7 @@ function errores(resultado) {
 function lanzarSiHayErrores(resultado, contexto) {
   const errs = errores(resultado);
   if (errs.length) {
-    throw new ErrorArca(`${contexto}: ` + errs.map(e => `[${e.codigo}] ${e.mensaje}`).join(' · '),
+    throw new ErrorArca(`${contexto}: ` + errs.map(e => `[${e.codigo}] ${e.mensaje}`).join('; '),
       { codigo: errs[0].codigo, detalle: errs });
   }
 }

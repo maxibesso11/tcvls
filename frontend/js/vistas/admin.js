@@ -173,7 +173,7 @@ async function renderAdminEmpresas() {
       return;
     }
     const activas = empresas.filter(e => e.activa).length;
-    $('#tabla-empresas').innerHTML = cabeceraTablaAdmin(`${empresas.length} empresa${empresas.length === 1 ? '' : 's'}`, `${activas} activa${activas === 1 ? '' : 's'} · tocá una fila para editarla, sus módulos o su certificado`) + tablaSimple(
+    $('#tabla-empresas').innerHTML = cabeceraTablaAdmin(`${empresas.length} empresa${empresas.length === 1 ? '' : 's'}`, `${activas} activa${activas === 1 ? '' : 's'}. Tocá una fila para editarla, sus módulos o su certificado`) + tablaSimple(
       ['Empresa', 'Contacto', 'Usuarios', 'Estado'],
       empresas.map(e => [
         `<div class="empresa-celda"><span class="avatar">${esc(e.iniciales || derivarIniciales(e.nombre))}</span><div class="celda-doble"><b>${esc(e.nombre)}</b><span class="mono">${esc(e.cuit || 'sin CUIT')}</span></div></div>`,
@@ -395,7 +395,7 @@ async function renderAdminUsuarios() {
       return;
     }
     const activos = usuarios.filter(u => u.activo).length;
-    $('#tabla-usuarios').innerHTML = cabeceraTablaAdmin(`${usuarios.length} usuario${usuarios.length === 1 ? '' : 's'}`, `${activos} activo${activos === 1 ? '' : 's'} · tocá una fila para editarlo`) + tablaSimple(
+    $('#tabla-usuarios').innerHTML = cabeceraTablaAdmin(`${usuarios.length} usuario${usuarios.length === 1 ? '' : 's'}`, `${activos} activo${activos === 1 ? '' : 's'}. Tocá una fila para editarlo`) + tablaSimple(
       ['Usuario', 'Rol', 'Empresa', 'Estado'],
       usuarios.map(u => {
         const esPrincipal = u.nombre_usuario === 'admin' && u.rol === 'ADMIN';

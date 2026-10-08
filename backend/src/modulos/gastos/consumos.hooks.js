@@ -91,7 +91,7 @@ async function crearMovimientoDesdeConsumo(db, { origenTipo, etiqueta, idConsumo
     idCuenta: cuenta.id_cuenta,
     monto: Math.abs(Number(monto)),
     fecha,
-    concepto: `CONSUMO ${etiqueta} #${idConsumo} — ${descripcion}`,
+    concepto: `CONSUMO ${etiqueta} #${idConsumo}, ${descripcion}`,
     origenTipo,
     origenId: idConsumo
   });

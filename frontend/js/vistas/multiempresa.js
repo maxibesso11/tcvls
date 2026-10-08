@@ -68,7 +68,7 @@ async function renderMultiempresaUsuarios() {
       return;
     }
     const activos = usuarios.filter(u => u.activo).length;
-    $('#tabla-usuarios-multiempresa').innerHTML = cabeceraTablaAdmin(`${usuarios.length} usuario${usuarios.length === 1 ? '' : 's'}`, `${activos} activo${activos === 1 ? '' : 's'} · tocá una fila para editarlo`) + tablaSimple(
+    $('#tabla-usuarios-multiempresa').innerHTML = cabeceraTablaAdmin(`${usuarios.length} usuario${usuarios.length === 1 ? '' : 's'}`, `${activos} activo${activos === 1 ? '' : 's'}. Tocá una fila para editarlo`) + tablaSimple(
       ['Usuario', 'Rol', 'Estado'],
       usuarios.map(u => [
         celdaUsuario(u),

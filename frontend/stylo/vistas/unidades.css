@@ -11,7 +11,13 @@
 .unidad-ficha .datos b { display: block; font: 600 17px/20px var(--font-display); }
 .unidad-ficha .datos span { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
 .marcas { display: flex; flex-wrap: wrap; gap: 6px; min-height: 22px; }
-.filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+/* Todo control de la barra de filtros mide lo mismo que un campo (36px) y
+   se alinea por la base: los que no tienen etiqueta quedan a la altura del campo. */
+.filtros > .btn, .filtros > .btn-chico { height: 36px; padding: 0 var(--space-3); font-size: 13.5px; }
+.filtros > .segmentado { height: 36px; }
+.filtros > .segmentado button { height: 34px; }
+.filtros > .campo { margin: 0; }
 .filtros .entrada { width: 240px; max-width: 100%; }
 
 /* Ficha */

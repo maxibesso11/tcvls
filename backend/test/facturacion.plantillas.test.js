@@ -14,7 +14,7 @@ const viajeKm = { ...viajeTn, id_viaje: 113, tipo_tarifa: 'POR KM', tarifa: 2150
 
 test('renglón por viaje con la plantilla por defecto', () => {
   const it = P.itemDeViaje(viajeTn);
-  assert.equal(it.descripcion, 'Flete de Soja de San José Boquerón a Rosario · Remito 10134872416 · 03/09/2026');
+  assert.equal(it.descripcion, 'Flete de Soja de San José Boquerón a Rosario, remito 10134872416, 03/09/2026');
   assert.deepEqual([it.cantidad, it.unidad, it.precio_unitario, it.id_viaje], [30.68, 'tn', 95000, 112]);
 });
 
@@ -40,3 +40,9 @@ test('un dato vacío no deja separadores sueltos', () => {
   const it = P.itemDeViaje({ ...viajeTn, numero_remito: null }, 'Flete {origen} → {destino} · {remito}');
   assert.equal(it.descripcion, 'Flete San José Boquerón → Rosario');
 });
+
+test('con la plantilla por defecto, un viaje sin remito no deja la coma ni la palabra suelta', () => {
+  const it = P.itemDeViaje({ ...viajeTn, numero_remito: '' });
+  assert.equal(it.descripcion, 'Flete de Soja de San José Boquerón a Rosario, 03/09/2026');
+});
+

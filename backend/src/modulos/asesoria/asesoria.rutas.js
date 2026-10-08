@@ -81,7 +81,7 @@ router.post('/', async (req, res) => {
       from: process.env.SMTP_DESDE || `TCV LogiSuite <${process.env.SMTP_USER}>`,
       to: destino,
       replyTo: `${nombre} <${email}>`,
-      subject: `Solicitud de asesoría — ${empresa}`,
+      subject: `Solicitud de asesoría de ${empresa}`,
       text:
         `Nueva solicitud de asesoría desde la web.\n\n` +
         `Nombre: ${nombre}\nEmpresa: ${empresa}\nEmail: ${email}\nTeléfono: ${telefono}\n` +

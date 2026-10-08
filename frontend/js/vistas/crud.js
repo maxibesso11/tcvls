@@ -134,15 +134,19 @@ async function renderModulo(clave) {
       const chofer  = id => (choferes.find(c => c.id_chofer === id) || {}).nombre || '?';
       $('#filtro-equipo').innerHTML = '<option value="">Todos los equipos</option>' +
         equipos.map(e =>
-          `<option value="${e.id_equipo}">${esc(patente(e.id_unidad_principal))} / ${esc(patente(e.id_unidad_secundaria))} · ${esc(chofer(e.id_chofer))}</option>`
+          `<option value="${e.id_equipo}">${esc(patente(e.id_unidad_principal))} / ${esc(patente(e.id_unidad_secundaria))}, ${esc(chofer(e.id_chofer))}</option>`
         ).join('');
     } catch (err) { /* sin equipos */ }
+    if (_filtroEquipoInicial) { $('#filtro-equipo').value = _filtroEquipoInicial; _filtroEquipoInicial = null; }
     $('#filtro-equipo').addEventListener('change', recargar);
   }
 
   // Carga inicial: incluye los filtros avanzados (rango de fecha por defecto)
   cargarTabla(clave, '', filtroActual(), depositoActual(), filtrosExtra(), 1);
 }
+
+// Equipo con el que se abre filtrada la lista de viajes (desde el detalle de un equipo)
+let _filtroEquipoInicial = null;
 
 // Página actual por cada módulo (para mantenerla entre recargas)
 const paginaActual = {};
@@ -241,7 +245,7 @@ async function cargarTabla(clave, q = '', idEquipo = '', deposito = '', extras =
                 const campo = mod.campos.find(c => c.nombre === col);
                 return `<td class="${claseCelda(campo)}${claseOpc(i)}">${formatearCelda(fila[col], campo, diccionariosFk[col], fila)}</td>`;
               }).join('')}
-              <td class="num nowrap"><button class="btn btn-chico" onclick="event.stopPropagation(); alHacerClicFila('${clave}', ${fila[mod.id]})">Ver detalle</button></td>
+              <td class="num nowrap"><span class="acciones-fila">${mod.botonesFila ? mod.botonesFila(fila) : ''}<button class="btn btn-chico" onclick="event.stopPropagation(); alHacerClicFila('${clave}', ${fila[mod.id]})">Ver detalle</button></span></td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -344,7 +348,7 @@ function formatearCelda(valor, campo, diccionarioFk, fila) {
       if (texto) return patentesEquipo({ patente_principal: texto.split(' / ')[0], patente_secundaria: texto.split(' / ')[1] });
     }
     if (!reg) return `#${esc(valor)}`;
-    if (campo.recurso === 'unidades') return `${patenteHTML(reg.patente)} ${esc(reg.modelo)}`;
+    if (campo.recurso === 'unidades') return `<span class="con-patente">${patenteHTML(reg.patente)}<span>${esc(reg.modelo)}</span></span>`;
     if (campo.recurso === 'equipos') return patentesEquipo(reg);
     if (campo.recurso === 'cuentas') return `<div class="celda-doble"><b>${esc(reg.nombre)}</b><span>${esc(String(reg.tipo || '').toLowerCase())}</span></div>`;
     return esc(campo.mostrar(reg));
@@ -421,7 +425,7 @@ async function abrirModal(clave, id, opciones = {}) {
       ]);
       const patente = idU => (unidades.find(u => u.id_unidad === idU) || {}).patente || '?';
       const existentes = [...new Set(stockActual.map(s => s.deposito).filter(Boolean))];
-      const comoEquipos = equipos.map(e => `Equipo #${e.id_equipo} · ${patente(e.id_unidad_principal)}`);
+      const comoEquipos = equipos.map(e => `Equipo #${e.id_equipo} (${patente(e.id_unidad_principal)})`);
       sugerenciasDeposito = [...new Set([...existentes, ...comoEquipos])].sort();
     } catch (err) { /* sin sugerencias */ }
   }
@@ -592,7 +596,7 @@ function sincronizarGrupoFiscal(mod) {
   const cont = $('#fiscal-diferencia');
   if (cont) {
     const cuadra = Math.abs(diferencia) <= 0.01;
-    cont.innerHTML = `Desglose: ${fmtDinero(suma)} · Total del registro: ${fmtDinero(total)} · Diferencia: ${fmtDinero(diferencia)} ` +
+    cont.innerHTML = `Desglose ${fmtDinero(suma)}, total del registro ${fmtDinero(total)}, diferencia ${fmtDinero(diferencia)}. ` +
       insignia(cuadra ? 'Cuadra' : 'No cuadra', cuadra ? 'ok' : 'peligro');
   }
 }
@@ -702,11 +706,15 @@ async function guardarRegistro() {
 // Vuelve a pintar la pantalla que está abierta después de guardar o eliminar:
 // la ficha de la unidad, la grilla de unidades o la tabla del módulo.
 function recargarVistaModulo(clave, { eliminado = false } = {}) {
+  if (eliminado && /^#(viaje|equipo)-detalle\//.test(location.hash)) { location.hash = clave; return; }
   if (location.hash.startsWith('#unidad-detalle/')) {
     if (eliminado && clave === 'unidades') { location.hash = 'unidades'; return; }
     return renderUnidadDetalle(location.hash.split('/')[1]);
   }
   if (clave === 'unidades') return renderUnidades();
+  // Desde el tablero, las alertas o una vista de detalle: se redibuja la vista actual.
+  const vista = location.hash.replace('#', '') || 'dashboard';
+  if (vista !== clave) return navegar();
   cargarTabla(clave, $('#buscador')?.value || '', $('#filtro-equipo')?.value || '', $('#filtro-deposito')?.value || '', recogerExtras(), 1);
 }
 

@@ -657,7 +657,8 @@ INSERT INTO MIGRACIONES (nombre) VALUES
 ('migracion_032_auditoria.sql'),
 ('migracion_033_baja_equipos.sql'),
 ('migracion_034_facturacion_electronica.sql'),
-('migracion_035_tema_marca.sql');
+('migracion_035_tema_marca.sql'),
+('migracion_036_conceptos_sin_separadores.sql');
 
 -- =========================================================
 -- FIN DE LA INSTALACIÓN

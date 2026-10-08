@@ -49,7 +49,7 @@ async function crearMovimiento(db, gasto, idEmpresa) {
     idCuenta: cuenta.id_cuenta,
     monto: Math.abs(Number(gasto.monto)),
     fecha: gasto.fecha,
-    concepto: `GASTO ADMINISTRATIVO #${gasto.id_gasto_administrativo} — ${gasto.concepto}`,
+    concepto: `GASTO ADMINISTRATIVO #${gasto.id_gasto_administrativo}, ${gasto.concepto}`,
     origenTipo: ORIGEN.GASTO_ADMINISTRATIVO,
     origenId: gasto.id_gasto_administrativo
   });

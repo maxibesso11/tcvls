@@ -52,8 +52,8 @@ const MODULOS = {
     recurso: 'equipos',
     id: 'id_equipo',
     campos: [
-      { nombre: 'id_unidad_principal', etiqueta: 'Unidad principal', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} — ${r.modelo}`, filtro: r => r.funcionalidad === 'PRINCIPAL', requerido: true },
-      { nombre: 'id_unidad_secundaria', etiqueta: 'Unidad secundaria', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} — ${r.modelo}`, filtro: r => r.funcionalidad === 'SECUNDARIA', requerido: true },
+      { nombre: 'id_unidad_principal', etiqueta: 'Unidad principal', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} ${r.modelo}`, filtro: r => r.funcionalidad === 'PRINCIPAL', requerido: true },
+      { nombre: 'id_unidad_secundaria', etiqueta: 'Unidad secundaria', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} ${r.modelo}`, filtro: r => r.funcionalidad === 'SECUNDARIA', requerido: true },
       { nombre: 'id_chofer', etiqueta: 'Chofer', tipo: 'fk', recurso: 'choferes', mostrar: r => r.nombre, requerido: true },
       { nombre: 'peso_tara', etiqueta: 'Peso de tara (kg)', tipo: 'number', requerido: true },
       { nombre: 'peso_bruto', etiqueta: 'Peso bruto (kg)', tipo: 'number', requerido: true },
@@ -64,8 +64,12 @@ const MODULOS = {
       { nombre: 'fecha_cambio', etiqueta: 'Fecha del cambio de camión/acoplado/chofer', tipo: 'datetime-local', soloEdicion: true, soloFormulario: true, ancho: true,
         ayuda: 'Solo si cambiás el camión, el acoplado o el chofer. Vacía = ahora. Los viajes desde esa fecha quedan con la composición nueva; los anteriores no cambian.' }
     ],
+    // La fila abre el detalle del equipo; copiar sus datos queda a mano en la fila.
+    alHacerClic: fila => { location.hash = `equipo-detalle/${fila.id_equipo}`; return true; },
+    botonesFila: fila => `<button class="btn btn-chico btn-icono" title="Copiar los datos del equipo" aria-label="Copiar los datos del equipo" onclick="event.stopPropagation(); copiarEquipo(${fila.id_equipo})">${icono('copiar')}</button>`,
+    // Los pesos están en el detalle: la tabla entra sin scroll lateral.
+    columnasTabla: ['id_unidad_principal', 'id_unidad_secundaria', 'id_chofer', '_estado'],
     acciones: (fila) => [
-      { texto: 'Ver historial', onclick: `verHistorialEquipo(${fila.id_equipo})` },
       fila.activo === 0
         ? { texto: 'Reactivar', onclick: `reactivarEquipo(${fila.id_equipo})` }
         : { texto: 'Dar de baja', peligro: true, onclick: `darDeBajaEquipo(${fila.id_equipo})` },
@@ -104,6 +108,7 @@ const MODULOS = {
     ],
     filtrosAvanzados: true,
     columnasTabla: ['fecha_origen', 'id_equipo', 'origen', 'destino', 'estado', '_valor'],
+    alHacerClic: fila => { location.hash = `viaje-detalle/${fila.id_viaje}`; return true; },
     acciones: (fila) => fila.estado === 'FACTURADO' ? [] : [
       { texto: 'Avanzar estado', onclick: `avanzarEstadoViaje(${fila.id_viaje})` },
       { texto: 'Eliminar', peligro: true, onclick: `eliminarRegistro('viajes', ${fila.id_viaje})` }
@@ -141,7 +146,7 @@ const MODULOS = {
     totalRegistro: () => Number($('#f-monto')?.value) || 0,
     campos: [
       { nombre: 'fecha', etiqueta: 'Fecha', tipo: 'datetime-local', requerido: true },
-      { nombre: 'id_unidad', etiqueta: 'Unidad', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} — ${r.modelo}`, requerido: true },
+      { nombre: 'id_unidad', etiqueta: 'Unidad', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} ${r.modelo}`, requerido: true },
       { nombre: 'proveedor', etiqueta: 'Proveedor (cuenta)', tipo: 'select_cuenta', tiposCuenta: ['PROVEEDOR', 'CLIENTE'], requerido: true },
       { nombre: 'concepto', etiqueta: 'Concepto', tipo: 'text', requerido: true, ancho: true },
       { nombre: 'monto', etiqueta: 'Monto ($)', tipo: 'number', requerido: true }
@@ -160,7 +165,7 @@ const MODULOS = {
       { nombre: 'nombre', etiqueta: 'Nombre', tipo: 'text', requerido: true, ancho: true },
       { nombre: 'domicilio', etiqueta: 'Domicilio', tipo: 'text', ancho: true, requerido: true },
       { nombre: 'telefono', etiqueta: 'Teléfono', tipo: 'text', requerido: true },
-      { nombre: 'plazo_pago_dias', etiqueta: 'Plazo de pago (días) — solo clientes', tipo: 'number', ayuda: 'Días que el cliente puede adeudar antes de que aparezca una alerta de cobro vencido. Dejar vacío si no aplica.' },
+      { nombre: 'plazo_pago_dias', etiqueta: 'Plazo de pago en días (solo clientes)', tipo: 'number', ayuda: 'Días que el cliente puede adeudar antes de que aparezca una alerta de cobro vencido. Dejar vacío si no aplica.' },
       { nombre: 'condicion_iva', etiqueta: 'Condición frente al IVA', tipo: 'select', opciones: ['RESPONSABLE INSCRIPTO', 'MONOTRIBUTO', 'EXENTO', 'CONSUMIDOR FINAL'], ayuda: 'En clientes define la letra de la factura (A, B o C); en proveedores, el Libro IVA Compras.' }
     ],
     // Los choferes se gestionan desde su módulo
@@ -205,7 +210,7 @@ const MODULOS = {
     recurso: 'mantenimientos',
     id: 'id_mantenimiento',
     campos: [
-      { nombre: 'id_unidad', etiqueta: 'Unidad', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} — ${r.modelo}`, vacio: 'General de la flota',
+      { nombre: 'id_unidad', etiqueta: 'Unidad', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} ${r.modelo}`, vacio: 'General de la flota',
         ayuda: 'Dejalo en «General de la flota» si no es de una unidad en particular.' },
       { nombre: 'concepto', etiqueta: 'Concepto', tipo: 'text', requerido: true, ancho: true },
       { nombre: 'periodicidad', etiqueta: 'Periodicidad', tipo: 'text', requerido: true },
@@ -222,7 +227,7 @@ const MODULOS = {
     recurso: 'vencimientos',
     id: 'id_vencimiento',
     campos: [
-      { nombre: 'id_unidad', etiqueta: 'Unidad', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} — ${r.modelo}`, vacio: 'General de la flota',
+      { nombre: 'id_unidad', etiqueta: 'Unidad', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} ${r.modelo}`, vacio: 'General de la flota',
         ayuda: 'Dejalo en «General de la flota» si no es de una unidad en particular (ej. un impuesto).' },
       { nombre: 'concepto', etiqueta: 'Concepto', tipo: 'text', requerido: true, ancho: true },
       { nombre: 'fecha_vencimiento', etiqueta: 'Fecha de vencimiento', tipo: 'date', requerido: true }
@@ -238,7 +243,7 @@ const MODULOS = {
     id: 'id_cubierta',
     campos: [
       { nombre: 'identificador', etiqueta: 'Identificador', tipo: 'text', maxlen: 50 },
-      { nombre: 'id_unidad', etiqueta: 'Unidad', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} — ${r.modelo}`, requerido: true },
+      { nombre: 'id_unidad', etiqueta: 'Unidad', tipo: 'fk', recurso: 'unidades', mostrar: r => `${r.patente} ${r.modelo}`, requerido: true },
       { nombre: 'estado', etiqueta: 'Estado', tipo: 'text', requerido: true },
       { nombre: 'ubicacion', etiqueta: 'Ubicación', tipo: 'select', requerido: true, opciones: ['COLOCADA', 'AUXILIO'] },
       { nombre: 'fecha_colocacion', etiqueta: 'Fecha de colocación', tipo: 'date' }

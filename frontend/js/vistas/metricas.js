@@ -182,11 +182,10 @@ async function cargarMetrica(clave) {
       const rentNeta = data.rentabilidad_neta || 0;
       const ivaTotal = data.iva_total || 0;
       const rentNetaIva = data.rentabilidad_neta_con_iva ?? rentNeta;
-      const maxBarra = Math.max(0, ...filas.map(r => Math.max(Number(r.ingresos), Number(r.costos))));
       const suma = k => filas.reduce((s, r) => s + Number(r[k] || 0), 0);
 
-      const cascada = filas.length === 0 || totalIngresos <= 0 ? '' : hojaHTML('Resultado del período', 'Ingresos menos cada costo; debajo de cada costo, su porcentaje sobre los ingresos',
-        `<div class="hoja-cuerpo">${graficoCascada({
+      const cascada = filas.length === 0 || totalIngresos <= 0 ? '' : hojaHTML('Resultado del período', 'Ingresos menos cada costo, con su peso sobre los ingresos',
+        `<div class="hoja-cuerpo">${desgloseResultado({
           ingresos: totalIngresos,
           costos: [
             { nombre: 'Combustible', valor: suma('costo_combustible') },
@@ -209,26 +208,25 @@ async function cargarMetrica(clave) {
         ${hojaHTML('Rentabilidad por equipo', '', filas.length === 0 ? '<div class="vacio">Sin equipos para los filtros seleccionados.</div>' : `
           <div class="tabla-marco"><table class="tabla">
             <thead><tr>
-              <th>Equipo</th><th>Chofer</th><th>Costos ← → Ingresos</th><th class="num">Ingresos</th><th class="num">Combustible</th><th class="num">Generales</th><th class="num">Sueldo</th><th class="num">Rentabilidad</th><th class="num">Margen</th>
+              <th>Equipo</th><th>Chofer</th><th class="num">Ingresos</th><th class="num">Combustible</th><th class="num">Generales</th><th class="num">Sueldo</th><th class="num">Rentabilidad</th><th class="num">Margen</th>
             </tr></thead>
             <tbody>
             ${filas.map(r => `<tr>
               <td>${patentesEquipo(r)}</td>
               <td>${esc(r.chofer)}${marcaBaja(r)}</td>
-              <td>${barraDoble(r.costos, r.ingresos, maxBarra)}</td>
               <td class="num">${fmtDinero(r.ingresos)}</td>
               <td class="num">${fmtDinero(r.costo_combustible)}</td>
               <td class="num">${fmtDinero(r.costo_generales)}</td>
-              <td class="num">${fmtDinero(r.sueldo)}<br><span class="tenue">fijo ${fmtDinero(r.sueldo_fijo || 0)} + var. ${fmtDinero(r.sueldo_variable || 0)}</span></td>
+              <td class="num">${fmtDinero(r.sueldo)}<br><span class="tenue">fijo ${fmtDinero(r.sueldo_fijo || 0)}, variable ${fmtDinero(r.sueldo_variable || 0)}</span></td>
               <td class="num fuerte">${montoEstado(r.rentabilidad)}</td>
               <td class="num">${fmtNum(r.margen)} %</td>
             </tr>`).join('')}
-              <tr><td colspan="7" class="fuerte">Subtotal rentabilidad de equipos</td><td class="num fuerte">${fmtDinero(rentEquipos)}</td><td></td></tr>
-              <tr><td colspan="7">− Gastos administrativos del período</td><td class="num">${fmtDinero(gAdmin)}</td><td></td></tr>
-              ${gSinEquipo ? `<tr title="Consumos de unidades que en esa fecha no estaban en ningún equipo (por ejemplo, en el taller)"><td colspan="7">− Gastos de unidades sin equipo (en el taller, sin asignar)</td><td class="num">${fmtDinero(gSinEquipo)}</td><td></td></tr>` : ''}
+              <tr><td colspan="6" class="fuerte">Subtotal rentabilidad de equipos</td><td class="num fuerte">${fmtDinero(rentEquipos)}</td><td></td></tr>
+              <tr><td colspan="6">Menos gastos administrativos del período</td><td class="num">${fmtDinero(gAdmin)}</td><td></td></tr>
+              ${gSinEquipo ? `<tr title="Consumos de unidades que en esa fecha no estaban en ningún equipo (por ejemplo, en el taller)"><td colspan="6">Menos gastos de unidades sin equipo (en el taller o sin asignar)</td><td class="num">${fmtDinero(gSinEquipo)}</td><td></td></tr>` : ''}
             </tbody>
             <tfoot>
-              <tr><td colspan="7">Rentabilidad neta</td><td class="num">${fmtDinero(rentNeta)}</td><td></td></tr>
+              <tr><td colspan="6">Rentabilidad neta</td><td class="num">${fmtDinero(rentNeta)}</td><td></td></tr>
             </tfoot>
           </table></div>`)}
 
@@ -294,15 +292,15 @@ async function cargarMetrica(clave) {
       const filas = await API.rendimientoEquipos();
       const conDatos = filas.filter(r => Number(r.km_por_litro) > 0);
       cont.innerHTML = `
-        ${conDatos.length ? hojaHTML('Km/L contra el promedio', 'Azul: por encima del promedio de la flota · naranja: por debajo',
+        ${conDatos.length ? hojaHTML('Km/L contra el promedio', 'Azul, por encima del promedio de la flota. Naranja, por debajo.',
           `<div class="hoja-cuerpo">${graficoPuntosPromedio(conDatos.map(r => ({
-            rotulo: `${r.patente_principal} · ${String(r.chofer || '').split(' ').slice(-1)[0]}`,
+            rotulo: `${r.patente_principal} ${String(r.chofer || '').split(' ').slice(-1)[0]}`,
             valor: Number(r.km_por_litro)
           })))}</div>`) : ''}
         ${hojaHTML('Rendimiento por equipo', '', filas.length === 0 ? '<div class="vacio">Sin datos de consumo.</div>' : `
           <div class="tabla-marco"><table class="tabla">
             <thead><tr>
-              <th>Equipo</th><th>Chofer</th><th class="num">Litros</th><th class="num">Km</th><th class="num">Km/L</th><th class="num">Gasto</th><th class="num">Costo/km</th>
+              <th>Equipo</th><th>Chofer</th><th class="num">Litros</th><th class="num">Km anotados</th><th class="num">Km/L</th><th class="num">Gasto</th><th class="num">Costo/km</th>
             </tr></thead>
             <tbody>
             ${filas.map(r => `<tr>
@@ -310,12 +308,12 @@ async function cargarMetrica(clave) {
               <td>${esc(r.chofer)}${marcaBaja(r)}</td>
               <td class="num">${fmtNum(r.litros, 0)}</td>
               <td class="num">${fmtNum(r.km, 0)}</td>
-              <td class="num fuerte">${fmtNum(r.km_por_litro)}</td>
+              <td class="num fuerte">${kmPorLitroHTML(r)}</td>
               <td class="num">${fmtDinero(r.gasto)}</td>
-              <td class="num">${fmtDinero(r.costo_por_km)}</td>
+              <td class="num">${Number(r.cargas_con_km) > 0 ? fmtDinero(r.costo_por_km) : '<span class="tenue">sin dato</span>'}</td>
             </tr>`).join('')}
             </tbody>
-          </table></div>`, '', 'El rendimiento de combustible no se filtra por fecha porque agrega el histórico de cada equipo.')}`;
+          </table></div>`, '', 'El rendimiento no se filtra por fecha: usa el histórico de cada equipo. Solo cuentan las cargas con los km recorridos anotados (10 km o más); si a una carga le faltan los km, sus litros no se suman.')}`;
     }
   } catch (err) {
     cont.innerHTML = `<div class="vacio">Error: ${esc(err.message)}</div>`;

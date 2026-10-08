@@ -250,6 +250,9 @@ section { padding: 112px 0; position: relative; }
 .pie-grid h4 { font: 600 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--tinta-clara); margin-bottom: 16px; }
 .pie-grid a { display: block; text-decoration: none; font-size: 14px; padding: 4px 0; }
 .pie-grid a:hover { color: var(--celeste); }
+.pie-enlaces { display: inline-flex; gap: 18px; }
+.pie-enlaces a { text-decoration: none; }
+.pie-enlaces a:hover { color: var(--celeste); }
 .pie-legal { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--linea-oscura); font-size: 12.5px; }
 
 /* ---------- Páginas legales ---------- */

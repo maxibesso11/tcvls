@@ -87,13 +87,13 @@ async function comprobanteDelViaje(db, idViaje, idEmpresa) {
 
 function etiquetaFiscal(viaje) {
   const comision = Number(viaje.comision) || 0;
-  const conComision = texto => (comision > 0 ? `comisión ${comision}% + ${texto}` : texto);
+  const conComision = texto => (comision > 0 ? `comisión ${comision}% e ${texto}` : texto);
   if (viaje.modo_facturacion === 'SIN_FACTURAR') {
-    return comision > 0 ? `[comisión ${comision}% · sin IVA]` : '[sin IVA]';
+    return comision > 0 ? `(comisión ${comision}%, sin IVA)` : '(sin IVA)';
   }
-  if (viaje.modo_facturacion === 'FACTURA') return `[${conComision('IVA 21%')} · facturado]`;
+  if (viaje.modo_facturacion === 'FACTURA') return `(${conComision('IVA 21%')}, facturado)`;
   // LIQUIDO_PRODUCTO o compatibilidad (NULL)
-  return `[${conComision('IVA 21%')} · líquido producto]`;
+  return `(${conComision('IVA 21%')}, líquido producto)`;
 }
 
 // Débito al pagador según el modo de facturación. Si el viaje está en un
@@ -106,8 +106,8 @@ async function crearFacturacion(db, viaje, idEmpresa) {
   const monto = calcularMontoCuentaCliente(viaje);
   if (monto === 0) return;
 
-  const concepto = `FACTURACION VIAJE #${viaje.id_viaje} — ${viaje.origen} → ${viaje.destino}` +
-                   (viaje.numero_remito ? ` (remito ${viaje.numero_remito})` : '') +
+  const concepto = `FACTURACION VIAJE #${viaje.id_viaje}, ${viaje.origen} a ${viaje.destino}` +
+                   (viaje.numero_remito ? `, remito ${viaje.numero_remito}` : '') +
                    ` ${etiquetaFiscal(viaje)}`;
 
   await crearMovimientoAutomatico(db, {
@@ -129,9 +129,9 @@ async function crearLiquidacion(db, viaje, idEmpresa) {
   if (monto === 0 && !incompleto) return;
 
   const concepto = incompleto
-    ? `LIQUIDACION VIAJE #${viaje.id_viaje} — ${viaje.origen} → ${viaje.destino} ` +
+    ? `LIQUIDACION VIAJE #${viaje.id_viaje}, ${viaje.origen} a ${viaje.destino} ` +
       `[PENDIENTE: faltan los km recorridos para liquidar al chofer]`
-    : `LIQUIDACION VIAJE #${viaje.id_viaje} — ${viaje.origen} → ${viaje.destino}`;
+    : `LIQUIDACION VIAJE #${viaje.id_viaje}, ${viaje.origen} a ${viaje.destino}`;
 
   await crearMovimientoAutomatico(db, {
     idEmpresa,

@@ -228,7 +228,7 @@ async function copiarEquipo(idEquipo) {
 `Equipo #${equipo.id_equipo}
 Unidad principal: ${up.patente || '?'}${up.modelo ? ' (' + up.modelo + ')' : ''}
 Unidad secundaria: ${us.patente || '?'}${us.modelo ? ' (' + us.modelo + ')' : ''}
-Chofer: ${chofer.nombre || '?'}${chofer.cuil ? ' — CUIL ' + chofer.cuil : ''}${chofer.telefono ? ' — Tel ' + chofer.telefono : ''}
+Chofer: ${chofer.nombre || '?'}${chofer.cuil ? ', CUIL ' + chofer.cuil : ''}${chofer.telefono ? ', tel. ' + chofer.telefono : ''}
 Peso de tara: ${tara}
 Peso bruto: ${bruto}
 Capacidad de carga: ${capacidad}`;
@@ -282,6 +282,10 @@ function insigniaEstado(valor) {
 }
 // Insignia suelta con la variante elegida (ok | aviso | peligro | info | marca | '').
 // Insignia "baja" para un equipo dado de baja en listados y métricas.
+// Km/L con la cantidad de cargas que lo respaldan (solo cuentan las que tienen km).
+const kmPorLitroHTML = r => (Number(r.cargas_con_km) > 0
+  ? `${fmtNum(r.km_por_litro)}<br><span class="tenue">${r.cargas_con_km} de ${r.cargas} cargas</span>`
+  : `<span class="tenue">sin km cargados</span>`);
 const marcaBaja = r => (r && (r.activo === false || r.activo === 0) ? ' ' + insignia('baja', 'aviso') : '');
 
 const insignia = (texto, variante = '') => `<span class="insignia ${variante}">${esc(String(texto).toUpperCase())}</span>`;
@@ -294,7 +298,7 @@ function patenteHTML(patente, tam = 'chica') {
 
 // Equipo = dos patentes juntas (camión + acoplado)
 // (juntas en una línea, separadas 4px)
-const patentesEquipo = r => `<span style="display:inline-flex;gap:4px;white-space:nowrap">${patenteHTML(r.patente_principal)}${patenteHTML(r.patente_secundaria || '?')}</span>`;
+const patentesEquipo = r => `<span class="patentes-equipo">${patenteHTML(r.patente_principal)}${patenteHTML(r.patente_secundaria || '?')}</span>`;
 
 // Ícono SVG de línea 24×24, trazo 2.
 const ICONOS = {
@@ -302,7 +306,8 @@ const ICONOS = {
   editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
   borrar: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   volver: '<path d="M15 5l-7 7 7 7"/>',
-  descargar: '<path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/>'
+  descargar: '<path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/>',
+  copiar: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'
 };
 const icono = (nombre, tam = 16) =>
   `<svg viewBox="0 0 24 24" width="${tam}" height="${tam}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONOS[nombre] || ''}</svg>`;

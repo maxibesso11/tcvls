@@ -4,7 +4,7 @@
 /* ---------- Hoja (panel) ---------- */
 .hoja { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); min-width: 0; }
 .hoja-cabecera { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); }
-.hoja-titulo { margin: 0; font: 600 20px/22px var(--font-display); letter-spacing: .3px; }
+.hoja-titulo { margin: 0; font: 700 17px/22px var(--font-titulo); font-stretch: var(--ancho-titulo); letter-spacing: -.005em; }
 .hoja-sub { font-size: 12.5px; color: var(--ink-3); }
 .hoja-cuerpo { padding: var(--space-4); }
 .hoja-pie { padding: var(--space-2) var(--space-4); border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); }
