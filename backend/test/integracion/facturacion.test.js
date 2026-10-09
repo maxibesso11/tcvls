@@ -359,6 +359,29 @@ describe('facturación electrónica', { skip: !HABILITADO && MOTIVO_OMISION }, (
     assert.equal(await saldo(p.id_cuenta), -121000);
   });
 
+  test('se factura a un cliente nuevo cargando sus datos: queda dado de alta y no se duplica', async () => {
+    const cuit = cuitValido(9091);
+    const datos = {
+      cliente_nuevo: { nombre: 'Cliente Ocasional SA', domicilio: 'Rosario', documento: cuit },
+      receptor_condicion_iva: 'RESPONSABLE INSCRIPTO',
+      items: [{ descripcion: 'Estadía en planta', cantidad: 1, unidad: 'día', precio_unitario: 50000 }],
+      fecha_emision: new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)
+    };
+    const b = await ok(entorno.api('POST', '/api/facturacion', datos));
+    assert.equal(b.tipo_comprobante, 'A');
+    const [[cuenta]] = await entorno.pool.query('SELECT * FROM CUENTA WHERE id_cuenta = ?', [b.id_cuenta]);
+    assert.deepEqual([cuenta.tipo, cuenta.nombre, cuenta.condicion_iva], ['CLIENTE', 'Cliente Ocasional SA', 'RESPONSABLE INSCRIPTO']);
+    // Otro comprobante con el mismo CUIT usa la misma cuenta.
+    const b2 = await ok(entorno.api('POST', '/api/facturacion', datos));
+    assert.equal(b2.id_cuenta, b.id_cuenta);
+    const f = await ok(entorno.api('POST', `/api/facturacion/${b.id_factura}/emitir`));
+    assert.equal(f.estado, 'EMITIDA');
+    assert.equal(await saldo(b.id_cuenta), -60500);
+    // Un CUIT inválido no da de alta nada.
+    const malo = await entorno.api('POST', '/api/facturacion', { ...datos, cliente_nuevo: { ...datos.cliente_nuevo, documento: '20111111111' } });
+    assert.equal(malo.estado, 400);
+  });
+
   test('el ticket de acceso de ARCA se pidió una sola vez en todos los tests', () => {
     assert.equal(arca.estado.logins, 1);
   });

@@ -231,9 +231,42 @@ async function guardarRenglones(db, idFactura, items, idsViajes) {
   }
 }
 
+// Cliente cargado en el momento desde el facturador (CUIT o DNI, razón social,
+// domicilio y condición frente al IVA): si ese documento ya tiene una cuenta en
+// la empresa se usa esa; si no, se da de alta como CLIENTE. Toda factura se
+// imputa en una cuenta corriente, por eso el cliente queda registrado.
+async function cuentaDeClienteNuevo(db, idEmpresa, nuevo, condicion) {
+  const nombre = String(nuevo.nombre || '').trim().slice(0, 150);
+  if (!nombre) throw new ErrorNegocio('Indicá la razón social o el nombre del cliente nuevo.');
+  const doc = String(nuevo.documento || '').replace(/\D/g, '');
+  const cond = R.normalizarCondicion(condicion);
+  if (!cond) throw new ErrorNegocio('Indicá la condición frente al IVA del cliente nuevo.');
+  let cuil;
+  if (doc.length === 11) {
+    if (!R.cuitValido(doc)) throw new ErrorNegocio(`El CUIT ${nuevo.documento} no es válido: revisá el número.`);
+    cuil = `${doc.slice(0, 2)}-${doc.slice(2, 10)}-${doc.slice(10)}`;
+  } else if ((doc.length === 7 || doc.length === 8) && cond === 'CONSUMIDOR FINAL') {
+    cuil = doc;
+  } else {
+    throw new ErrorNegocio(cond === 'CONSUMIDOR FINAL'
+      ? 'Indicá el CUIT (11 dígitos) o el DNI (7 u 8 dígitos) del cliente nuevo.'
+      : 'Indicá el CUIT del cliente nuevo (11 dígitos).');
+  }
+  const [[existente]] = await db.query(
+    "SELECT id_cuenta FROM CUENTA WHERE id_empresa = ? AND REPLACE(cuil, '-', '') = ? LIMIT 1", [idEmpresa, doc]);
+  if (existente) return existente.id_cuenta;
+  const [r] = await db.query(
+    `INSERT INTO CUENTA (id_empresa, tipo, cuil, nombre, domicilio, condicion_iva) VALUES (?, 'CLIENTE', ?, ?, ?, ?)`,
+    [idEmpresa, cuil, nombre, String(nuevo.domicilio || '').trim().slice(0, 150) || null, cond]);
+  return r.insertId;
+}
+
 // Crea o actualiza un borrador. Si se pide, guarda las plantillas del cliente.
 async function guardarBorrador(idEmpresa, datos, idFactura = null) {
   return enTransaccion(async db => {
+    if (!datos.id_cuenta && datos.cliente_nuevo) {
+      datos = { ...datos, id_cuenta: await cuentaDeClienteNuevo(db, idEmpresa, datos.cliente_nuevo, datos.receptor_condicion_iva), viajes: [] };
+    }
     if (idFactura) {
       const [[f]] = await db.query('SELECT estado, clase FROM FACTURAS WHERE id_factura = ? AND id_empresa = ? FOR UPDATE', [idFactura, idEmpresa]);
       if (!f) throw new ErrorNegocio('Comprobante no encontrado.', 404);

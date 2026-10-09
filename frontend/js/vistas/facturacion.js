@@ -173,8 +173,16 @@ async function renderFacturador(id) {
         <div class="campo ancho"><label for="fd-cliente">Cliente</label>
           <select id="fd-cliente" ${factura ? 'disabled' : ''} onchange="_fdElegirCliente(this.value)">
             <option value="">Elegí el cliente</option>
+            <option value="nuevo">+ Cliente nuevo: cargar CUIT y datos</option>
             ${clientes.map(c => `<option value="${c.id_cuenta}"${c.id_cuenta === F.id_cuenta ? ' selected' : ''}>${esc(c.nombre)} (${c.tipo === 'PROVEEDOR' ? 'proveedor, ' : ''}${esc(c.cuil)})${c.viajes_pendientes ? `, ${c.viajes_pendientes} viaje${c.viajes_pendientes === 1 ? '' : 's'} por facturar` : ''}</option>`).join('')}
           </select>
+        </div>
+        <div class="campo ancho" id="fd-nuevo" hidden>
+          <div class="formulario">
+            <div class="campo"><label for="fd-nuevo-nombre">Razón social o nombre</label><input id="fd-nuevo-nombre" maxlength="150"></div>
+            <div class="campo"><label for="fd-nuevo-domicilio">Domicilio</label><input id="fd-nuevo-domicilio" maxlength="150"></div>
+          </div>
+          <span class="ayuda">Al guardar, el cliente queda dado de alta en Cuentas. Si ese CUIT ya existe, se usa esa cuenta.</span>
         </div>
         <div class="campo"><label for="fd-condicion">Condición frente al IVA del cliente</label>
           <select id="fd-condicion" onchange="F.receptor_condicion_iva = this.value || null; _fdLetra()">
@@ -260,6 +268,21 @@ function sumarDiasISO(fecha, dias) {
 }
 
 async function _fdElegirCliente(idCuenta, { conservar = false, viajes = [] } = {}) {
+  // Cliente nuevo: se cargan sus datos acá y se da de alta al guardar.
+  F.clienteNuevo = idCuenta === 'nuevo';
+  $('#fd-nuevo').hidden = !F.clienteNuevo;
+  if (F.clienteNuevo) {
+    F.id_cuenta = null; F.cliente = null; F.viajes = new Set(); F.viajesDisponibles = []; F.items = [];
+    F.receptor_condicion_iva = null; F.receptor_documento = null;
+    $('#fd-condicion').value = ''; $('#fd-documento').value = '';
+    $('#fd-plantillas-hoja').hidden = true;
+    $('#fd-viajes').innerHTML = '<div class="vacio">Un cliente nuevo no tiene viajes: cargá los renglones a mano con "Agregar renglón".</div>';
+    _fdResumenViajes();
+    _fdLetra();
+    _fdAgregarRenglon();
+    $('#fd-nuevo-nombre').focus();
+    return;
+  }
   idCuenta = Number(idCuenta) || null;
   const c = F.clientes.find(x => x.id_cuenta === idCuenta) || null;
   if (!conservar) {
@@ -459,6 +482,9 @@ async function _fdGuardarPlantillas(aplicar) {
 function _fdDatos() {
   return {
     id_cuenta: F.id_cuenta,
+    ...(F.clienteNuevo && !F.id_cuenta ? { cliente_nuevo: {
+      nombre: $('#fd-nuevo-nombre').value.trim(), domicilio: $('#fd-nuevo-domicilio').value.trim(), documento: F.receptor_documento
+    } } : {}),
     viajes: [...F.viajes],
     items: F.items.map(it => ({ id_viaje: it.id_viaje || null, descripcion: it.descripcion, cantidad: it.cantidad, unidad: it.unidad, precio_unitario: it.precio_unitario })),
     observaciones: F.observaciones,
@@ -469,12 +495,14 @@ function _fdDatos() {
 }
 
 async function _fdGuardar(silencioso) {
-  if (!F.id_cuenta) { mostrarToast('Elegí el cliente.', true); return null; }
+  if (!F.id_cuenta && !F.clienteNuevo) { mostrarToast('Elegí el cliente.', true); return null; }
+  if (F.clienteNuevo && !F.id_cuenta && !$('#fd-nuevo-nombre').value.trim()) { mostrarToast('Indicá la razón social del cliente nuevo.', true); return null; }
   if (!F.receptor_condicion_iva) { mostrarToast('Indicá la condición frente al IVA del cliente.', true); return null; }
   try {
     const f = await API.guardarFactura(F.id_factura, _fdDatos());
     const nuevo = !F.id_factura;
     F.id_factura = f.id_factura;
+    F.id_cuenta = f.id_cuenta;   // un cliente nuevo ya quedó dado de alta
     if (!silencioso) mostrarToast('Borrador guardado.');
     if (nuevo) history.replaceState(null, '', `#facturador/${f.id_factura}`);
     return f;
