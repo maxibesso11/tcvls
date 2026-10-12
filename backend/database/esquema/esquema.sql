@@ -331,6 +331,8 @@ CREATE TABLE CUENTA (
     -- Plantillas del facturador para este cliente (ver facturacion.plantillas.js).
     plantilla_item VARCHAR(255) NULL,
     plantilla_observaciones TEXT NULL,
+    -- Última actividad de ARCA usada al facturarle (se propone la próxima vez).
+    actividad_arca BIGINT NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_empresa) REFERENCES EMPRESAS(id_empresa) ON DELETE CASCADE,
     UNIQUE KEY uq_cuenta_cuil (id_empresa, cuil),
@@ -359,6 +361,9 @@ CREATE TABLE FACTURAS (
     fecha_emision DATE NOT NULL,
     -- Concepto de ARCA: 2 = servicios (el flete), con período y vencimiento.
     concepto TINYINT NOT NULL DEFAULT 2,
+    -- Actividad inscripta del emisor por la que se factura (ARCA, opcional).
+    actividad_id BIGINT NULL,
+    actividad_descripcion VARCHAR(255) NULL,
     fecha_servicio_desde DATE NULL,
     fecha_servicio_hasta DATE NULL,
     fecha_vto_pago DATE NULL,
@@ -658,7 +663,8 @@ INSERT INTO MIGRACIONES (nombre) VALUES
 ('migracion_033_baja_equipos.sql'),
 ('migracion_034_facturacion_electronica.sql'),
 ('migracion_035_tema_marca.sql'),
-('migracion_036_conceptos_sin_separadores.sql');
+('migracion_036_conceptos_sin_separadores.sql'),
+('migracion_037_actividad_comprobante.sql');
 
 -- =========================================================
 -- FIN DE LA INSTALACIÓN

@@ -188,14 +188,20 @@ tributaria antes de emitir comprobantes reales.
    observaciones sale de las **plantillas del cliente** (por ejemplo
    `CTG: {remitos} · KM: {km_total}` para Cargill), que se guardan para la
    próxima vez.
-3. **Guardar borrador** no usa número. **Emitir** pide el número y el CAE a
+3. **Actividad:** si la empresa tiene más de una actividad inscripta en ARCA
+   (por ejemplo, transporte de carga y servicios de logística), se elige por
+   cuál se factura, igual que en el facturador web de ARCA. La lista la da
+   ARCA (el diagnóstico la muestra en el paso 4b); con una sola, va esa sin
+   preguntar. Se recuerda la última usada con cada cliente y la nota de
+   crédito repite la de la factura.
+4. **Guardar borrador** no usa número. **Emitir** pide el número y el CAE a
    ARCA. Si ARCA lo rechaza, vuelve a borrador con el motivo, sin gastar
    número.
-4. Al emitir, el total se debita en la cuenta corriente del cliente y los
+5. Al emitir, el total se debita en la cuenta corriente del cliente y los
    viajes pasan a **FACTURADO**.
-5. **Anular con nota de crédito** emite la nota por el total, compensa la
+6. **Anular con nota de crédito** emite la nota por el total, compensa la
    cuenta y deja los viajes otra vez disponibles para facturar.
-6. Si se corta la conexión al emitir, el comprobante queda **PENDIENTE** con
+7. Si se corta la conexión al emitir, el comprobante queda **PENDIENTE** con
    su número reservado: *Verificar con ARCA* lo confirma (si ARCA lo autorizó)
    o lo devuelve a borrador. **No hay que volver a cargarlo.**
 

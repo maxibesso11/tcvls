@@ -116,9 +116,10 @@ let F = null;
 
 async function renderFacturador(id) {
   contenido.innerHTML = `<div class="vista-cab"><div><h1>Comprobante</h1></div></div><section class="hoja"><div class="vacio">Cargando…</div></section>`;
-  let config, clientes, factura = null;
+  let config, clientes, actividades, factura = null;
   try {
-    [config, clientes] = await Promise.all([configFacturacion(true), API.cuentasFacturables()]);
+    [config, clientes, actividades] = await Promise.all([configFacturacion(true), API.cuentasFacturables(),
+      API.actividadesFacturacion().catch(() => [])]);
     if (id) factura = await API.obtenerFactura(id);
   } catch (err) {
     contenido.innerHTML = `<div class="vacio">Error: ${esc(err.message)}</div>`;
@@ -142,6 +143,8 @@ async function renderFacturador(id) {
     fechasEditadas: !!factura,
     receptor_condicion_iva: factura ? factura.receptor_condicion_iva : null,
     receptor_documento: factura ? factura.receptor_cuit : null,
+    actividad_id: factura ? factura.actividad_id : null,
+    actividades,
     respuesta: factura ? factura.respuesta_arca : null,
     config, clientes
   };
@@ -183,6 +186,13 @@ async function renderFacturador(id) {
             <div class="campo"><label for="fd-nuevo-domicilio">Domicilio</label><input id="fd-nuevo-domicilio" maxlength="150"></div>
           </div>
           <span class="ayuda">Al guardar, el cliente queda dado de alta en Cuentas. Si ese CUIT ya existe, se usa esa cuenta.</span>
+        </div>
+        <div class="campo ancho" id="fd-actividad-campo" ${actividades.length > 1 ? '' : 'hidden'}><label for="fd-actividad">Actividad por la que facturás</label>
+          <select id="fd-actividad" onchange="F.actividad_id = Number(this.value) || null">
+            <option value="">Elegí la actividad</option>
+            ${actividades.map(a => `<option value="${a.id}">${esc(a.descripcion)} (${a.id})</option>`).join('')}
+          </select>
+          <span class="ayuda">Las actividades con las que la empresa está inscripta en ARCA, como en su facturador web. Se recuerda la última usada con cada cliente.</span>
         </div>
         <div class="campo"><label for="fd-condicion">Condición frente al IVA del cliente</label>
           <select id="fd-condicion" onchange="F.receptor_condicion_iva = this.value || null; _fdLetra()">
@@ -248,6 +258,7 @@ async function renderFacturador(id) {
     el.addEventListener('input', () => { F.fechas[el.dataset.f] = el.value; F.fechasEditadas = true; });
   });
   $('#fd-obs').value = F.observaciones;
+  $('#fd-actividad').value = F.actividad_id || '';
 
   if (F.id_cuenta) await _fdElegirCliente(F.id_cuenta, { conservar: true });
   else if (_facturadorInicial) {
@@ -292,6 +303,8 @@ async function _fdElegirCliente(idCuenta, { conservar = false, viajes = [] } = {
   }
   F.id_cuenta = idCuenta;
   F.cliente = c;
+  if (!conservar && c && c.actividad_arca) F.actividad_id = Number(c.actividad_arca);
+  if ($('#fd-actividad')) $('#fd-actividad').value = F.actividad_id || '';
   $('#fd-condicion').value = F.receptor_condicion_iva || '';
   $('#fd-documento').value = F.receptor_documento || '';
   $('#fd-plantillas-hoja').hidden = !c;
@@ -490,6 +503,7 @@ function _fdDatos() {
     observaciones: F.observaciones,
     receptor_condicion_iva: F.receptor_condicion_iva,
     receptor_documento: F.receptor_documento,
+    actividad_id: F.actividad_id,
     ...F.fechas
   };
 }
@@ -579,6 +593,7 @@ function renderComprobanteEmitido(f, config) {
         <div class="ficha-dato"><span class="rotulo">Condición IVA</span><b>${esc(f.receptor_condicion_iva || '—')}</b></div>
         <div class="ficha-dato"><span class="rotulo">Período</span><b>${fmtFecha(f.fecha_servicio_desde)} al ${fmtFecha(f.fecha_servicio_hasta)}</b></div>
         <div class="ficha-dato"><span class="rotulo">Vence el pago</span><b>${fmtFecha(f.fecha_vto_pago)}</b></div>
+        ${f.actividad_descripcion ? `<div class="ficha-dato"><span class="rotulo">Actividad</span><b>${esc(f.actividad_descripcion)}</b></div>` : ''}
         <div class="ficha-dato"><span class="rotulo">CAE</span><b class="mono">${esc(f.cae || '—')}</b></div>
         <div class="ficha-dato"><span class="rotulo">Vto. CAE</span><b>${fmtFecha(f.cae_vencimiento)}</b></div>
         ${f.asociada ? `<div class="ficha-dato"><span class="rotulo">${esNC ? 'Anula' : 'Asociado'}</span><b><a href="#facturador/${f.asociada.id_factura}">${nombreComprobante(f.asociada)} ${numeroComprobante(f.asociada)}</a></b></div>` : ''}

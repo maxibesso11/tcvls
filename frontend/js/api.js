@@ -271,6 +271,7 @@ const API = {
     return this._solicitud(`/api/facturacion?${params.toString()}`);
   },
   cuentasFacturables() { return this._solicitud('/api/facturacion/cuentas'); },
+  actividadesFacturacion() { return this._solicitud('/api/facturacion/actividades'); },
   obtenerFactura(id) { return this._solicitud(`/api/facturacion/${id}`); },
   viajesFacturables(idCuenta, idFactura) {
     return this._solicitud(`/api/facturacion/viajes-facturables?id_cuenta=${idCuenta}${idFactura ? `&id_factura=${idFactura}` : ''}`);

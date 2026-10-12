@@ -3,6 +3,7 @@
 // frente al IVA de la empresa y del cliente):
 //   GET    /configuracion                 datos fiscales y si se puede emitir
 //   GET    /                              comprobantes (filtros: estado, id_cuenta)
+//   GET    /actividades                   actividades inscriptas de la empresa en ARCA
 //   GET    /cuentas                       clientes y pagadores, con viajes pendientes
 //   GET    /viajes-facturables?id_cuenta  viajes finalizados de un cliente sin comprobante
 //   POST   /preparar                      propuesta del facturador para un cliente y sus viajes
@@ -69,6 +70,11 @@ router.get('/', manejar(async (req, res) => {
       ORDER BY FIELD(f.estado, 'PENDIENTE', 'BORRADOR') DESC, f.id_factura DESC LIMIT ? OFFSET ?`,
     [...valores, porPagina, offset]);
   res.json({ datos: filas, paginacion: { pagina, por_pagina: porPagina, total, total_paginas: totalPaginas } });
+}));
+
+// Actividades inscriptas de la empresa en ARCA ([] si todavía no puede emitir).
+router.get('/actividades', manejar(async (req, res) => {
+  res.json(await servicio.actividadesEmpresa(emp(req)));
 }));
 
 router.get('/cuentas', manejar(async (req, res) => {

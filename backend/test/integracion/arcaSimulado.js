@@ -33,7 +33,8 @@ function crear() {
     comprobantes: {},    // `${pv}-${tipo}-${nro}` → datos
     pedidos: [],         // { metodo, cuerpo }
     logins: 0,
-    programados: {}      // metodo → [acciones]
+    programados: {},     // metodo → [acciones]
+    actividades: []      // [{ id, orden, desc }] inscriptas del emisor
   };
   const clave = (pv, tipo, nro) => `${Number(pv)}-${Number(tipo)}` + (nro !== undefined ? `-${Number(nro)}` : '');
 
@@ -50,6 +51,8 @@ function crear() {
     if (letra === 'C' && (alic.length || n(d.ImpIVA) > 0)) e.push([10071, 'Para comprobantes tipo C no debe informarse IVA']);
     if (letra !== 'C' && !alic.length) e.push([10070, 'Si ImpNeto es mayor a 0 el objeto IVA es obligatorio']);
     if (alic.length && Math.abs(alic.reduce((s, a) => s + n(a.Importe), 0) - n(d.ImpIVA)) > 0.001) e.push([10051, 'La suma de AlicIva no coincide con ImpIVA']);
+    const act = d.Actividades && d.Actividades.Actividad;
+    if (act && !estado.actividades.some(a => String(a.id) === String(act.Id))) e.push([10223, `La actividad seleccionada ${act.Id} no se encuentra vinculada al emisor`]);
     if (!d.CondicionIVAReceptorId) e.push([10242, 'Falta CondicionIVAReceptorId']);
     else if (!RECEPTORES[letra].includes(Number(d.CondicionIVAReceptorId))) e.push([10243, `CondicionIVAReceptorId ${d.CondicionIVAReceptorId} no valida para clase ${letra}`]);
     if (letra === 'A' && Number(d.DocTipo) !== 80) e.push([10013, 'Para comprobantes A el receptor debe identificarse con CUIT']);
@@ -66,6 +69,9 @@ function crear() {
     switch (metodo) {
       case 'FEDummy':
         return respuesta(metodo, '<AppServer>OK</AppServer><DbServer>OK</DbServer><AuthServer>OK</AuthServer>');
+      case 'FEParamGetActividades':
+        return respuesta(metodo, '<ResultGet>' + estado.actividades.map(a =>
+          `<ActividadesTipo><Id>${a.id}</Id><Orden>${a.orden}</Orden><Desc>${escapar(a.desc)}</Desc></ActividadesTipo>`).join('') + '</ResultGet>');
       case 'FECompUltimoAutorizado':
         return respuesta(metodo, `<PtoVta>${c.PtoVta}</PtoVta><CbteTipo>${c.CbteTipo}</CbteTipo><CbteNro>${estado.ultimo[clave(c.PtoVta, c.CbteTipo)] || 0}</CbteNro>`);
       case 'FECompConsultar': {

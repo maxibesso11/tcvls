@@ -44,6 +44,7 @@ describe('facturación electrónica', { skip: !HABILITADO && MOTIVO_OMISION }, (
     process.env.ARCA_WSFE_URL = `${base}/wsfe`;
     process.env.ARCA_PRODUCCION = '0';
     process.env.ARCA_ESPERA_PENDIENTE_MS = '0';
+    process.env.ARCA_HORAS_CACHE_ACTIVIDADES = '0';
     entorno = await levantar();
     await entorno.iniciarSesion('demo', 'demo123');
     const cifrado = require('../../src/lib/seguridad/cifrado');
@@ -380,6 +381,34 @@ describe('facturación electrónica', { skip: !HABILITADO && MOTIVO_OMISION }, (
     // Un CUIT inválido no da de alta nada.
     const malo = await entorno.api('POST', '/api/facturacion', { ...datos, cliente_nuevo: { ...datos.cliente_nuevo, documento: '20111111111' } });
     assert.equal(malo.estado, 400);
+  });
+
+  test('actividad de ARCA: con varias hay que elegir una, se manda en el CAE y la NC la repite', async () => {
+    arca.estado.actividades = [{ id: 492221, orden: 1, desc: 'Transporte automotor de cereales' }, { id: 522099, orden: 2, desc: 'Servicios de logística' }];
+    try {
+      const lista = await ok(entorno.api('GET', '/api/facturacion/actividades'));
+      assert.deepEqual(lista.map(x => x.id), [492221, 522099]);
+      const c = await cliente();
+      const v = await viajeFinalizado(c);
+      const propuesta = await ok(entorno.api('POST', '/api/facturacion/preparar', { id_cuenta: c.id_cuenta, viajes: [v.id_viaje] }));
+      const sinElegir = await entorno.api('POST', '/api/facturacion', propuesta);
+      assert.equal(sinElegir.estado, 400);
+      assert.match(sinElegir.datos.error, /actividad/);
+      const b = await ok(entorno.api('POST', '/api/facturacion', { ...propuesta, actividad_id: 522099 }));
+      assert.deepEqual([b.actividad_id, b.actividad_descripcion], [522099, 'Servicios de logística']);
+      const f = await ok(entorno.api('POST', `/api/facturacion/${b.id_factura}/emitir`));
+      assert.equal(f.estado, 'EMITIDA');
+      assert.equal(ultimoPedidoCAE().FeDetReq.FECAEDetRequest.Actividades.Actividad.Id, '522099');
+      // La próxima factura a ese cliente propone la misma actividad.
+      const v2 = await viajeFinalizado(c);
+      const otra = await ok(entorno.api('POST', '/api/facturacion/preparar', { id_cuenta: c.id_cuenta, viajes: [v2.id_viaje] }));
+      assert.equal(otra.actividad_id, 522099);
+      const nc = await ok(entorno.api('POST', `/api/facturacion/${f.id_factura}/nota-credito`, {}));
+      assert.equal(nc.actividad_id, 522099);
+      assert.equal(ultimoPedidoCAE().FeDetReq.FECAEDetRequest.Actividades.Actividad.Id, '522099');
+    } finally {
+      arca.estado.actividades = [];
+    }
   });
 
   test('el ticket de acceso de ARCA se pidió una sola vez en todos los tests', () => {

@@ -6,7 +6,8 @@
 //      vigente; si hay que pedir uno nuevo, avisa y pide confirmación con
 //      --pedir-acceso, porque pedirlo dos veces bloquea el certificado 12 h).
 //   3. Puntos de venta habilitados para web service.
-//   4. Condiciones de IVA del receptor que ARCA acepta para A, B y C.
+//   4. Condiciones de IVA del receptor que ARCA acepta para A, B y C,
+//      y las actividades inscriptas del emisor.
 //   5. Último comprobante autorizado de cada tipo en el punto de venta.
 // No emite ningún comprobante.
 //
@@ -61,6 +62,12 @@ async function main() {
       const lista = await cliente.condicionesIvaReceptor(clase);
       console.log(`  ${clase}: ` + lista.map(c => `${c.id} ${c.descripcion}`).join(' · '));
     }
+  });
+
+  await paso('4b. Actividades inscriptas (se elige una al facturar)', async () => {
+    const lista = await cliente.actividades();
+    if (!lista.length) console.log('  ARCA no informa actividades para este CUIT.');
+    lista.forEach(x => console.log(`  ${x.id}, orden ${x.orden}: ${x.descripcion}`));
   });
 
   const [[empresa]] = await pool.query('SELECT punto_venta FROM EMPRESAS WHERE id_empresa = ?', [idEmpresa]);

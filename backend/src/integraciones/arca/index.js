@@ -55,6 +55,7 @@ async function clienteEmpresa(idEmpresa) {
     consultar: async (puntoVenta, tipo, numero) => wsfe.consultarComprobante(await acceso(), { puntoVenta, tipo, numero }, entorno),
     puntosDeVenta: async () => wsfe.puntosDeVenta(await acceso(), entorno),
     condicionesIvaReceptor: async clase => wsfe.condicionesIvaReceptor(await acceso(), clase, entorno),
+    actividades: async () => wsfe.actividades(await acceso(), entorno),
     estadoTicket: () => estadoTicket({ cuit: cred.cuit, entorno, servicio: 'wsfe', certificadoPem: cred.certificadoPem })
   };
 }

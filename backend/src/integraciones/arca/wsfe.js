@@ -91,6 +91,11 @@ function xmlDetalle(d) {
       `<ar:AlicIva><ar:Id>${Number(a.id)}</ar:Id><ar:BaseImp>${importe(a.base)}</ar:BaseImp><ar:Importe>${importe(a.importe)}</ar:Importe></ar:AlicIva>`
     ).join('') + '</ar:Iva>');
   }
+  // Actividad del emisor por la que se factura (va última en el WSDL, después
+  // de Iva, Opcionales, Compradores y PeriodoAsoc). Opcional.
+  if (d.actividad) {
+    partes.push(`<ar:Actividades><ar:Actividad><ar:Id>${Number(d.actividad)}</ar:Id></ar:Actividad></ar:Actividades>`);
+  }
   return `<ar:FECAEDetRequest>${partes.join('')}</ar:FECAEDetRequest>`;
 }
 
@@ -148,6 +153,18 @@ async function puntosDeVenta(acceso, entorno) {
   }));
 }
 
+// Actividades inscriptas del emisor en ARCA (las que puede indicar en cada
+// comprobante). Devuelve [{ id, orden, descripcion }], la principal primero.
+async function actividades(acceso, entorno) {
+  const r = await metodo('FEParamGetActividades', xmlAuth(acceso), entorno);
+  const errs = errores(r);
+  if (errs.some(e => e.codigo === '602')) return [];
+  lanzarSiHayErrores(r, 'ARCA no informó las actividades');
+  return comoLista(r.ResultGet && r.ResultGet.ActividadesTipo)
+    .map(a => ({ id: Number(a.Id), orden: Number(a.Orden), descripcion: String(a.Desc || '') }))
+    .sort((a, b) => a.orden - b.orden);
+}
+
 // Condiciones frente al IVA del receptor aceptadas para una clase (A, B, C).
 async function condicionesIvaReceptor(acceso, clase, entorno) {
   const r = await metodo('FEParamGetCondicionIvaReceptor', xmlAuth(acceso) + `<ar:ClaseCmp>${escaparXml(clase)}</ar:ClaseCmp>`, entorno);
@@ -157,6 +174,6 @@ async function condicionesIvaReceptor(acceso, clase, entorno) {
 }
 
 module.exports = {
-  dummy, ultimoAutorizado, solicitarCAE, consultarComprobante, puntosDeVenta, condicionesIvaReceptor,
+  dummy, ultimoAutorizado, solicitarCAE, consultarComprobante, puntosDeVenta, condicionesIvaReceptor, actividades,
   xmlDetalle, xmlPedidoCAE, importe
 };

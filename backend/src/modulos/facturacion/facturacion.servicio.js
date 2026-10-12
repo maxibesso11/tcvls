@@ -89,6 +89,44 @@ async function configuracion(idEmpresa, db = pool) {
   };
 }
 
+// ---------------------------------------------------------------- actividades
+
+// Actividades inscriptas de la empresa en ARCA (la que se indica en cada
+// comprobante, como en el facturador web: transporte, logística…). Se
+// guardan 6 horas por empresa y entorno para no consultar a ARCA cada vez.
+// (ARCA_HORAS_CACHE_ACTIVIDADES lo cambia; los tests usan 0.)
+const horasCacheActividades = () => {
+  const v = Number(process.env.ARCA_HORAS_CACHE_ACTIVIDADES);
+  return Number.isFinite(v) && v >= 0 ? v : 6;
+};
+const _actividades = new Map();
+async function actividadesEmpresa(idEmpresa) {
+  const conf = await configuracion(idEmpresa);
+  if (!conf.lista) return [];
+  const clave = `${idEmpresa}:${conf.entorno}`;
+  const guardado = _actividades.get(clave);
+  if (guardado && guardado.vence > Date.now()) return guardado.lista;
+  const cliente = await arca.clienteEmpresa(idEmpresa);
+  const lista = await cliente.actividades();
+  _actividades.set(clave, { lista, vence: Date.now() + horasCacheActividades() * 3600e3 });
+  return lista;
+}
+
+// Actividad del comprobante: si la empresa tiene una sola, va esa; si tiene
+// varias, hay que elegir una de ellas (ARCA rechaza una que no esté inscripta).
+async function resolverActividad(idEmpresa, actividadId) {
+  let lista;
+  try { lista = await actividadesEmpresa(idEmpresa); } catch (err) {
+    // ARCA no respondió: el borrador se guarda igual; al emitir, ARCA valida la actividad.
+    return { actividad_id: Number(actividadId) || null, actividad_descripcion: null };
+  }
+  if (!lista.length) return { actividad_id: null, actividad_descripcion: null };
+  if (lista.length === 1 && !actividadId) return { actividad_id: lista[0].id, actividad_descripcion: lista[0].descripcion };
+  const elegida = lista.find(a => a.id === Number(actividadId));
+  if (!elegida) throw new ErrorNegocio('Elegí la actividad por la que facturás (por ejemplo, transporte o logística).');
+  return { actividad_id: elegida.id, actividad_descripcion: elegida.descripcion };
+}
+
 // ---------------------------------------------------------------- viajes
 
 const SQL_VIAJE = `
@@ -119,7 +157,7 @@ async function viajesFacturables(idEmpresa, idCuenta, { incluirFactura = null } 
 async function cuentasFacturables(idEmpresa, db = pool) {
   const [filas] = await db.query(`
     SELECT c.id_cuenta, c.tipo, c.nombre, c.cuil, c.condicion_iva, c.domicilio, c.plazo_pago_dias,
-           c.plantilla_item, c.plantilla_observaciones,
+           c.plantilla_item, c.plantilla_observaciones, c.actividad_arca,
            (SELECT COUNT(*) FROM VIAJES v
              WHERE v.id_empresa = c.id_empresa AND v.pagador = c.nombre AND v.estado = 'FINALIZADO'
                AND NOT EXISTS (SELECT 1 FROM FACTURA_VIAJES fv JOIN FACTURAS f ON f.id_factura = fv.id_factura
@@ -155,6 +193,7 @@ async function preparar(idEmpresa, { id_cuenta, viajes = [] }) {
     cliente: { nombre: cuenta.nombre, cuit: cuenta.cuil, domicilio: cuenta.domicilio, condicion_iva: cuenta.condicion_iva,
       plazo_pago_dias: cuenta.plazo_pago_dias, plantilla_item: cuenta.plantilla_item, plantilla_observaciones: cuenta.plantilla_observaciones },
     letra, aviso_letra: avisoLetra,
+    actividad_id: cuenta.actividad_arca || null,
     viajes: elegidos.map(v => v.id_viaje),
     items: elegidos.map(v => P.itemDeViaje(v, cuenta.plantilla_item)),
     observaciones: P.observaciones(elegidos, cuenta.plantilla_observaciones),
@@ -189,6 +228,7 @@ async function normalizarBorrador(db, idEmpresa, datos, idFactura) {
   for (const it of importes.items) {
     if (it.id_viaje && !idsViajes.includes(it.id_viaje)) it.id_viaje = null;
   }
+  const actividad = await resolverActividad(idEmpresa, datos.actividad_id);
   return {
     cuenta, letra, doc, condicionReceptor, importes, idsViajes, conf,
     fila: {
@@ -198,6 +238,7 @@ async function normalizarBorrador(db, idEmpresa, datos, idFactura) {
       punto_venta: Number(conf.empresa.punto_venta) || 1,
       fecha_emision: datos.fecha_emision || hoy(),
       concepto: 2,
+      ...actividad,
       fecha_servicio_desde: datos.fecha_servicio_desde || datos.fecha_emision || hoy(),
       fecha_servicio_hasta: datos.fecha_servicio_hasta || datos.fecha_emision || hoy(),
       fecha_vto_pago: datos.fecha_vto_pago || datos.fecha_emision || hoy(),
@@ -283,6 +324,9 @@ async function guardarBorrador(idEmpresa, datos, idFactura = null) {
     if (datos.guardar_plantillas) {
       await db.query('UPDATE CUENTA SET plantilla_item = ?, plantilla_observaciones = ? WHERE id_cuenta = ? AND id_empresa = ?',
         [datos.plantilla_item || null, datos.plantilla_observaciones || null, n.cuenta.id_cuenta, idEmpresa]);
+    }
+    if (n.fila.actividad_id) {
+      await db.query('UPDATE CUENTA SET actividad_arca = ? WHERE id_cuenta = ? AND id_empresa = ?', [n.fila.actividad_id, n.cuenta.id_cuenta, idEmpresa]);
     }
     // Condición del cliente: si no la tenía cargada, queda guardada.
     if (!R.normalizarCondicion(n.cuenta.condicion_iva) && n.condicionReceptor) {
@@ -379,6 +423,7 @@ function detalleArca(f, empresaCuit, asociada) {
     total: importes.total, neto: importes.neto, iva: importes.iva,
     alicuotas: f.tipo_comprobante === 'C' ? [] : [{ id: R.ALICUOTA_IVA_ID, base: importes.neto, importe: importes.iva }],
     condicionIvaReceptor: f.condicion_iva_receptor_id,
+    actividad: f.actividad_id || null,
     asociado: asociada ? {
       tipo: asociada.codigo_arca, puntoVenta: asociada.punto_venta, numero: asociada.numero,
       cuit: empresaCuit, fecha: R.aArca(asociada.fecha_emision)
@@ -527,6 +572,7 @@ async function anularConNotaCredito(idEmpresa, idFactura, { observaciones } = {}
       id_empresa: idEmpresa, clase: 'NOTA_CREDITO', tipo_comprobante: f.tipo_comprobante,
       codigo_arca: R.codigoComprobante(f.tipo_comprobante, 'NOTA_CREDITO'), punto_venta: f.punto_venta,
       fecha_emision: hoy(), concepto: f.concepto,
+      actividad_id: f.actividad_id, actividad_descripcion: f.actividad_descripcion,
       fecha_servicio_desde: f.fecha_servicio_desde, fecha_servicio_hasta: f.fecha_servicio_hasta, fecha_vto_pago: hoy(),
       id_cuenta: f.id_cuenta, id_factura_asociada: f.id_factura,
       receptor_cuit: f.receptor_cuit, receptor_doc_tipo: f.receptor_doc_tipo, receptor_nombre: f.receptor_nombre,
@@ -552,6 +598,6 @@ async function guardarPlantillas(idEmpresa, idCuenta, { plantilla_item, plantill
 }
 
 module.exports = {
-  configuracion, cuentasFacturables, viajesFacturables, preparar, guardarBorrador, eliminarBorrador, obtener,
+  configuracion, actividadesEmpresa, cuentasFacturables, viajesFacturables, preparar, guardarBorrador, eliminarBorrador, obtener,
   emitir, verificar, anularConNotaCredito, guardarPlantillas, nroComprobante, detalleArca
 };
