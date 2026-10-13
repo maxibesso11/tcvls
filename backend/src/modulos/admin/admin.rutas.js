@@ -24,6 +24,9 @@ router.get('/auditoria', async (req, res) => {
 // Registros del servidor y respaldos
 router.use('/sistema', require('./sistema.rutas'));
 
+// Solicitudes del formulario de contacto de la landing
+router.use('/solicitudes', require('./solicitudes.rutas'));
+
 // ==================== EMPRESAS ====================
 
 router.get('/empresas', async (req, res) => {

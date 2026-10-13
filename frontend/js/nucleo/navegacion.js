@@ -62,6 +62,7 @@ function navegar() {
   else if (hash === 'mi-empresa-actividad') renderMiEmpresaActividad();
   else if (hash === 'multiempresa-actividad') renderMultiempresaActividad();
   else if (hash === 'admin-respaldos') renderAdminRespaldos();
+  else if (hash === 'admin-solicitudes') renderAdminSolicitudes();
   else if (hash === 'mi-empresa-usuarios') renderMiEmpresaUsuarios();
   else if (hash === 'mi-empresa-certificado') renderMiEmpresaCertificado();
   else if (hash === 'mi-empresa-datos-fiscales') renderMiEmpresaDatosFiscales();

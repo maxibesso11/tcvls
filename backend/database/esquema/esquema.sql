@@ -588,6 +588,21 @@ CREATE TABLE AUDITORIA (
     INDEX idx_aud_accion (accion)
 );
 
+-- 16. SOLICITUDES_CONTACTO: formulario de contacto de la landing (migración 038).
+CREATE TABLE SOLICITUDES_CONTACTO (
+    id_solicitud INT AUTO_INCREMENT PRIMARY KEY,
+    fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    nombre VARCHAR(120) NOT NULL,
+    empresa VARCHAR(120) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    telefono VARCHAR(40) NOT NULL,
+    mensaje TEXT NULL,
+    ip VARCHAR(45) NULL,
+    estado ENUM('NUEVA', 'CONTACTADA', 'DESCARTADA') NOT NULL DEFAULT 'NUEVA',
+    avisada_por_correo TINYINT(1) NOT NULL DEFAULT 0,
+    INDEX idx_sol_estado_fecha (estado, fecha)
+);
+
 -- V_COMPRAS_FISCALES: une los tres registros de compra con el CUIT y la
 -- condición de IVA del proveedor, lista para el Libro IVA Compras (Bloque 7,
 -- 2da entrega).
@@ -664,7 +679,8 @@ INSERT INTO MIGRACIONES (nombre) VALUES
 ('migracion_034_facturacion_electronica.sql'),
 ('migracion_035_tema_marca.sql'),
 ('migracion_036_conceptos_sin_separadores.sql'),
-('migracion_037_actividad_comprobante.sql');
+('migracion_037_actividad_comprobante.sql'),
+('migracion_038_solicitudes_contacto.sql');
 
 -- =========================================================
 -- FIN DE LA INSTALACIÓN

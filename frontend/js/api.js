@@ -164,6 +164,11 @@ const API = {
     return this._solicitud(`/api/multiempresa/auditoria?${q}`);
   },
   adminRespaldos() { return this._solicitud('/api/admin/sistema/respaldos'); },
+  adminSolicitudes(pagina = 1, estado = '') {
+    return this._solicitud(`/api/admin/solicitudes?pagina=${pagina}${estado ? `&estado=${estado}` : ''}`);
+  },
+  adminMarcarSolicitud(id, estado) { return this._solicitud(`/api/admin/solicitudes/${id}`, { method: 'PUT', body: JSON.stringify({ estado }) }); },
+  adminEliminarSolicitud(id) { return this._solicitud(`/api/admin/solicitudes/${id}`, { method: 'DELETE' }); },
   descargarRespaldo(nombre) { return this.descargarArchivo(`/api/admin/sistema/respaldos/${encodeURIComponent(nombre)}`, nombre); },
   usuarioEmpresasAsignadas(id) { return this._solicitud(`/api/admin/usuarios/${id}/empresas`); },
   asignarEmpresasUsuario(id, empresas) { return this._solicitud(`/api/admin/usuarios/${id}/empresas`, { method: 'PUT', body: JSON.stringify({ empresas }) }); },

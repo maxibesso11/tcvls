@@ -12,9 +12,11 @@
 //   SMTP_PASS          Contraseña o "contraseña de aplicación".
 //   SMTP_DESDE         (opcional) remitente mostrado; por defecto SMTP_USER.
 //
-// Si el SMTP no está configurado, el endpoint responde 503 con un mensaje
-// claro en vez de fallar silenciosamente.
+// Cada solicitud se guarda en SOLICITUDES_CONTACTO (la ve el administrador
+// de plataforma); el correo es un aviso adicional, solo si el SMTP está
+// configurado.
 const express = require('express');
+const pool = require('../../config/db');
 const router = express.Router();
 
 let nodemailer = null;
@@ -57,45 +59,49 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'El email no tiene un formato válido.' });
     }
 
+    // 1. Se guarda siempre: la ve el administrador de plataforma (Solicitudes).
+    const [r] = await pool.query(
+      'INSERT INTO SOLICITUDES_CONTACTO (nombre, empresa, email, telefono, mensaje, ip) VALUES (?, ?, ?, ?, ?, ?)',
+      [nombre, empresa, email, telefono, mensaje || null, String(ip).slice(0, 45)]);
+
+    // 2. Aviso por correo, solo si el servidor tiene el SMTP configurado. Si
+    // falla, la solicitud ya quedó guardada: no se le muestra error a la persona.
     const destino = process.env.ASESORIA_DESTINO;
     const smtpConfigurado = destino && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && nodemailer;
-    if (!smtpConfigurado) {
-      // No está configurado el envío: se registra en el log del servidor para
-      // no perder el contacto, y se informa sin exponer la casilla.
-      console.warn('[asesoria] SMTP no configurado. Solicitud recibida y NO enviada por correo:',
-        { nombre, empresa, email, telefono, mensaje });
-      return res.status(503).json({
-        error: 'El envío de solicitudes no está disponible en este momento. Escribinos por los canales de contacto habituales.'
-      });
+    if (smtpConfigurado) {
+      try {
+        const transporte = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT) || 587,
+          secure: Number(process.env.SMTP_PORT) === 465,
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        });
+
+        const esc = s => String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+        await transporte.sendMail({
+          from: process.env.SMTP_DESDE || `TCV LogiSuite <${process.env.SMTP_USER}>`,
+          to: destino,
+          replyTo: `${nombre} <${email}>`,
+          subject: `Solicitud de asesoría de ${empresa}`,
+          text:
+            `Nueva solicitud de asesoría desde la web.\n\n` +
+            `Nombre: ${nombre}\nEmpresa: ${empresa}\nEmail: ${email}\nTeléfono: ${telefono}\n` +
+            (mensaje ? `\nMensaje:\n${mensaje}\n` : ''),
+          html:
+            `<h2 style="color:#16386b;font-family:Arial,sans-serif">Nueva solicitud de asesoría</h2>` +
+            `<table style="font-family:Arial,sans-serif;font-size:14px;border-collapse:collapse">` +
+            `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Nombre</td><td style="padding:4px 0"><strong>${esc(nombre)}</strong></td></tr>` +
+            `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Empresa</td><td style="padding:4px 0"><strong>${esc(empresa)}</strong></td></tr>` +
+            `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Email</td><td style="padding:4px 0">${esc(email)}</td></tr>` +
+            `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Teléfono</td><td style="padding:4px 0">${esc(telefono)}</td></tr>` +
+            `</table>` +
+            (mensaje ? `<p style="font-family:Arial,sans-serif;font-size:14px"><strong>Mensaje:</strong><br>${esc(mensaje).replace(/\n/g, '<br>')}</p>` : '')
+        });
+        await pool.query('UPDATE SOLICITUDES_CONTACTO SET avisada_por_correo = 1 WHERE id_solicitud = ?', [r.insertId]);
+      } catch (err) {
+        console.error('[asesoria] Solicitud guardada, pero no se pudo enviar el aviso por correo:', err.message);
+      }
     }
-
-    const transporte = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-    });
-
-    const esc = s => String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
-    await transporte.sendMail({
-      from: process.env.SMTP_DESDE || `TCV LogiSuite <${process.env.SMTP_USER}>`,
-      to: destino,
-      replyTo: `${nombre} <${email}>`,
-      subject: `Solicitud de asesoría de ${empresa}`,
-      text:
-        `Nueva solicitud de asesoría desde la web.\n\n` +
-        `Nombre: ${nombre}\nEmpresa: ${empresa}\nEmail: ${email}\nTeléfono: ${telefono}\n` +
-        (mensaje ? `\nMensaje:\n${mensaje}\n` : ''),
-      html:
-        `<h2 style="color:#16386b;font-family:Arial,sans-serif">Nueva solicitud de asesoría</h2>` +
-        `<table style="font-family:Arial,sans-serif;font-size:14px;border-collapse:collapse">` +
-        `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Nombre</td><td style="padding:4px 0"><strong>${esc(nombre)}</strong></td></tr>` +
-        `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Empresa</td><td style="padding:4px 0"><strong>${esc(empresa)}</strong></td></tr>` +
-        `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Email</td><td style="padding:4px 0">${esc(email)}</td></tr>` +
-        `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Teléfono</td><td style="padding:4px 0">${esc(telefono)}</td></tr>` +
-        `</table>` +
-        (mensaje ? `<p style="font-family:Arial,sans-serif;font-size:14px"><strong>Mensaje:</strong><br>${esc(mensaje).replace(/\n/g, '<br>')}</p>` : '')
-    });
 
     res.json({ ok: true, mensaje: 'Solicitud enviada. Te vamos a contactar a la brevedad.' });
   } catch (err) {

@@ -33,7 +33,7 @@ function revisarConfiguracion(env = process.env) {
   }
   const faltaCorreo = ['ASESORIA_DESTINO', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'].filter(v => !env[v] || /ejemplo|tu_casilla|tu_contrase/i.test(env[v]));
   if (faltaCorreo.length) {
-    avisos.push(`El formulario de asesoría de la landing no enviará correos: falta configurar ${faltaCorreo.join(', ')}.`);
+    avisos.push(`Las solicitudes de contacto de la landing quedan en el panel del administrador, pero no llegan por correo: falta configurar ${faltaCorreo.join(', ')}.`);
   }
   return { errores, avisos };
 }
