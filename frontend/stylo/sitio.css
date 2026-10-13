@@ -137,9 +137,9 @@ section { padding: 112px 0; position: relative; }
 .mosaico h3 { font: 800 20px/1.15 var(--fuente); font-stretch: 112%; }
 .mosaico p { color: var(--tinta-2); font-size: 14.5px; margin-top: 6px; }
 .mosaico .muestra { margin-top: 22px; }
-.m-viajes { grid-column: span 4; }
-.m-alertas { grid-column: span 2; }
-.m-cuentas { grid-column: span 2; }
+.m-viajes { grid-column: span 6; }
+.m-alertas { grid-column: span 3; }
+.m-cuentas { grid-column: span 3; }
 .m-combustible { grid-column: span 2; }
 .m-modulos { grid-column: span 2; background: var(--carbon); color: var(--tinta-clara); border-color: var(--carbon); }
 .m-modulos p { color: var(--tinta-clara-2); }
