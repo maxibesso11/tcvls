@@ -5,12 +5,12 @@
 .acceso { position: fixed; inset: 0; z-index: 60; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(380px, 1fr); background: var(--surface); }
 
 /* ---------- Panel de marca ---------- */
-.acceso-marca { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 44px 56px; background: radial-gradient(120% 90% at 85% 100%, var(--brand-carbon) 0%, var(--brand-carbon-hondo) 70%); color: var(--brand-ink-claro); }
+.acceso-marca { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(24px, 6vh, 44px) 56px; background: radial-gradient(120% 90% at 85% 100%, var(--brand-carbon) 0%, var(--brand-carbon-hondo) 70%); color: var(--brand-ink-claro); }
 .acceso-logo { width: 220px; height: auto; position: relative; z-index: 1; }
 .acceso-isotipo { position: absolute; right: -14%; bottom: -18%; width: 78%; max-width: 640px; opacity: .07; pointer-events: none; }
-.acceso-lema { position: relative; z-index: 1; margin-top: auto; margin-bottom: 36px; }
+.acceso-lema { position: relative; z-index: 1; margin-top: auto; margin-bottom: clamp(20px, 5vh, 36px); }
 .acceso-kicker { font: 600 12px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brand-celeste); margin-bottom: 18px; }
-.acceso-lema h2 { font: 800 clamp(40px, 4.6vw, 64px)/1.02 var(--font-text); font-stretch: 125%; letter-spacing: -.01em; }
+.acceso-lema h2 { font: 800 clamp(34px, min(4.6vw, 9vh), 64px)/1.02 var(--font-text); font-stretch: 125%; letter-spacing: -.01em; }
 .acceso-lema h2 em { font-style: normal; color: var(--brand-celeste); }
 
 .acceso-tarjetas { list-style: none; display: grid; gap: 10px; max-width: 380px; position: relative; z-index: 1; }
@@ -46,6 +46,14 @@
 .acceso-enlaces { display: flex; gap: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
 .acceso-enlaces a { font: 500 12.5px/1 var(--font-text); color: var(--ink-2); text-decoration: none; }
 .acceso-enlaces a:hover { color: var(--accent-text); text-decoration: underline; }
+
+/* Pantallas bajas (notebooks con escala de Windows): lo decorativo cede lugar */
+@media (max-height: 760px) {
+  .acceso-pie, .acceso-tarjetas li:nth-child(3) { display: none; }
+}
+@media (max-height: 580px) {
+  .acceso-tarjetas { display: none; }
+}
 
 @media (max-width: 860px) {
   .acceso { grid-template-columns: 1fr; }
