@@ -35,7 +35,7 @@ body { background: var(--paper); color: var(--ink); }
 
 .vista { padding: 24px; display: flex; flex-direction: column; gap: 24px; max-width: 1440px; width: 100%; }
 .vista-cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
-.vista-cab h1 { margin: 0; font: 800 27px/32px var(--font-titulo); font-stretch: var(--ancho-titulo); letter-spacing: -.01em; text-wrap: balance; }
+.vista-cab h1 { margin: 0; font: 700 27px/32px var(--font-titulo); letter-spacing: -.01em; text-wrap: balance; }
 .vista-cab p { margin: 4px 0 0; color: var(--ink-2); max-width: 70ch; }
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .migas { font-size: 12.5px; color: var(--ink-3); margin-bottom: 6px; }
@@ -51,7 +51,7 @@ body { background: var(--paper); color: var(--ink); }
 .aviso-proto b { color: var(--ink); }
 
 /* Menú de usuario (avatar + desplegable) */
-.avatar { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--rail); color: var(--rail-ink); font: 600 14px/1 var(--font-display); }
+.avatar { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--rail); color: var(--rail-ink); font: 700 14px/1 var(--font-display); }
 .barra-sup .menu-flot { top: 100%; right: 0; margin-top: var(--space-1); }
 .barra-sup .menu-flot button svg { width: 16px; height: 16px; flex: none; }
 #btn-usuario { height: auto; padding: var(--space-1) var(--space-2); gap: var(--space-3); }

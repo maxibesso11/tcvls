@@ -7,10 +7,10 @@
 /* ---------- Panel de marca ---------- */
 .acceso-marca { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 44px 56px; background: radial-gradient(120% 90% at 85% 100%, var(--brand-carbon) 0%, var(--brand-carbon-hondo) 70%); color: var(--brand-ink-claro); }
 .acceso-logo { width: 220px; height: auto; position: relative; z-index: 1; }
-.acceso-isotipo { position: absolute; right: -14%; bottom: -18%; width: 78%; max-width: 640px; opacity: .07; pointer-events: none; }
+.acceso-isotipo { position: absolute; right: -14%; bottom: -18%; width: 78%; max-width: 640px; pointer-events: none; }
 .acceso-lema { position: relative; z-index: 1; margin-top: auto; margin-bottom: 36px; }
-.acceso-kicker { font: 600 12px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--brand-celeste); margin-bottom: 18px; }
-.acceso-lema h2 { font: 800 clamp(40px, 4.6vw, 64px)/1.02 var(--font-text); font-stretch: 125%; letter-spacing: -.01em; }
+.acceso-kicker { font: 600 12px/1 var(--font-text); letter-spacing: .14em; text-transform: uppercase; color: var(--brand-celeste); margin-bottom: 18px; }
+.acceso-lema h2 { font: 700 clamp(40px, 4.6vw, 64px)/1.02 var(--font-titulo); letter-spacing: -.01em; }
 .acceso-lema h2 em { font-style: normal; color: var(--brand-celeste); }
 
 .acceso-tarjetas { list-style: none; display: grid; gap: 10px; max-width: 380px; position: relative; z-index: 1; }
@@ -31,7 +31,7 @@
 .acceso-panel { display: flex; align-items: center; justify-content: center; padding: 32px; overflow-y: auto; }
 .acceso-form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 16px; }
 .acceso-logo-movil { display: none; width: 190px; margin-bottom: 8px; }
-.acceso-form h1 { font: 800 28px/1.15 var(--font-text); font-stretch: 112%; color: var(--ink); }
+.acceso-form h1 { font: 700 28px/1.15 var(--font-titulo); color: var(--ink); }
 .acceso-form > .tenue { margin-top: -8px; font-size: 14px; }
 .acceso-form .campo input { height: 44px; font-size: 15px; }
 .acceso-clave { position: relative; }

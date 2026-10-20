@@ -5,7 +5,7 @@
 .alertas { list-style: none; margin: 0; padding: 0; }
 .alerta { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: var(--space-3); padding: 8px var(--space-4); border-bottom: 1px solid var(--line); }
 .alerta:last-child { border-bottom: 0; }
-.alerta-dias { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 40px; border-radius: var(--radius-s); background: var(--surface-sunk); color: var(--ink); font: 600 20px/1 var(--font-display); }
+.alerta-dias { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 40px; border-radius: var(--radius-s); background: var(--surface-sunk); color: var(--ink); font: 700 20px/1 var(--font-display); }
 .alerta-dias small { font: 600 9.5px/1 var(--font-text); letter-spacing: .6px; text-transform: uppercase; margin-top: 2px; }
 .alerta.vencida .alerta-dias { background: var(--danger-fill); color: #fff; }
 .alerta.pronto .alerta-dias { background: var(--warn-fill); color: var(--ink); }

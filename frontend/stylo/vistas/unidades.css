@@ -6,9 +6,9 @@
 .unidad-ficha { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); cursor: pointer; text-align: left; font: inherit; color: inherit; }
 .unidad-ficha:hover { border-color: var(--line-strong); }
 .unidad-ficha .fila { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.unidad-ficha .modelo { font: 600 18px/20px var(--font-display); }
+.unidad-ficha .modelo { font: 700 18px/20px var(--font-display); }
 .unidad-ficha .datos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
-.unidad-ficha .datos b { display: block; font: 600 17px/20px var(--font-display); }
+.unidad-ficha .datos b { display: block; font: 700 17px/20px var(--font-display); }
 .unidad-ficha .datos span { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
 .marcas { display: flex; flex-wrap: wrap; gap: 6px; min-height: 22px; }
 .filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
@@ -35,8 +35,8 @@
 .cubierta { width: 30px; height: 62px; border-radius: 6px; border: 2px solid var(--ink); background: var(--ink); cursor: pointer; padding: 0; position: relative; display: flex; align-items: flex-end; justify-content: center; }
 .cubierta::after { content: ""; position: absolute; inset: 6px 7px; border-radius: 2px; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(255,255,255,.18) 5px 7px); }
 .cubierta.estado-nueva { background: var(--ok); border-color: var(--ok); }
-.cubierta.estado-buena { background: #2f4a6e; border-color: #2f4a6e; }
-.cubierta.estado-recapada { background: #6b7685; border-color: #6b7685; }
+.cubierta.estado-buena { background: #076a9a; border-color: #076a9a; }
+.cubierta.estado-recapada { background: #55585d; border-color: #55585d; }
 .cubierta.estado-cambiar { background: var(--danger-fill); border-color: var(--danger-fill); }
 .cubierta.vacia { background: var(--surface); border-style: dashed; border-color: var(--line-strong); }
 .cubierta.vacia::after { display: none; }

@@ -24,7 +24,7 @@
 /* Gráficos SVG */
 .grafico { display: block; width: 100%; height: auto; }
 .grafico text { font: 500 11px var(--font-text); fill: var(--ink-2); }
-.grafico .valor { font: 600 13px var(--font-display); fill: var(--ink); letter-spacing: .2px; }
+.grafico .valor { font: 700 13px var(--font-display); fill: var(--ink); letter-spacing: .2px; }
 .grafico .eje { stroke: var(--line); }
 .grafico .base { stroke: var(--ink); stroke-width: 1; }
 .leyenda { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--ink-2); }
@@ -35,7 +35,7 @@
 .tramos > div { display: flex; align-items: center; padding: 0 8px; font: 600 12px var(--font-text); white-space: nowrap; overflow: hidden; min-width: 0; }
 .tramos-ref { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
 .tramos-ref div { display: flex; flex-direction: column; gap: 2px; }
-.tramos-ref b { font: 600 20px/22px var(--font-display); }
+.tramos-ref b { font: 700 20px/22px var(--font-display); }
 
 /* Celdas del tablero: dos líneas en vez de columnas extra (evita el scroll lateral) */
 .equipo-celda { display: flex; flex-direction: column; gap: 4px; }

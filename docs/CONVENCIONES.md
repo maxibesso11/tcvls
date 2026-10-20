@@ -15,6 +15,7 @@ sistema siga funcionando en producción.
 | Un cálculo sin base de datos | `<dominio>.calculos.js`, con su test en `backend/test/` |
 | Un PDF | `<dominio>.pdf.js` |
 | Un valor fijo de negocio (alícuota, límites) | `backend/src/config/constantes.js` |
+| Un color, una tipografía o un logo | Seguir el manual de marca (`docs/marca/TCV_Marca.pdf`): colores y fuentes solo como variables en `frontend/stylo/base/tokens.css` (sistema) o en el `:root` de `frontend/stylo/sitio.css` (web); logos desde `frontend/img/logo/`. PT Sans en títulos y cifras, Kumbh Sans en textos; Barlow Condensed solo en la patente |
 | Un servicio externo (AFIP/ARCA, correo…) | `backend/src/integraciones/` |
 | Una vista nueva del sistema | `frontend/js/vistas/<vista>.js` + su `<script>` en `frontend/index.html` antes de `nucleo/sesion.js` |
 

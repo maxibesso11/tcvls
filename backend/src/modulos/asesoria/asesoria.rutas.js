@@ -88,12 +88,12 @@ router.post('/', async (req, res) => {
             `Nombre: ${nombre}\nEmpresa: ${empresa}\nEmail: ${email}\nTeléfono: ${telefono}\n` +
             (mensaje ? `\nMensaje:\n${mensaje}\n` : ''),
           html:
-            `<h2 style="color:#16386b;font-family:Arial,sans-serif">Nueva solicitud de asesoría</h2>` +
+            `<h2 style="color:#282828;font-family:Arial,sans-serif">Nueva solicitud de asesoría</h2>` +
             `<table style="font-family:Arial,sans-serif;font-size:14px;border-collapse:collapse">` +
-            `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Nombre</td><td style="padding:4px 0"><strong>${esc(nombre)}</strong></td></tr>` +
-            `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Empresa</td><td style="padding:4px 0"><strong>${esc(empresa)}</strong></td></tr>` +
-            `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Email</td><td style="padding:4px 0">${esc(email)}</td></tr>` +
-            `<tr><td style="padding:4px 12px 4px 0;color:#5a6b7d">Teléfono</td><td style="padding:4px 0">${esc(telefono)}</td></tr>` +
+            `<tr><td style="padding:4px 12px 4px 0;color:#55585d">Nombre</td><td style="padding:4px 0"><strong>${esc(nombre)}</strong></td></tr>` +
+            `<tr><td style="padding:4px 12px 4px 0;color:#55585d">Empresa</td><td style="padding:4px 0"><strong>${esc(empresa)}</strong></td></tr>` +
+            `<tr><td style="padding:4px 12px 4px 0;color:#55585d">Email</td><td style="padding:4px 0">${esc(email)}</td></tr>` +
+            `<tr><td style="padding:4px 12px 4px 0;color:#55585d">Teléfono</td><td style="padding:4px 0">${esc(telefono)}</td></tr>` +
             `</table>` +
             (mensaje ? `<p style="font-family:Arial,sans-serif;font-size:14px"><strong>Mensaje:</strong><br>${esc(mensaje).replace(/\n/g, '<br>')}</p>` : '')
         });
