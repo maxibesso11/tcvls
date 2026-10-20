@@ -2,7 +2,7 @@
    Clases sueltas de texto y estado vacío. */
 
 .num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.mono { font-family: var(--font-mono); font-size: 13px; }
+.mono { font-family: var(--font-text); font-size: 13px; font-variant-numeric: tabular-nums; }
 .rotulo { font: 600 11px/14px var(--font-text); letter-spacing: .9px; text-transform: uppercase; color: var(--ink-2); }
 .tenue { color: var(--ink-3); }
 

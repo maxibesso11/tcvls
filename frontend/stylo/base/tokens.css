@@ -5,27 +5,27 @@
   /* Color (tema por defecto: tcv) */
   --paper: #f2f4f6;           /* Fondo de página (detrás de hojas y tablas). Tono papel, levemente cálido: nunca blanco pur */
   --surface: #ffffff;         /* Hojas, tablas, modales, campos. La superficie donde se lee el dato. */
-  --surface-sunk: #e8ebee;    /* Cabecera de tabla, pozos de filtros, fila seleccionada, track de barras inline. */
+  --surface-sunk: #ecedef;   /* Niebla del manual: cabecera de tabla, pozos de filtros, fila seleccionada. */
   --line: #d8dce0;            /* Hairline 1px: separadores de fila, bordes de hoja. Decorativa, no lleva significado. */
   --line-strong: #7c838a;     /* Borde de campos, checkboxes y controles (≥3:1 sobre surface y paper). */
-  --ink: #1d1f22;             /* Texto principal y cifras sobre surface, paper y surface-sunk. */
-  --ink-2: #464c53;           /* Texto secundario: subtítulos, metadatos, etiquetas de columna. Sobre surface, paper y surf */
+  --ink: #282828;   /* Grafito del manual: texto principal y cifras sobre surface, paper y surface-sunk. */
+  --ink-2: #55585d;   /* Gris texto del manual: subtítulos, metadatos, etiquetas de columna. */
   --ink-3: #5a6168;           /* Texto terciario: ayudas de campo, unidades (km/L, $), placeholders. ≥4.5:1 sobre surface y */
-  --brand-navy: #282828;      /* Azul TCV del isotipo. Rail del tema TCV, serie 'ingresos' en gráficos, estado FACTURADO. */
-  --brand-cyan: #4cc3ff;      /* Cian TCV del isotipo. Acento del tema TCV; solo como relleno o marca, nunca como texto sob */
+  --brand-navy: #282828;   /* Grafito de la marca (nombre histórico). Serie 'ingresos' oscura, estado FACTURADO. */
+  --brand-cyan: #4cc3ff;   /* Celeste de la marca (alias de --brand-celeste). Solo relleno o marca, nunca texto sobre blanco. */
   --brand-carbon: #282828;    /* Carbón de la marca (logo). Fondos de marca: login, rail del tema TCV. */
   --brand-carbon-hondo: #1c1c1c; /* Carbón más profundo para degradés y sombras sobre fondos de marca. */
   --brand-celeste: #4cc3ff;   /* Celeste de la marca (logo). Relleno y acento; como texto solo sobre carbón. */
   --brand-ink-claro: #f5f7f8; /* Texto sobre carbón. */
   --brand-ink-tenue: #a9aeb3; /* Texto secundario sobre carbón (≥4.5:1). */
   --rail: #282828;            /* Fondo del rail de navegación lateral y de la barra superior móvil. Lo cambia el tema del u */
-  --rail-raised: #3a3a3a;     /* Ítem activo/hover del rail y grupo desplegado. */
+  --rail-raised: #3d3f43;   /* Pizarra del manual: ítem activo/hover del rail y grupo desplegado. */
   --rail-ink: #f4f6f8;        /* Texto e íconos del rail sobre rail y rail-raised. */
   --rail-ink-muted: #a9aeb3;  /* Etiquetas de grupo del rail (OPERACIÓN, FLOTA…) sobre rail. */
   --accent: #4cc3ff;          /* Acento del tema: marca del ítem activo en el rail, relleno del botón primario, foco. Como  */
-  --on-accent: #1d1d1d;       /* Texto e íconos sobre un relleno accent. */
-  --accent-text: #0a6fa3;     /* El acento cuando tiene que ser texto o ícono sobre surface/paper: links, tab activa, cifra */
-  --focus: #1d1f22;           /* Anillo de foco 2px + offset 2px en todos los controles. Ink sólido: ≥3:1 sobre cualquier s */
+  --on-accent: #282828;   /* Grafito sobre relleno Celeste (≥ 8:1). */
+  --accent-text: #076a9a;   /* Celeste profundo del manual: el acento como texto o ícono sobre surface/paper (5,9:1 sobre blanco). */
+  --focus: #282828;           /* Anillo de foco 2px + offset 2px en todos los controles. Ink sólido: ≥3:1 sobre cualquier s */
   --ok: #1c6a37;              /* Texto/ícono de estado correcto: rentabilidad positiva, 'al día', FINALIZADO. Sobre surface */
   --ok-tint: #e1efe4;         /* Fondo de insignia y celda de estado ok. */
   --warn: #7a4e00;            /* Texto/ícono de aviso: vence pronto, EN DESTINO, cobro por vencer. Sobre surface, paper y w */
@@ -34,13 +34,13 @@
   --danger: #b0251b;          /* Texto/ícono de peligro: vencido, rentabilidad negativa, eliminar. Sobre surface, paper y d */
   --danger-tint: #fbe2de;     /* Fondo de insignia/celda vencida. */
   --danger-fill: #c8321f;     /* Relleno del botón destructivo y marca de vencido, con texto blanco. */
-  --info: #0a5c93;            /* Texto/ícono informativo y estado EN CURSO. Sobre surface, paper e info-tint. */
-  --info-tint: #dcedf9;       /* Fondo de insignia informativa / EN CURSO. */
+  --info: #076a9a;   /* Celeste profundo: texto/ícono informativo y estado EN CURSO. */
+  --info-tint: #d6f0ff;   /* Celeste claro del manual: fondo de insignia informativa / EN CURSO. */
   --plate-band: #1d4f9c;      /* Franja azul superior de la patente Mercosur. */
   --plate-ink: #111418;       /* Caracteres y borde de la patente. */
   --plate-bg: #ffffff;        /* Fondo de la patente. */
-  --chart-income: #0a6fa3;    /* Serie de ingresos en todos los gráficos. */
-  --chart-cost: #d2691e;      /* Serie de costos/gastos. Naranja vs azul: se distinguen sin depender del rojo-verde. */
+  --chart-income: #076a9a;   /* Celeste profundo: serie de ingresos en todos los gráficos. */
+  --chart-cost: #ff7f0b;   /* Destacados del manual: serie de costos/gastos (naranja vs celeste, sin depender del rojo-verde). */
   --chart-alt: #4cc3ff;       /* Segunda serie neutra (período anterior, objetivo). */
   --chart-muted: #a3abb5;     /* Resto/otros, gridlines fuertes. */
 
@@ -57,10 +57,10 @@
   --radius-l: 8px;
   --shadow-pop: 0 8px 24px rgba(15,27,45,0.18), 0 1px 2px rgba(15,27,45,0.12);
 
-  /* Tipografía */
-  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;   /* Cifras y patentes */
-  --font-titulo: "Archivo", system-ui, sans-serif;                  /* Títulos, en su versión ancha (como el logo) */
-  --ancho-titulo: 112%;
-  --font-text: "Archivo", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  /* Tipografía (manual de marca: PT Sans + Kumbh Sans; respaldo Arial) */
+  --font-titulo: "PT Sans", Arial, sans-serif;                     /* Títulos y subtítulos (Bold 700) */
+  --font-display: "PT Sans", Arial, sans-serif;                    /* Cifras (Bold 700) */
+  --font-text: "Kumbh Sans", Arial, sans-serif;                    /* Textos, etiquetas, datos, tablas y botones */
+  --font-patente: "Barlow Condensed", "Arial Narrow", sans-serif;  /* Excepción: solo la patente Mercosur */
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace; /* Solo registros técnicos (logs); no es tipografía de marca */
 }

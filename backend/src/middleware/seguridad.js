@@ -2,7 +2,7 @@
 // Cabeceras de seguridad HTTP para todas las respuestas.
 //
 // Política de contenido (CSP): todo se limita al propio sitio, salvo las
-// tipografías de la interfaz (Barlow Condensed, Archivo, IBM Plex Mono), que se
+// tipografías de la interfaz (PT Sans, Kumbh Sans y Barlow Condensed), que se
 // sirven desde Google Fonts: la hoja de estilos desde fonts.googleapis.com y los
 // archivos de fuente desde fonts.gstatic.com. Sin esto el navegador las bloquea
 // y la interfaz cae a las fuentes del sistema. Se permiten scripts y estilos en línea

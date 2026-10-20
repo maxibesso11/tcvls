@@ -13,7 +13,7 @@
 .cascada-fila.ingreso .cascada-pista > i { background: var(--chart-income); }
 .cascada-fila.total .cascada-pista > i { background: var(--ok); }
 .cascada-fila.total.negativo .cascada-pista > i { background: var(--danger-fill); }
-.cascada-val { font: 600 16px/1 var(--font-display); text-align: right; white-space: nowrap; color: var(--danger); }
+.cascada-val { font: 700 16px/1 var(--font-display); text-align: right; white-space: nowrap; color: var(--danger); }
 .cascada-fila.ingreso .cascada-val { color: var(--ok); }
 .cascada-fila.total { padding-top: var(--space-2); border-top: 2px solid var(--ink); }
 .cascada-fila.total .cascada-val { font-size: 20px; color: var(--ok); }
@@ -29,7 +29,7 @@
 .puntos-seg { position: absolute; top: 50%; height: 3px; transform: translateY(-50%); background: var(--chart-income); }
 .puntos-pto { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--chart-income); }
 .puntos-fila.abajo .puntos-seg, .puntos-fila.abajo .puntos-pto { background: var(--chart-cost); }
-.puntos-val { font: 600 15px/1 var(--font-display); text-align: right; }
+.puntos-val { font: 700 15px/1 var(--font-display); text-align: right; }
 .puntos-cabeza { min-height: 18px; }
 .puntos-prom-txt { position: absolute; left: var(--prom); bottom: 2px; padding-left: 5px; font: 600 11.5px/1 var(--font-text); color: var(--ink); white-space: nowrap; }
 .puntos-escala { min-height: 20px; border-top: 1px solid var(--line); }

@@ -15,12 +15,12 @@ function enviarResumenCuentaPDF(res, { cuenta, movimientos, resumen }, nombreEmp
   const doc = new PDFDocument({ size: 'A4', margin: 50 });
   doc.pipe(res);
 
-  const verde = '#15231f';
+  const grafito = '#282828'; // Grafito del manual de marca
   const ambar = '#b87a1e';
-  const gris = '#6b7470';
+  const gris = '#55585d';
 
   // Encabezado
-  doc.rect(50, 50, 495, 70).fill(verde);
+  doc.rect(50, 50, 495, 70).fill(grafito);
   doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold')
      .text(nombreEmpresa, 70, 68, { width: 300, ellipsis: true });
   doc.fontSize(10).font('Helvetica')
@@ -31,9 +31,9 @@ function enviarResumenCuentaPDF(res, { cuenta, movimientos, resumen }, nombreEmp
 
   // Datos del titular
   let y = 140;
-  doc.fillColor(verde).fontSize(12).font('Helvetica-Bold').text('Datos del titular', 50, y);
+  doc.fillColor(grafito).fontSize(12).font('Helvetica-Bold').text('Datos del titular', 50, y);
   y += 20;
-  doc.fontSize(10).font('Helvetica').fillColor('#202624');
+  doc.fontSize(10).font('Helvetica').fillColor('#282828');
   doc.text(`Titular: ${cuenta.nombre}`, 50, y);
   doc.text(`Tipo: ${cuenta.tipo}`, 320, y);
   y += 16;
@@ -44,14 +44,14 @@ function enviarResumenCuentaPDF(res, { cuenta, movimientos, resumen }, nombreEmp
   y += 30;
 
   // Tabla de movimientos
-  doc.fillColor(verde).fontSize(12).font('Helvetica-Bold').text('Movimientos', 50, y);
+  doc.fillColor(grafito).fontSize(12).font('Helvetica-Bold').text('Movimientos', 50, y);
   y += 20;
 
   const col = { fecha: 50, concepto: 115, debito: 330, credito: 405, saldo: 478 };
   const filaAltura = 18;
 
   function cabeceraTabla() {
-    doc.rect(50, y, 495, filaAltura).fill('#ecebe5');
+    doc.rect(50, y, 495, filaAltura).fill('#ecedef');
     doc.fillColor(gris).fontSize(8).font('Helvetica-Bold');
     doc.text('FECHA', col.fecha + 4, y + 5);
     doc.text('CONCEPTO', col.concepto, y + 5);
@@ -76,8 +76,8 @@ function enviarResumenCuentaPDF(res, { cuenta, movimientos, resumen }, nombreEmp
       cabeceraTabla();
       doc.font('Helvetica').fontSize(8);
     }
-    if (i % 2 === 1) doc.rect(50, y, 495, filaAltura).fill('#faf9f5');
-    doc.fillColor('#202624');
+    if (i % 2 === 1) doc.rect(50, y, 495, filaAltura).fill('#f6f7f8');
+    doc.fillColor('#282828');
     doc.text(fmtFecha(m.fecha), col.fecha + 4, y + 5);
     doc.text(String(m.concepto).slice(0, 48), col.concepto, y + 5, { width: 210 });
     // Desde la perspectiva de la empresa: débito al titular = a favor de
@@ -86,7 +86,7 @@ function enviarResumenCuentaPDF(res, { cuenta, movimientos, resumen }, nombreEmp
        .text(m.debito ? fmt(m.debito) : '—', col.debito, y + 5, { width: 70, align: 'right' });
     doc.fillColor(m.credito ? '#c0392b' : gris)
        .text(m.credito ? fmt(m.credito) : '—', col.credito, y + 5, { width: 68, align: 'right' });
-    doc.fillColor('#202624')
+    doc.fillColor('#282828')
        .text(fmt(m.saldo_parcial), col.saldo, y + 5, { width: 62, align: 'right' });
     y += filaAltura;
   });
@@ -95,11 +95,11 @@ function enviarResumenCuentaPDF(res, { cuenta, movimientos, resumen }, nombreEmp
   y += 14;
   if (y > 680) { doc.addPage(); y = 50; }
 
-  doc.rect(50, y, 495, 88).fill('#faf9f5');
-  doc.rect(50, y, 495, 88).strokeColor('#e2e1da').lineWidth(0.5).stroke();
+  doc.rect(50, y, 495, 88).fill('#f6f7f8');
+  doc.rect(50, y, 495, 88).strokeColor('#d8dce0').lineWidth(0.5).stroke();
 
-  doc.fillColor(verde).fontSize(11).font('Helvetica-Bold').text('Resumen', 66, y + 12);
-  doc.fontSize(9).font('Helvetica').fillColor('#202624');
+  doc.fillColor(grafito).fontSize(11).font('Helvetica-Bold').text('Resumen', 66, y + 12);
+  doc.fontSize(9).font('Helvetica').fillColor('#282828');
   doc.text(`Total débitos: ${fmt(resumen.total_debitos)}`, 66, y + 32);
   doc.text(`Total créditos: ${fmt(resumen.total_creditos)}`, 66, y + 48);
   doc.text(`Movimientos: ${resumen.cantidad_movimientos}`, 66, y + 64);

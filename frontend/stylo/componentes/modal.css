@@ -4,6 +4,6 @@
 /* ---------- Modal ---------- */
 .modal { width: min(640px, 100%); background: var(--surface); border-radius: var(--radius-l); box-shadow: var(--shadow-pop); overflow: hidden; }
 .modal-cabecera { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--line); }
-.modal-cabecera h2 { margin: 0; font: 700 19px/24px var(--font-titulo); font-stretch: var(--ancho-titulo); }
+.modal-cabecera h2 { margin: 0; font: 700 19px/24px var(--font-titulo); }
 .modal-cuerpo { padding: var(--space-5); max-height: 70vh; overflow: auto; }
 .modal-pie { display: flex; justify-content: flex-end; gap: var(--space-2); padding: var(--space-3) var(--space-5); background: var(--paper); border-top: 1px solid var(--line); }
